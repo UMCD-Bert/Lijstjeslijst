@@ -1,0 +1,814 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lijstjeslijst</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lijstjes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2F6F5E">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #EFF1EA;
+    --surface: #FBFBF7;
+    --surface-2: #E4E7DD;
+    --ink: #232620;
+    --muted: #6E7266;
+    --accent: #2F6F5E;
+    --accent-ink: #F4F8F5;
+    --accent-soft: #DCEAE3;
+    --danger: #B5482F;
+    --danger-soft: #F3E1DA;
+    --border: #D8DBCF;
+    --shadow: rgba(35,38,32,0.10);
+    --focus: #2F6F5E;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1B1D18; --surface: #23261F; --surface-2: #2C2F27; --ink: #E9EAE1;
+      --muted: #9DA294; --accent: #57B79B; --accent-ink: #0E211A; --accent-soft: #24443A;
+      --danger: #E08064; --danger-soft: #402821; --border: #383B32; --shadow: rgba(0,0,0,0.4); --focus: #57B79B;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1B1D18; --surface: #23261F; --surface-2: #2C2F27; --ink: #E9EAE1;
+    --muted: #9DA294; --accent: #57B79B; --accent-ink: #0E211A; --accent-soft: #24443A;
+    --danger: #E08064; --danger-soft: #402821; --border: #383B32; --shadow: rgba(0,0,0,0.4); --focus: #57B79B;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { overflow-x: hidden; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased; min-height: 100vh;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 32px 20px 90px; padding-top: calc(32px + env(safe-area-inset-top)); }
+  @media (min-width: 640px) { .wrap { padding: 40px 28px 90px; padding-top: calc(40px + env(safe-area-inset-top)); } }
+
+  header.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 30px; flex-wrap: wrap; }
+  h1.brand { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: clamp(1.8rem, 5vw, 2.5rem); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+  p.tagline { margin: 4px 0 0; color: var(--muted); font-size: 0.92rem; font-style: italic; font-family: 'Fraunces', Georgia, serif; }
+  button { font-family: inherit; cursor: pointer; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  .btn-primary {
+    background: var(--accent); color: var(--accent-ink); border: none; border-radius: 10px;
+    padding: 11px 18px; font-size: 0.9rem; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;
+    box-shadow: 0 1px 2px var(--shadow); transition: transform 0.12s ease, box-shadow 0.12s ease; white-space: nowrap;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 10px var(--shadow); }
+  .btn-secondary {
+    background: var(--surface-2); color: var(--ink); border: 1px solid var(--border); border-radius: 9px;
+    padding: 8px 14px; font-size: 0.85rem; font-weight: 500;
+  }
+  .btn-secondary:hover { background: var(--accent-soft); }
+  .btn-text { background: none; border: none; color: var(--muted); font-size: 0.86rem; padding: 6px 4px; }
+  .btn-text:hover { color: var(--ink); }
+  .btn-text.danger { color: var(--danger); }
+  .btn-text.danger:hover { text-decoration: underline; }
+
+  main { position: relative; }
+  [hidden] { display: none !important; }
+
+  /* ---- Overview grid ---- */
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: 0 1px 2px var(--shadow); cursor: pointer; display: flex; flex-direction: column;
+    position: relative; transition: transform 0.15s ease, box-shadow 0.15s ease; text-align: left; color: inherit; overflow: hidden;
+  }
+  .card:hover, .card:focus-visible { transform: translateY(-2px); box-shadow: 0 8px 18px var(--shadow); }
+  .card-cover { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; background: var(--surface-2); }
+  .card-cover-placeholder {
+    width: 100%; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center;
+    background: var(--surface-2); font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 2.4rem; color: var(--muted);
+  }
+  .card-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .card-title { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.1rem; margin: 0; line-height: 1.25; text-wrap: balance; }
+  .pill { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em;
+    background: var(--accent-soft); color: var(--accent); padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+  .count-tag { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.72rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .card-desc { margin: 0; font-size: 0.84rem; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .preview { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+  .preview li { display: flex; align-items: baseline; gap: 6px; font-size: 0.85rem; color: var(--ink); }
+  .preview li.done { color: var(--muted); }
+  .preview .p-primary.done { text-decoration: line-through; }
+  .preview .p-secondary { color: var(--muted); font-size: 0.8rem; }
+  .preview .dot { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--muted); flex-shrink: 0; }
+  .preview li.done .dot { background: var(--accent); border-color: var(--accent); }
+  .preview .more { color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 0.74rem; }
+  .card-empty { color: var(--muted); font-size: 0.84rem; font-style: italic; margin: 0; }
+
+  .card-controls { position: absolute; top: 10px; right: 10px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.12s ease; }
+  .card:hover .card-controls, .card:focus-within .card-controls { opacity: 1; }
+  .icon-btn {
+    width: 27px; height: 27px; border-radius: 7px; border: none; background: rgba(251,251,247,0.9); color: var(--muted);
+    display: flex; align-items: center; justify-content: center; font-size: 0.8rem; box-shadow: 0 1px 3px var(--shadow);
+  }
+  .icon-btn:hover { color: var(--ink); background: var(--surface); }
+  .icon-btn.danger:hover { color: var(--danger); background: var(--danger-soft); }
+
+  .ghost-card { border: 1.5px dashed var(--border); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; background: var(--surface); grid-column: 1 / -1; }
+  .ghost-card h3 { margin: 0; font-family: 'Fraunces', Georgia, serif; font-size: 1.15rem; }
+  .template-choice { display: flex; gap: 8px; flex-wrap: wrap; }
+  .template-btn {
+    border: 1.5px solid var(--border); background: var(--surface); color: var(--ink); border-radius: 9px;
+    padding: 9px 14px; font-size: 0.86rem; font-weight: 500; display: flex; flex-direction: column; gap: 2px; text-align: left;
+  }
+  .template-btn small { color: var(--muted); font-size: 0.72rem; font-weight: 400; }
+  .template-btn.selected { border-color: var(--accent); background: var(--accent-soft); }
+  .field-row { display: flex; flex-direction: column; gap: 4px; }
+  .field-row label { font-size: 0.76rem; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.03em; }
+  .field-row input, .field-row textarea {
+    border: 1px solid var(--border); background: var(--surface-2); border-radius: 8px; padding: 9px 11px;
+    font-family: inherit; font-size: 0.94rem; color: var(--ink); resize: vertical;
+  }
+  .field-row input:focus, .field-row textarea:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+  .ghost-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-state p.big { font-family: 'Fraunces', Georgia, serif; font-size: 1.25rem; color: var(--ink); margin: 0 0 6px; }
+
+  /* ---- Detail view ---- */
+  #detail-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 1px 2px var(--shadow); }
+  .back-row { padding: 14px 20px 0; }
+  .back-btn { background: none; border: none; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; font-size: 0.86rem; padding: 6px 4px; }
+  .back-btn:hover { color: var(--ink); }
+
+  .cover-area { position: relative; width: 100%; }
+  .cover-img { width: 100%; max-height: 260px; object-fit: cover; display: block; background: var(--surface-2); }
+  .cover-placeholder { width: 100%; height: 140px; display: flex; align-items: center; justify-content: center; background: var(--surface-2);
+    font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 3rem; color: var(--muted); }
+  .cover-actions { position: absolute; bottom: 10px; right: 12px; display: flex; gap: 8px; }
+  .cover-actions .btn-secondary { background: rgba(251,251,247,0.92); }
+
+  .detail-body { padding: 18px 24px 26px; }
+  .detail-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 4px; flex-wrap: wrap; }
+  .detail-title { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 1.55rem; margin: 0; padding: 4px 2px; border: none;
+    background: transparent; color: var(--ink); flex: 1 1 auto; min-width: 160px; }
+  .detail-title:focus { outline: none; border-bottom: 1.5px solid var(--accent); }
+  .detail-meta { display: flex; align-items: center; gap: 10px; margin: 6px 0 14px; flex-wrap: wrap; }
+  .detail-desc { width: 100%; border: none; background: transparent; color: var(--muted); font-family: inherit; font-size: 0.92rem;
+    padding: 2px; resize: none; line-height: 1.5; margin-bottom: 14px; }
+  .detail-desc:focus { outline: none; background: var(--surface-2); border-radius: 8px; }
+  .detail-desc::placeholder { color: var(--muted); opacity: 0.7; }
+  hr.div { border: none; border-top: 1px solid var(--border); margin: 4px 0 14px; }
+
+  ul.items { list-style: none; margin: 0 0 18px; padding: 0; display: flex; flex-direction: column; }
+  .item-row { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--border); }
+  .item-row:last-child { border-bottom: none; }
+  .move-col { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
+  .move-btn { width: 20px; height: 16px; border: none; background: none; color: var(--border); display: flex; align-items: center; justify-content: center; padding: 0; line-height: 0; }
+  .move-btn:not(:disabled):hover { color: var(--accent); }
+  .move-btn:disabled { visibility: hidden; }
+  .checkbox {
+    width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--border); background: var(--surface); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; padding: 0; transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .checkbox svg { width: 13px; height: 13px; stroke: var(--accent-ink); stroke-width: 3; fill: none; stroke-dasharray: 20; stroke-dashoffset: 20;
+    transition: stroke-dashoffset 0.2s ease; stroke-linecap: round; stroke-linejoin: round; }
+  .checkbox.checked { background: var(--accent); border-color: var(--accent); }
+  .checkbox.checked svg { stroke-dashoffset: 0; }
+  @media (prefers-reduced-motion: reduce) { .checkbox svg, .card, .card-controls, .icon-btn { transition: none; } }
+  .item-main { flex: 1; min-width: 0; display: flex; flex-direction: column; cursor: pointer; padding: 2px 0; }
+  .item-primary { font-size: 0.98rem; overflow-wrap: anywhere; }
+  .item-secondary { font-size: 0.83rem; color: var(--muted); overflow-wrap: anywhere; }
+  .item-row.done .item-primary { color: var(--muted); text-decoration: line-through; }
+  .item-actions { display: flex; gap: 2px; flex-shrink: 0; opacity: 0; transition: opacity 0.12s ease; }
+  .item-row:hover .item-actions, .item-row:focus-within .item-actions { opacity: 1; }
+  .items-empty { color: var(--muted); font-style: italic; padding: 14px 2px; font-size: 0.9rem; }
+
+  .edit-form { flex: 1; display: flex; gap: 8px; flex-wrap: wrap; padding: 4px 0; }
+  .edit-form input { border: 1px solid var(--accent); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 0.92rem; color: var(--ink); flex: 1; min-width: 100px; }
+  .edit-form-actions { display: flex; gap: 4px; }
+
+  form.add-item { display: flex; gap: 10px; align-items: center; border-top: 1.5px dashed var(--border); padding-top: 16px; flex-wrap: wrap; }
+  form.add-item .add-fields { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
+  form.add-item input {
+    flex: 1; min-width: 120px; border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px;
+    padding: 10px 13px; font-family: inherit; font-size: 0.94rem; color: var(--ink);
+  }
+  form.add-item input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+  form.add-item button.submit-btn {
+    background: var(--accent); color: var(--accent-ink); border: none; border-radius: 9px; width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.1rem;
+  }
+
+  .detail-footer { display: flex; justify-content: flex-end; margin-top: 4px; }
+  .status-note { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.94rem; }
+  .install-hint { margin: 0 0 22px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--accent-soft);
+    color: var(--ink); font-size: 0.84rem; display: flex; align-items: center; gap: 10px; }
+  .install-hint button { margin-left: auto; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1 class="brand">Lijstjeslijst</h1>
+      <p class="tagline">al je lijstjes, netjes bij elkaar</p>
+    </div>
+    <button class="btn-primary" id="new-list-btn" type="button"><span aria-hidden="true">+</span> Nieuw lijstje</button>
+  </header>
+
+  <div id="install-hint" class="install-hint" hidden>
+    <span>Zet dit op je beginscherm: deel-icoon &rarr; "Zet op beginscherm".</span>
+    <button type="button" class="btn-text" id="dismiss-install-hint">Sluiten</button>
+  </div>
+
+  <main>
+    <div id="grid"></div>
+    <div id="empty-state" class="empty-state" hidden>
+      <p class="big">Nog geen lijstjes</p>
+      <p>Maak je eerste lijstje aan met de knop hierboven.</p>
+    </div>
+    <div id="detail" hidden><div id="detail-card"></div></div>
+    <div id="status-note" class="status-note" hidden></div>
+  </main>
+</div>
+
+<script>
+(function () {
+  var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
+  var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
+  var COVER_BUCKET = 'afbeeldingen';
+  var COVER_PREFIX = 'lijstjeslijst/';
+
+  var TEMPLATES = {
+    simpel: { label: 'Lijst', fields: [{ key: 'titel', label: 'Item', placeholder: 'Wat wil je onthouden?' }], hasDone: true },
+    boeken: { label: 'Boeken', fields: [{ key: 'titel', label: 'Titel', placeholder: 'Titel van het boek' }, { key: 'subtitel', label: 'Auteur', placeholder: 'Auteur (optioneel)' }], hasDone: false },
+    muziek: { label: 'Muziek', fields: [{ key: 'titel', label: 'Titel', placeholder: 'Titel of album' }, { key: 'subtitel', label: 'Artiest', placeholder: 'Artiest (optioneel)' }], hasDone: false }
+  };
+  var TEMPLATE_ORDER = ['simpel', 'boeken', 'muziek'];
+
+  var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  var state = { lijsten: [], items: [], currentId: null, editingItem: null };
+
+  var gridEl = document.getElementById('grid');
+  var emptyStateEl = document.getElementById('empty-state');
+  var detailEl = document.getElementById('detail');
+  var detailCardEl = document.getElementById('detail-card');
+  var statusEl = document.getElementById('status-note');
+  var newListBtn = document.getElementById('new-list-btn');
+  var installHint = document.getElementById('install-hint');
+
+  document.getElementById('dismiss-install-hint').addEventListener('click', function () {
+    installHint.hidden = true;
+    try { localStorage.setItem('lijstjeslijst-install-hint-dismissed', '1'); } catch (e) {}
+  });
+
+  function showStatus(msg) { statusEl.hidden = !msg; statusEl.textContent = msg || ''; }
+
+  function checkSvg() {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    var path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', 'M3 8.5L6.2 12L13 4');
+    svg.appendChild(path);
+    return svg;
+  }
+
+  function itemsFor(listId) {
+    return state.items.filter(function (i) { return i.lijst_id === listId; })
+      .sort(function (a, b) { return a.volgorde - b.volgorde; });
+  }
+  function counts(listId, tpl) {
+    var items = itemsFor(listId);
+    var total = items.length;
+    var done = items.filter(function (i) { return i.afgevinkt; }).length;
+    return { total: total, done: done };
+  }
+  function sortedLists() { return state.lijsten.slice().sort(function (a, b) { return a.volgorde - b.volgorde; }); }
+  function initials(name) { return (name || '?').trim().charAt(0).toUpperCase() || '?'; }
+
+  // ---------- Overview ----------
+  function renderOverview() {
+    gridEl.innerHTML = '';
+    var lists = sortedLists();
+    emptyStateEl.hidden = lists.length > 0;
+
+    lists.forEach(function (entry, idx) {
+      var tpl = TEMPLATES[entry.sjabloon] || TEMPLATES.simpel;
+      var items = itemsFor(entry.id);
+      var c = counts(entry.id);
+      var card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'card';
+      card.setAttribute('aria-label', 'Open ' + entry.naam);
+
+      if (entry.omslag_url) {
+        var img = document.createElement('img');
+        img.className = 'card-cover'; img.src = entry.omslag_url; img.alt = ''; img.loading = 'lazy';
+        card.appendChild(img);
+      } else {
+        var ph = document.createElement('div');
+        ph.className = 'card-cover-placeholder'; ph.textContent = initials(entry.naam);
+        card.appendChild(ph);
+      }
+
+      var body = document.createElement('div');
+      body.className = 'card-body';
+
+      var head = document.createElement('div');
+      head.className = 'card-head';
+      var title = document.createElement('h3');
+      title.className = 'card-title'; title.textContent = entry.naam || 'Naamloos lijstje';
+      var pill = document.createElement('span');
+      pill.className = 'pill'; pill.textContent = tpl.label;
+      head.appendChild(title); head.appendChild(pill);
+      body.appendChild(head);
+
+      if (entry.omschrijving) {
+        var desc = document.createElement('p');
+        desc.className = 'card-desc'; desc.textContent = entry.omschrijving;
+        body.appendChild(desc);
+      }
+
+      var countTag = document.createElement('span');
+      countTag.className = 'count-tag';
+      countTag.textContent = tpl.hasDone ? (c.total ? (c.done + '/' + c.total + ' gedaan') : 'leeg') : (c.total + (c.total === 1 ? ' item' : ' items'));
+      body.appendChild(countTag);
+
+      if (items.length) {
+        var ul = document.createElement('ul');
+        ul.className = 'preview';
+        items.slice(0, 3).forEach(function (item) {
+          var li = document.createElement('li');
+          if (item.afgevinkt) li.className = 'done';
+          if (tpl.hasDone) {
+            var dot = document.createElement('span'); dot.className = 'dot';
+            li.appendChild(dot);
+          }
+          var pSpan = document.createElement('span');
+          pSpan.className = 'p-primary' + (item.afgevinkt ? ' done' : '');
+          pSpan.textContent = item.titel || '';
+          li.appendChild(pSpan);
+          if (item.subtitel) {
+            var sSpan = document.createElement('span');
+            sSpan.className = 'p-secondary'; sSpan.textContent = '— ' + item.subtitel;
+            li.appendChild(sSpan);
+          }
+          ul.appendChild(li);
+        });
+        if (items.length > 3) {
+          var more = document.createElement('li');
+          more.className = 'more'; more.textContent = '+ ' + (items.length - 3) + ' meer';
+          ul.appendChild(more);
+        }
+        body.appendChild(ul);
+      } else {
+        var emptyP = document.createElement('p');
+        emptyP.className = 'card-empty'; emptyP.textContent = 'Nog geen items';
+        body.appendChild(emptyP);
+      }
+
+      card.appendChild(body);
+
+      var controls = document.createElement('div');
+      controls.className = 'card-controls';
+
+      var upBtn = document.createElement('button');
+      upBtn.type = 'button'; upBtn.className = 'icon-btn'; upBtn.innerHTML = '&#8593;';
+      upBtn.setAttribute('aria-label', 'Verplaats omhoog');
+      upBtn.style.visibility = idx === 0 ? 'hidden' : 'visible';
+      upBtn.addEventListener('click', function (e) { e.stopPropagation(); moveList(entry.id, -1); });
+
+      var downBtn = document.createElement('button');
+      downBtn.type = 'button'; downBtn.className = 'icon-btn'; downBtn.innerHTML = '&#8595;';
+      downBtn.setAttribute('aria-label', 'Verplaats omlaag');
+      downBtn.style.visibility = idx === lists.length - 1 ? 'hidden' : 'visible';
+      downBtn.addEventListener('click', function (e) { e.stopPropagation(); moveList(entry.id, 1); });
+
+      var del = document.createElement('button');
+      del.type = 'button'; del.className = 'icon-btn danger'; del.innerHTML = '&#10005;';
+      del.setAttribute('aria-label', 'Verwijder ' + entry.naam);
+      del.addEventListener('click', function (e) { e.stopPropagation(); deleteList(entry.id, entry.naam); });
+
+      controls.appendChild(upBtn); controls.appendChild(downBtn); controls.appendChild(del);
+      card.appendChild(controls);
+
+      card.addEventListener('click', function () { openDetail(entry.id); });
+      gridEl.appendChild(card);
+    });
+  }
+
+  // ---------- Detail ----------
+  function openDetail(id) {
+    state.currentId = id; state.editingItem = null;
+    detailEl.hidden = false; gridEl.hidden = true; emptyStateEl.hidden = true; newListBtn.hidden = true;
+    renderDetail();
+  }
+  function goHome() {
+    state.currentId = null;
+    detailEl.hidden = true; gridEl.hidden = false; newListBtn.hidden = false;
+    renderOverview();
+  }
+
+  function renderDetail() {
+    var entry = state.lijsten.find(function (l) { return l.id === state.currentId; });
+    if (!entry) { goHome(); return; }
+    var tpl = TEMPLATES[entry.sjabloon] || TEMPLATES.simpel;
+    detailCardEl.innerHTML = '';
+
+    var backRow = document.createElement('div');
+    backRow.className = 'back-row';
+    var back = document.createElement('button');
+    back.type = 'button'; back.className = 'back-btn'; back.innerHTML = '&#8592; Alle lijstjes';
+    back.addEventListener('click', goHome);
+    backRow.appendChild(back);
+    detailCardEl.appendChild(backRow);
+
+    var coverArea = document.createElement('div');
+    coverArea.className = 'cover-area';
+    if (entry.omslag_url) {
+      var cimg = document.createElement('img');
+      cimg.className = 'cover-img'; cimg.src = entry.omslag_url; cimg.alt = '';
+      coverArea.appendChild(cimg);
+    } else {
+      var cph = document.createElement('div');
+      cph.className = 'cover-placeholder'; cph.textContent = initials(entry.naam);
+      coverArea.appendChild(cph);
+    }
+    var coverActions = document.createElement('div');
+    coverActions.className = 'cover-actions';
+    var changeBtn = document.createElement('button');
+    changeBtn.type = 'button'; changeBtn.className = 'btn-secondary';
+    changeBtn.textContent = entry.omslag_url ? 'Wijzig foto' : 'Foto toevoegen';
+    var fileInput = document.createElement('input');
+    fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
+    fileInput.addEventListener('change', function () {
+      if (fileInput.files && fileInput.files[0]) uploadCover(entry.id, fileInput.files[0], changeBtn);
+    });
+    changeBtn.addEventListener('click', function () { fileInput.click(); });
+    coverActions.appendChild(changeBtn); coverActions.appendChild(fileInput);
+    if (entry.omslag_url) {
+      var removeBtn = document.createElement('button');
+      removeBtn.type = 'button'; removeBtn.className = 'btn-secondary'; removeBtn.textContent = 'Verwijderen';
+      removeBtn.addEventListener('click', function () { removeCover(entry.id); });
+      coverActions.appendChild(removeBtn);
+    }
+    coverArea.appendChild(coverActions);
+    detailCardEl.appendChild(coverArea);
+
+    var dbody = document.createElement('div');
+    dbody.className = 'detail-body';
+
+    var head = document.createElement('div');
+    head.className = 'detail-head';
+    var titleInput = document.createElement('input');
+    titleInput.className = 'detail-title'; titleInput.value = entry.naam;
+    titleInput.setAttribute('aria-label', 'Naam van het lijstje');
+    titleInput.addEventListener('blur', function () {
+      var v = titleInput.value.trim();
+      if (v && v !== entry.naam) supabase.from('lijsten').update({ naam: v }).eq('id', entry.id).then(refetchSoft);
+      else titleInput.value = entry.naam;
+    });
+    titleInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') titleInput.blur();
+      if (e.key === 'Escape') { titleInput.value = entry.naam; titleInput.blur(); }
+    });
+    head.appendChild(titleInput);
+    dbody.appendChild(head);
+
+    var meta = document.createElement('div');
+    meta.className = 'detail-meta';
+    var pill = document.createElement('span'); pill.className = 'pill'; pill.textContent = tpl.label;
+    var c = counts(entry.id);
+    var countEl = document.createElement('span');
+    countEl.className = 'count-tag';
+    countEl.textContent = tpl.hasDone ? (c.total ? (c.done + ' van ' + c.total + ' klaar') : 'leeg') : (c.total + (c.total === 1 ? ' item' : ' items'));
+    meta.appendChild(pill); meta.appendChild(countEl);
+    dbody.appendChild(meta);
+
+    var descArea = document.createElement('textarea');
+    descArea.className = 'detail-desc'; descArea.rows = 1;
+    descArea.placeholder = 'Voeg een omschrijving toe…';
+    descArea.value = entry.omschrijving || '';
+    descArea.addEventListener('input', function () { descArea.style.height = 'auto'; descArea.style.height = descArea.scrollHeight + 'px'; });
+    descArea.addEventListener('blur', function () {
+      var v = descArea.value.trim();
+      if (v !== (entry.omschrijving || '')) supabase.from('lijsten').update({ omschrijving: v }).eq('id', entry.id).then(refetchSoft);
+    });
+    dbody.appendChild(descArea);
+    setTimeout(function () { descArea.style.height = 'auto'; descArea.style.height = descArea.scrollHeight + 'px'; }, 0);
+
+    dbody.appendChild(document.createElement('hr')).className = 'div';
+
+    var ul = document.createElement('ul');
+    ul.className = 'items';
+    var items = itemsFor(entry.id);
+    if (!items.length) {
+      var emptyLi = document.createElement('li');
+      emptyLi.className = 'items-empty'; emptyLi.textContent = 'Nog geen items op dit lijstje.';
+      ul.appendChild(emptyLi);
+    }
+    items.forEach(function (item, idx) {
+      var li = document.createElement('li');
+      li.className = 'item-row' + (item.afgevinkt ? ' done' : '');
+
+      var moveCol = document.createElement('div');
+      moveCol.className = 'move-col';
+      var upBtn = document.createElement('button');
+      upBtn.type = 'button'; upBtn.className = 'move-btn'; upBtn.innerHTML = '&#9650;';
+      upBtn.setAttribute('aria-label', 'Verplaats omhoog'); upBtn.disabled = idx === 0;
+      upBtn.addEventListener('click', function () { moveItem(items, item, -1); });
+      var downBtn = document.createElement('button');
+      downBtn.type = 'button'; downBtn.className = 'move-btn'; downBtn.innerHTML = '&#9660;';
+      downBtn.setAttribute('aria-label', 'Verplaats omlaag'); downBtn.disabled = idx === items.length - 1;
+      downBtn.addEventListener('click', function () { moveItem(items, item, 1); });
+      moveCol.appendChild(upBtn); moveCol.appendChild(downBtn);
+      li.appendChild(moveCol);
+
+      if (tpl.hasDone) {
+        var box = document.createElement('button');
+        box.type = 'button'; box.className = 'checkbox' + (item.afgevinkt ? ' checked' : '');
+        box.setAttribute('aria-pressed', item.afgevinkt ? 'true' : 'false');
+        box.setAttribute('aria-label', item.afgevinkt ? 'Markeer als niet gedaan' : 'Markeer als gedaan');
+        box.appendChild(checkSvg());
+        box.addEventListener('click', function () {
+          supabase.from('lijst_items').update({ afgevinkt: !item.afgevinkt }).eq('id', item.id).then(refetchSoft);
+        });
+        li.appendChild(box);
+      }
+
+      if (state.editingItem === item.id) {
+        var form = document.createElement('form');
+        form.className = 'edit-form';
+        var inputs = tpl.fields.map(function (f) {
+          var inp = document.createElement('input');
+          inp.value = item[f.key] || ''; inp.placeholder = f.placeholder; inp.dataset.key = f.key;
+          return inp;
+        });
+        inputs.forEach(function (inp) { form.appendChild(inp); });
+        var actions = document.createElement('div');
+        actions.className = 'edit-form-actions';
+        var saveBtn = document.createElement('button');
+        saveBtn.type = 'submit'; saveBtn.className = 'icon-btn'; saveBtn.innerHTML = '&#10003;'; saveBtn.setAttribute('aria-label', 'Opslaan');
+        var cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button'; cancelBtn.className = 'icon-btn'; cancelBtn.innerHTML = '&#10005;'; cancelBtn.setAttribute('aria-label', 'Annuleren');
+        cancelBtn.addEventListener('click', function () { state.editingItem = null; renderDetail(); });
+        actions.appendChild(saveBtn); actions.appendChild(cancelBtn);
+        form.appendChild(actions);
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var patch = {}; var hasPrimary = false;
+          inputs.forEach(function (inp) {
+            var v = inp.value.trim(); patch[inp.dataset.key] = v || null;
+            if (inp.dataset.key === 'titel' && v) hasPrimary = true;
+          });
+          if (!hasPrimary) return;
+          supabase.from('lijst_items').update(patch).eq('id', item.id).then(refetchSoft);
+          state.editingItem = null;
+        });
+        li.appendChild(form);
+      } else {
+        var main = document.createElement('div');
+        main.className = 'item-main';
+        main.addEventListener('click', function () { state.editingItem = item.id; renderDetail(); });
+        var pEl = document.createElement('span');
+        pEl.className = 'item-primary'; pEl.textContent = item.titel || '(geen titel)';
+        main.appendChild(pEl);
+        if (item.subtitel) {
+          var sEl = document.createElement('span');
+          sEl.className = 'item-secondary'; sEl.textContent = item.subtitel;
+          main.appendChild(sEl);
+        }
+        li.appendChild(main);
+
+        var itemActions = document.createElement('div');
+        itemActions.className = 'item-actions';
+        var editBtn = document.createElement('button');
+        editBtn.type = 'button'; editBtn.className = 'icon-btn'; editBtn.innerHTML = '&#9998;'; editBtn.setAttribute('aria-label', 'Bewerk item');
+        editBtn.addEventListener('click', function () { state.editingItem = item.id; renderDetail(); });
+        var removeBtn = document.createElement('button');
+        removeBtn.type = 'button'; removeBtn.className = 'icon-btn danger'; removeBtn.innerHTML = '&#10005;';
+        removeBtn.setAttribute('aria-label', 'Verwijder item');
+        removeBtn.addEventListener('click', function () {
+          supabase.from('lijst_items').delete().eq('id', item.id).then(refetchSoft);
+        });
+        itemActions.appendChild(editBtn); itemActions.appendChild(removeBtn);
+        li.appendChild(itemActions);
+      }
+      ul.appendChild(li);
+    });
+    dbody.appendChild(ul);
+
+    var form = document.createElement('form');
+    form.className = 'add-item';
+    var fieldsWrap = document.createElement('div');
+    fieldsWrap.className = 'add-fields';
+    var addInputs = tpl.fields.map(function (f) {
+      var inp = document.createElement('input');
+      inp.type = 'text'; inp.placeholder = f.placeholder; inp.dataset.key = f.key;
+      inp.setAttribute('aria-label', f.label);
+      return inp;
+    });
+    addInputs.forEach(function (inp) { fieldsWrap.appendChild(inp); });
+    var submitBtn = document.createElement('button');
+    submitBtn.type = 'submit'; submitBtn.className = 'submit-btn'; submitBtn.innerHTML = '&#43;';
+    submitBtn.setAttribute('aria-label', 'Item toevoegen');
+    form.appendChild(fieldsWrap); form.appendChild(submitBtn);
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var data = { lijst_id: entry.id, volgorde: Date.now() };
+      var hasPrimary = false;
+      addInputs.forEach(function (inp) {
+        var v = inp.value.trim(); data[inp.dataset.key] = v || null;
+        if (inp.dataset.key === 'titel' && v) hasPrimary = true;
+      });
+      if (!hasPrimary) return;
+      if (tpl.hasDone) data.afgevinkt = false;
+      supabase.from('lijst_items').insert(data).then(refetchSoft);
+      addInputs.forEach(function (inp) { inp.value = ''; });
+      addInputs[0].focus();
+    });
+    dbody.appendChild(form);
+
+    var footer = document.createElement('div');
+    footer.className = 'detail-footer';
+    var delListBtn = document.createElement('button');
+    delListBtn.type = 'button'; delListBtn.className = 'btn-text danger'; delListBtn.textContent = 'Verwijder lijstje';
+    delListBtn.addEventListener('click', function () { deleteList(entry.id, entry.naam); });
+    footer.appendChild(delListBtn);
+    dbody.appendChild(footer);
+
+    detailCardEl.appendChild(dbody);
+  }
+
+  // ---------- New list ----------
+  function showNewListForm() {
+    if (document.getElementById('ghost-card')) return;
+    var selectedTpl = 'simpel';
+    var card = document.createElement('div');
+    card.className = 'ghost-card'; card.id = 'ghost-card';
+
+    var h3 = document.createElement('h3'); h3.textContent = 'Nieuw lijstje';
+    card.appendChild(h3);
+
+    var choice = document.createElement('div'); choice.className = 'template-choice';
+    var descByTpl = { simpel: 'los tekstitems, afvinkbaar', boeken: 'titel + auteur', muziek: 'titel + artiest' };
+    var tplButtons = {};
+    TEMPLATE_ORDER.forEach(function (key) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'template-btn' + (key === selectedTpl ? ' selected' : '');
+      var strong = document.createElement('span'); strong.textContent = TEMPLATES[key].label;
+      var small = document.createElement('small'); small.textContent = descByTpl[key];
+      b.appendChild(strong); b.appendChild(small);
+      b.addEventListener('click', function () {
+        selectedTpl = key;
+        Object.keys(tplButtons).forEach(function (k) { tplButtons[k].classList.toggle('selected', k === key); });
+      });
+      tplButtons[key] = b;
+      choice.appendChild(b);
+    });
+    card.appendChild(choice);
+
+    var nameRow = document.createElement('div'); nameRow.className = 'field-row';
+    var nameLabel = document.createElement('label'); nameLabel.textContent = 'Naam';
+    var nameInput = document.createElement('input'); nameInput.placeholder = 'Bijv. Te lezen boeken';
+    nameRow.appendChild(nameLabel); nameRow.appendChild(nameInput);
+    card.appendChild(nameRow);
+
+    var descRow = document.createElement('div'); descRow.className = 'field-row';
+    var descLabel = document.createElement('label'); descLabel.textContent = 'Omschrijving (optioneel)';
+    var descInput = document.createElement('textarea'); descInput.rows = 2; descInput.placeholder = 'Waar gaat dit lijstje over?';
+    descRow.appendChild(descLabel); descRow.appendChild(descInput);
+    card.appendChild(descRow);
+
+    var actions = document.createElement('div'); actions.className = 'ghost-actions';
+    var cancel = document.createElement('button');
+    cancel.type = 'button'; cancel.className = 'btn-text'; cancel.textContent = 'Annuleren';
+    cancel.addEventListener('click', function () { card.remove(); });
+    var confirm = document.createElement('button');
+    confirm.type = 'button'; confirm.className = 'btn-primary'; confirm.textContent = 'Aanmaken';
+    function submit() {
+      var v = nameInput.value.trim();
+      if (!v) { nameInput.focus(); return; }
+      supabase.from('lijsten').insert({
+        naam: v, omschrijving: descInput.value.trim() || null, sjabloon: selectedTpl, volgorde: Date.now()
+      }).then(refetchSoft);
+      card.remove();
+    }
+    confirm.addEventListener('click', submit);
+    nameInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); submit(); } if (e.key === 'Escape') card.remove(); });
+    actions.appendChild(cancel); actions.appendChild(confirm);
+    card.appendChild(actions);
+
+    gridEl.insertBefore(card, gridEl.firstChild);
+    nameInput.focus();
+  }
+
+  function deleteList(id, name) {
+    if (!window.confirm('Lijstje "' + name + '" verwijderen? Dit kan niet ongedaan gemaakt worden.')) return;
+    if (state.currentId === id) goHome();
+    supabase.from('lijsten').delete().eq('id', id).then(refetchSoft);
+  }
+
+  function moveList(id, dir) {
+    var lists = sortedLists();
+    var idx = lists.findIndex(function (l) { return l.id === id; });
+    var swapIdx = idx + dir;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= lists.length) return;
+    var a = lists[idx], b = lists[swapIdx];
+    Promise.all([
+      supabase.from('lijsten').update({ volgorde: b.volgorde }).eq('id', a.id),
+      supabase.from('lijsten').update({ volgorde: a.volgorde }).eq('id', b.id)
+    ]).then(refetchSoft);
+  }
+
+  function moveItem(items, item, dir) {
+    var idx = items.findIndex(function (i) { return i.id === item.id; });
+    var swapIdx = idx + dir;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= items.length) return;
+    var a = items[idx], b = items[swapIdx];
+    Promise.all([
+      supabase.from('lijst_items').update({ volgorde: b.volgorde }).eq('id', a.id),
+      supabase.from('lijst_items').update({ volgorde: a.volgorde }).eq('id', b.id)
+    ]).then(refetchSoft);
+  }
+
+  async function uploadCover(listId, file, triggerBtn) {
+    var originalText = triggerBtn.textContent;
+    triggerBtn.textContent = 'Bezig…'; triggerBtn.disabled = true;
+    try {
+      var ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+      var path = COVER_PREFIX + listId + '-' + Date.now() + '.' + ext;
+      var upload = await supabase.storage.from(COVER_BUCKET).upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' });
+      if (upload.error) throw upload.error;
+      var pub = supabase.storage.from(COVER_BUCKET).getPublicUrl(path);
+      await supabase.from('lijsten').update({ omslag_url: pub.data.publicUrl }).eq('id', listId);
+      await refetchAll();
+    } catch (e) {
+      console.error('cover upload failed', e);
+      window.alert('Uploaden van de foto is niet gelukt.');
+    } finally {
+      triggerBtn.textContent = originalText; triggerBtn.disabled = false;
+    }
+  }
+  function removeCover(listId) {
+    if (!window.confirm('Foto verwijderen?')) return;
+    supabase.from('lijsten').update({ omslag_url: null }).eq('id', listId).then(refetchSoft);
+  }
+
+  newListBtn.addEventListener('click', showNewListForm);
+
+  // ---------- Data ----------
+  async function refetchAll() {
+    var [{ data: lijsten, error: e1 }, { data: items, error: e2 }] = await Promise.all([
+      supabase.from('lijsten').select('*').order('volgorde', { ascending: true }),
+      supabase.from('lijst_items').select('*').order('volgorde', { ascending: true })
+    ]);
+    if (e1 || e2) { console.error(e1 || e2); showStatus('Kon lijstjes niet laden. Controleer je verbinding.'); return; }
+    showStatus('');
+    state.lijsten = lijsten || [];
+    state.items = items || [];
+    renderOverview();
+    if (state.currentId) renderDetail();
+  }
+  function refetchSoft(result) {
+    if (result && result.error) { console.error(result.error); window.alert('Er ging iets mis bij het opslaan.'); }
+    return refetchAll();
+  }
+
+  function subscribeRealtime() {
+    supabase.channel('lijstjeslijst_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lijsten' }, refetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lijst_items' }, refetchAll)
+      .subscribe();
+  }
+
+  function maybeShowInstallHint() {
+    var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    var isIOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+    var dismissed = false;
+    try { dismissed = localStorage.getItem('lijstjeslijst-install-hint-dismissed') === '1'; } catch (e) {}
+    if (isIOS && !isStandalone && !dismissed) installHint.hidden = false;
+  }
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./service-worker.js').catch(function (e) { console.error('SW registratie mislukt', e); });
+    });
+  }
+
+  maybeShowInstallHint();
+  showStatus('Lijstjes laden…');
+  refetchAll();
+  subscribeRealtime();
+})();
+</script>
+</body>
+</html>
