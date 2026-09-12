@@ -63,10 +63,16 @@ toegang (geen aparte accounts per persoon).
 - Boeken-sjabloon: 1 tekstveld (Auteur) + 4 vinkjes (E-book, Fysiek boek, Gelezen door Ellen,
   Gelezen door Bert) — geen generieke "In bezit" meer, want e-book/fysiek dekken bezit al specifieker.
 - Boeken-import (Open Library) filtert op Nederlandstalige edities via
-  `search.json?author_key=...&language=dut&fields=key,title,cover_i` (i.p.v. de taal-agnostische
-  `/authors/{id}/works.json`, die geen taalveld ÉN geen cover-ID teruggeeft) — dezelfde aanroep
-  levert dus ook meteen de covers (`cover_i` → `covers.openlibrary.org/b/id/{id}-M.jpg`), geen
-  aparte aanroep per boek nodig. `omslag_url` wordt bij import direct meegezet op het item.
+  `search.json?q=author_key:{id} AND language:dut&editions.language=dut&fields=key,title,cover_i,
+  editions,editions.title,editions.cover_i` (i.p.v. de taal-agnostische `/authors/{id}/works.json`,
+  die geen taalveld ÉN geen cover-ID teruggeeft). **Val opgelost (2026-09-12): het `language=dut`-
+  filter als los queryparameter (i.p.v. in `q=`) filtert alleen mee welke WERKEN een Nederlandse
+  editie hébben — de teruggegeven `title`/`cover_i` blijven die van de standaard-/eerste editie
+  (meestal Engels, bv. "It" i.p.v. "Het").** De juiste vorm combineert een Solr-filter in `q=`
+  (`author_key:X AND language:dut`) mét de `editions`-subexpansie (`editions.language=dut` +
+  `editions.title`/`editions.cover_i` in `fields=`) om de daadwerkelijke Nederlandse editie (titel
+  én cover) uit `docs[].editions.docs[0]` te lezen, met de werk-titel/cover als fallback als er
+  onverhoopt geen editions-match is. `omslag_url` wordt bij import direct meegezet op het item.
 - Items worden getoond als een tabel (`.items-table` in `.items-scroll`, `overflow-x:auto`):
   titelkolom sticky links, vinkjes-koppen (E-book/Auteur/etc.) ÉÉN keer bovenaan i.p.v. per rij
   herhaald, actieskolom (foto/bewerk/verwijder) sticky rechts. Tabelbreedte wordt expliciet in JS

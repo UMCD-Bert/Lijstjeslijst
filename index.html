@@ -311,7 +311,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.3.0';
+  var APP_VERSION = '1.3.1';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -1382,14 +1382,19 @@
     try {
       var works = [];
       if (flow.source === 'openlibrary') {
-        var res = await fetch('https://openlibrary.org/search.json?author_key=' + encodeURIComponent(cand.id) + '&language=dut&limit=300&fields=key,title,cover_i');
+        var q = 'author_key:' + cand.id + ' AND language:dut';
+        var res = await fetch('https://openlibrary.org/search.json?q=' + encodeURIComponent(q)
+          + '&editions.language=dut&limit=300&fields=key,title,cover_i,editions,editions.title,editions.cover_i');
         var data = await res.json();
         var seen = {};
         (data.docs || []).forEach(function (w) {
-          var norm = (w.title || '').trim().toLowerCase();
+          var ed = w.editions && w.editions.docs && w.editions.docs[0];
+          var title = (ed && ed.title) || w.title;
+          var coverId = (ed && ed.cover_i) || w.cover_i;
+          var norm = (title || '').trim().toLowerCase();
           if (!norm || seen[norm]) return;
           seen[norm] = true;
-          works.push({ id: w.key, title: w.title, coverUrl: w.cover_i ? ('https://covers.openlibrary.org/b/id/' + w.cover_i + '-M.jpg') : null });
+          works.push({ id: w.key, title: title, coverUrl: coverId ? ('https://covers.openlibrary.org/b/id/' + coverId + '-M.jpg') : null });
         });
         works.sort(function (a, b) { return a.title.localeCompare(b.title); });
       } else {
