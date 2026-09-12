@@ -78,3 +78,14 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
     blijven bij het "simpel"-sjabloon (`gedaan`). Vermoedelijk: alleen doorstrepen als de lijst maar
     één vinkje heeft én dat semantisch een to-do is — nader te bepalen hoe dit onderscheid gemaakt
     wordt (aparte vlag per vink-veld, of per sjabloon).
+  - Boeken-sjabloon uitbreiden: formaat (e-book / fysiek boek — nog te bepalen of dit twee losse
+    vinkjes wordt, of één keuzeveld; een boek kan in beide vormen aanwezig zijn) + twee losse
+    "gelezen door"-vinkjes (Ellen, Bert) i.p.v. één generieke "gelezen". Samen met "In bezit" zijn dat
+    3 vinkjes — past nog binnen de cap van 3, maar laat geen ruimte meer over voor extra vinkjes op
+    dit sjabloon.
+  - Cover-afbeelding per BOEK (niet per lijstje zoals nu): voorstel is albei — automatisch ophalen
+    via Open Library's covers-API (`covers.openlibrary.org/b/id/{cover_id}-*.jpg`, cover_id zit al in
+    de works.json-response van de auto-import) voor geïmporteerde boeken, met handmatige foto-upload
+    (zelfde patroon als de bestaande lijst-omslagfoto) als terugvaloptie voor boeken die niet via
+    Open Library zijn toegevoegd. Vereist opslag van een aparte afbeelding per item i.p.v. per lijst
+    — grotere wijziging dan de andere punten hier.
