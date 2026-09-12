@@ -89,3 +89,14 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
     (zelfde patroon als de bestaande lijst-omslagfoto) als terugvaloptie voor boeken die niet via
     Open Library zijn toegevoegd. Vereist opslag van een aparte afbeelding per item i.p.v. per lijst
     — grotere wijziging dan de andere punten hier.
+  - Muziek: wishlist/in-bezit-combinatie — dekt vermoedelijk gewoon het bestaande "In bezit"-vinkje
+    al (niet aangevinkt = wishlist, aanvinken bij aankoop = in bezit, precies "één vinkje van
+    wishlist naar in bezit"). Check bij het bouwen of labels (filter "Niet", kaart-samenvatting) voor
+    Muziek specifiek "Wishlist" moeten zeggen i.p.v. het generieke "Niet" — tekst/UI-vraag, geen
+    datamodel-wijziging verwacht.
+  - Muziek-collectie inlezen vanaf **Discogs** (ze hebben een account) — zelfde patroon als de
+    BGG-import hierboven: collectie-endpoint (`api.discogs.com/users/{username}/collection/folders/0/
+    releases`) kan zonder auth voor een publieke collectie, vereist een beschrijvende User-Agent (kan
+    niet vanuit browser-fetch, zelfde beperking als MusicBrainz) en heeft rate limits. Nog niet
+    getest op CORS/bereikbaarheid vanuit deze omgeving — eerst verifiëren voor het gebouwd wordt.
+    Discogs-gebruikersnaam nog op te vragen zodra dit wordt opgepakt.
