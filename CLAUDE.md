@@ -63,8 +63,23 @@ toegang (geen aparte accounts per persoon).
 - Boeken-sjabloon: 1 tekstveld (Auteur) + 4 vinkjes (E-book, Fysiek boek, Gelezen door Ellen,
   Gelezen door Bert) — geen generieke "In bezit" meer, want e-book/fysiek dekken bezit al specifieker.
 - Boeken-import (Open Library) filtert op Nederlandstalige edities via
-  `search.json?author_key=...&language=dut` (i.p.v. de taal-agnostische `/authors/{id}/works.json`,
-  die sowieso geen taalveld teruggeeft) — geeft ook meteen een schonere, kleinere titellijst.
+  `search.json?author_key=...&language=dut&fields=key,title,cover_i` (i.p.v. de taal-agnostische
+  `/authors/{id}/works.json`, die geen taalveld ÉN geen cover-ID teruggeeft) — dezelfde aanroep
+  levert dus ook meteen de covers (`cover_i` → `covers.openlibrary.org/b/id/{id}-M.jpg`), geen
+  aparte aanroep per boek nodig. `omslag_url` wordt bij import direct meegezet op het item.
+- Items worden getoond als een tabel (`.items-table` in `.items-scroll`, `overflow-x:auto`):
+  titelkolom sticky links, vinkjes-koppen (E-book/Auteur/etc.) ÉÉN keer bovenaan i.p.v. per rij
+  herhaald, actieskolom (foto/bewerk/verwijder) sticky rechts. Tabelbreedte wordt expliciet in JS
+  gezet (`180 + aantal_vinkjes * 54 + 90` px) i.p.v. CSS `min-width:max-content` — die laatste
+  dwong ALLE tekst in de tabel tot één regel (titelkolom liep op tot 9000px), een echte val bij
+  scrollbare tabellen: gebruik een berekende pixelbreedte, niet `max-content`, als je select
+  kolommen vast moet houden terwijl andere mogen wrappen.
+- App-header (logo/tagline/"Nieuw lijstje") verdwijnt in de lijst-detailweergave (alleen "← Alle
+  lijstjes" + lijstnaam) — was op iPhone te veel verloren ruimte vóór je daadwerkelijk items ziet.
+  Lege omslagfoto-placeholder in detailweergave vervangen door een smal "+ Omslagfoto toevoegen"-
+  linkje i.p.v. een grote lege blok van 140px+.
+- Zoeken (op titel + alle tekstvelden) en sorteren (Handmatig/Titel/per tekstveld) per lijstje,
+  boven de items. Bij een actieve sortering verdwijnen de handmatige verplaats-pijltjes.
 - Volgorde wordt bijgehouden als timestamp (nieuw item/lijst = `Date.now()`); verplaatsen wisselt de
   `volgorde`-waarde van twee buren om (last-writer-wins, geen transacties nodig op deze schaal).
 
@@ -96,10 +111,8 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
 - MusicBrainz-auto-import (Muziek) kon vanuit deze dev-omgeving niet betrouwbaar getest worden
   ("server is busy"-responses, waarschijnlijk rate-limiting op het dev-IP) — nog niet bevestigd dat
   dit vanaf een telefoon/thuisnetwerk wél werkt.
-- Cover-afbeelding automatisch ophalen bij Boeken-import (Open Library): `works.json`/`search.json`
-  geven geen cover-ID mee, dus dit vergt een aparte aanroep per boek (editions-lookup) — risico op
-  dezelfde soort blokkades als bij BGG/MusicBrainz. Nog niet gebouwd; de handmatige foto-upload per
-  item (camera-icoontje per regel) is er al, dat dekt de behoefte voorlopig.
+- ~~Cover-afbeelding automatisch ophalen bij Boeken-import~~ — gebouwd (v1.2.1): `search.json` geeft
+  `cover_i` gewoon mee in dezelfde aanroep als de taalfilter, geen aparte aanroep per boek nodig.
 - Muziek: check of de labels (filter "Niet", kaart-samenvatting) voor Muziek specifiek "Wishlist"
   moeten zeggen i.p.v. het generieke "Niet" — het bestaande "In bezit"-vinkje dekt het wishlist/
   in-bezit-gedrag zelf al (aanvinken bij aankoop = van wishlist naar in bezit), dit is puur een

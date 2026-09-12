@@ -155,6 +155,7 @@
   .cover-placeholder { width: 100%; height: 140px; display: flex; align-items: center; justify-content: center; background: var(--surface-2);
     font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 3rem; color: var(--muted); }
   .cover-actions { position: absolute; bottom: 10px; right: 12px; display: flex; gap: 8px; }
+  .cover-slim-row { padding: 8px 24px 0; }
   .cover-actions .btn-secondary { background: rgba(251,251,247,0.92); }
 
   .detail-body { padding: 18px 24px 26px; }
@@ -177,6 +178,18 @@
   .fields-editor-row { display: flex; align-items: center; gap: 8px; }
   .fields-editor-row input { flex: 1; border: 1px solid var(--border); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 0.88rem; color: var(--ink); }
 
+  .search-sort-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 0 0 14px; }
+  .search-input {
+    flex: 1; min-width: 140px; border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px;
+    padding: 8px 12px; font-family: inherit; font-size: 0.9rem; color: var(--ink);
+  }
+  .search-input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+  .search-input::-webkit-search-cancel-button { cursor: pointer; }
+  .sort-wrap { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+  .sort-select {
+    border: 1px solid var(--border); background: var(--surface-2); border-radius: 8px; padding: 6px 9px;
+    font-family: inherit; font-size: 0.85rem; color: var(--ink);
+  }
   .filter-row { display: flex; flex-wrap: wrap; gap: 14px 20px; margin: 0 0 16px; }
   .filter-group { display: flex; align-items: center; gap: 7px; }
   .filter-group .fg-label { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
@@ -200,20 +213,30 @@
   .import-msg { font-size: 0.84rem; color: var(--muted); font-style: italic; }
   .import-msg.error { color: var(--danger); font-style: normal; }
 
-  ul.items { list-style: none; margin: 0 0 18px; padding: 0; display: flex; flex-direction: column; }
-  .item-row { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--border); }
-  .item-row:last-child { border-bottom: none; }
+  .items-scroll { overflow-x: auto; margin: 0 0 18px; -webkit-overflow-scrolling: touch; }
+  .items-table { border-collapse: collapse; width: 100%; }
+  .items-table thead th {
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.02em; color: var(--muted); font-weight: 600;
+    text-align: center; padding: 0 4px 8px; border-bottom: 1px solid var(--border); white-space: normal; line-height: 1.15;
+  }
+  .items-table tbody tr { border-bottom: 1px solid var(--border); }
+  .items-table tbody tr:last-child { border-bottom: none; }
+  .items-table td { padding: 8px 4px; vertical-align: middle; }
+  .col-title { position: sticky; left: 0; background: var(--surface); z-index: 2; text-align: left; min-width: 160px; max-width: 280px; padding-left: 2px !important; }
+  .edit-row-cell { text-align: left; }
+  .col-title-head { z-index: 3; }
+  .col-actions { position: sticky; right: 0; background: var(--surface); z-index: 2; white-space: nowrap; width: 1%; }
+  .col-actions-head { z-index: 3; }
+  .col-check { text-align: center; width: 54px; min-width: 54px; }
+  .title-cell-inner { display: flex; align-items: center; gap: 8px; }
   .move-col { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
-  .item-thumb { width: 34px; height: 46px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--surface-2); }
+  .item-thumb { width: 30px; height: 42px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--surface-2); }
   .move-btn { width: 20px; height: 16px; border: none; background: none; color: var(--border); display: flex; align-items: center; justify-content: center; padding: 0; line-height: 0; }
   .move-btn:not(:disabled):hover { color: var(--accent); }
   .move-btn:disabled { visibility: hidden; }
-  .item-checks { display: flex; gap: 8px; flex-shrink: 0; }
-  .item-check-single { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-  .item-check-single .cc-label { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.02em; max-width: 44px; text-align: center; line-height: 1.1; }
   .checkbox {
     width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--border); background: var(--surface); flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; padding: 0; transition: background 0.15s ease, border-color 0.15s ease;
+    display: flex; align-items: center; justify-content: center; padding: 0; margin: 0 auto; transition: background 0.15s ease, border-color 0.15s ease;
   }
   .checkbox svg { width: 13px; height: 13px; stroke: var(--accent-ink); stroke-width: 3; fill: none; stroke-dasharray: 20; stroke-dashoffset: 20;
     transition: stroke-dashoffset 0.2s ease; stroke-linecap: round; stroke-linejoin: round; }
@@ -225,7 +248,7 @@
   .item-secondary { font-size: 0.83rem; color: var(--muted); overflow-wrap: anywhere; }
   .item-row.done .item-primary { color: var(--muted); text-decoration: line-through; }
   .item-actions { display: flex; gap: 2px; flex-shrink: 0; }
-  .items-empty { color: var(--muted); font-style: italic; padding: 14px 2px; font-size: 0.9rem; }
+  .items-empty { color: var(--muted); font-style: italic; padding: 14px 2px; font-size: 0.9rem; text-align: left; }
 
   .edit-form { flex: 1; display: flex; gap: 8px; flex-wrap: wrap; padding: 4px 0; }
   .edit-form input { border: 1px solid var(--accent); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 0.92rem; color: var(--ink); flex: 1; min-width: 100px; }
@@ -253,7 +276,7 @@
 </head>
 <body>
 <div class="wrap">
-  <header class="top">
+  <header class="top" id="app-header">
     <div>
       <h1 class="brand">Lijster</h1>
       <p class="tagline">al je lijstjes, netjes bij elkaar</p>
@@ -280,7 +303,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.1.1';
+  var APP_VERSION = '1.2.1';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -301,7 +324,7 @@
   var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var state = {
     lijsten: [], items: [], currentId: null, editingItem: null,
-    filters: {}, showFieldsEditor: false, importFlow: null
+    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, importFlow: null
   };
 
   var gridEl = document.getElementById('grid');
@@ -311,6 +334,7 @@
   var statusEl = document.getElementById('status-note');
   var newListBtn = document.getElementById('new-list-btn');
   var installHint = document.getElementById('install-hint');
+  var appHeaderEl = document.getElementById('app-header');
 
   document.getElementById('dismiss-install-hint').addEventListener('click', function () {
     installHint.hidden = true;
@@ -364,14 +388,32 @@
   function filteredItems(entry) {
     var items = itemsFor(entry.id);
     var f = state.filters[entry.id] || {};
-    return items.filter(function (item) {
-      return (entry.vink_velden || []).every(function (vk) {
+    var q = (state.search[entry.id] || '').trim().toLowerCase();
+    items = items.filter(function (item) {
+      if (!(entry.vink_velden || []).every(function (vk) {
         var want = f[vk.key] || 'alle';
         if (want === 'alle') return true;
         var val = !!(item.vinkjes && item.vinkjes[vk.key]);
         return want === 'wel' ? val : !val;
-      });
+      })) return false;
+      if (q) {
+        var haystack = [item.titel].concat((entry.extra_velden || []).map(function (ev) { return item.extra && item.extra[ev.key]; }))
+          .filter(Boolean).join(' ').toLowerCase();
+        if (haystack.indexOf(q) === -1) return false;
+      }
+      return true;
     });
+    var sortKey = state.sortBy[entry.id];
+    if (sortKey && sortKey !== 'volgorde') {
+      items = items.slice().sort(function (a, b) {
+        var av = sortKey === 'titel' ? (a.titel || '') : ((a.extra && a.extra[sortKey]) || '');
+        var bv = sortKey === 'titel' ? (b.titel || '') : ((b.extra && b.extra[sortKey]) || '');
+        if (!av && bv) return 1;
+        if (av && !bv) return -1;
+        return av.localeCompare(bv, 'nl', { sensitivity: 'base' });
+      });
+    }
+    return items;
   }
   function vinkCounts(listId, vinkKey) {
     var items = itemsFor(listId);
@@ -502,17 +544,21 @@
   function openDetail(id) {
     state.currentId = id; state.editingItem = null; state.showFieldsEditor = false; state.importFlow = null;
     detailEl.hidden = false; gridEl.hidden = true; emptyStateEl.hidden = true; newListBtn.hidden = true;
+    appHeaderEl.hidden = true;
     renderDetail();
   }
   function goHome() {
     state.currentId = null; state.importFlow = null;
     detailEl.hidden = true; gridEl.hidden = false; newListBtn.hidden = false;
+    appHeaderEl.hidden = false;
     renderOverview();
   }
 
   function renderDetail() {
     var entry = state.lijsten.find(function (l) { return l.id === state.currentId; });
     if (!entry) { goHome(); return; }
+    var restoreSearchFocus = document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('search-input')
+      ? document.activeElement.selectionStart : null;
     detailCardEl.innerHTML = '';
 
     var backRow = document.createElement('div');
@@ -523,37 +569,41 @@
     backRow.appendChild(back);
     detailCardEl.appendChild(backRow);
 
-    var coverArea = document.createElement('div');
-    coverArea.className = 'cover-area';
+    var fileInput = document.createElement('input');
+    fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
+
     if (entry.omslag_url) {
+      var coverArea = document.createElement('div');
+      coverArea.className = 'cover-area';
       var cimg = document.createElement('img');
       cimg.className = 'cover-img'; cimg.src = entry.omslag_url; cimg.alt = '';
       coverArea.appendChild(cimg);
-    } else {
-      var cph = document.createElement('div');
-      cph.className = 'cover-placeholder'; cph.textContent = initials(entry.naam);
-      coverArea.appendChild(cph);
-    }
-    var coverActions = document.createElement('div');
-    coverActions.className = 'cover-actions';
-    var changeBtn = document.createElement('button');
-    changeBtn.type = 'button'; changeBtn.className = 'btn-secondary';
-    changeBtn.textContent = entry.omslag_url ? 'Wijzig foto' : 'Foto toevoegen';
-    var fileInput = document.createElement('input');
-    fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
-    fileInput.addEventListener('change', function () {
-      if (fileInput.files && fileInput.files[0]) uploadCover(entry.id, fileInput.files[0], changeBtn);
-    });
-    changeBtn.addEventListener('click', function () { fileInput.click(); });
-    coverActions.appendChild(changeBtn); coverActions.appendChild(fileInput);
-    if (entry.omslag_url) {
+      var coverActions = document.createElement('div');
+      coverActions.className = 'cover-actions';
+      var changeBtn = document.createElement('button');
+      changeBtn.type = 'button'; changeBtn.className = 'btn-secondary'; changeBtn.textContent = 'Wijzig foto';
+      fileInput.addEventListener('change', function () {
+        if (fileInput.files && fileInput.files[0]) uploadCover(entry.id, fileInput.files[0], changeBtn);
+      });
+      changeBtn.addEventListener('click', function () { fileInput.click(); });
       var removeBtn = document.createElement('button');
       removeBtn.type = 'button'; removeBtn.className = 'btn-secondary'; removeBtn.textContent = 'Verwijderen';
       removeBtn.addEventListener('click', function () { removeCover(entry.id); });
-      coverActions.appendChild(removeBtn);
+      coverActions.appendChild(changeBtn); coverActions.appendChild(fileInput); coverActions.appendChild(removeBtn);
+      coverArea.appendChild(coverActions);
+      detailCardEl.appendChild(coverArea);
+    } else {
+      var coverSlim = document.createElement('div');
+      coverSlim.className = 'cover-slim-row';
+      var addCoverBtn = document.createElement('button');
+      addCoverBtn.type = 'button'; addCoverBtn.className = 'link-btn'; addCoverBtn.textContent = '+ Omslagfoto toevoegen';
+      fileInput.addEventListener('change', function () {
+        if (fileInput.files && fileInput.files[0]) uploadCover(entry.id, fileInput.files[0], addCoverBtn);
+      });
+      addCoverBtn.addEventListener('click', function () { fileInput.click(); });
+      coverSlim.appendChild(addCoverBtn); coverSlim.appendChild(fileInput);
+      detailCardEl.appendChild(coverSlim);
     }
-    coverArea.appendChild(coverActions);
-    detailCardEl.appendChild(coverArea);
 
     var dbody = document.createElement('div');
     dbody.className = 'detail-body';
@@ -615,63 +665,59 @@
 
     if (entry.auto_import) dbody.appendChild(renderImportSection(entry));
 
+    dbody.appendChild(renderSearchSortRow(entry));
     if ((entry.vink_velden || []).length) dbody.appendChild(renderFilterRow(entry));
 
-    var ul = document.createElement('ul');
-    ul.className = 'items';
     var fullItems = itemsFor(entry.id);
     var items = filteredItems(entry);
-    if (!items.length) {
-      var emptyLi = document.createElement('li');
-      emptyLi.className = 'items-empty';
-      emptyLi.textContent = fullItems.length ? 'Geen items met dit filter.' : 'Nog geen items op dit lijstje.';
-      ul.appendChild(emptyLi);
+    var manualOrder = (state.sortBy[entry.id] || 'volgorde') === 'volgorde';
+    var vinkVelden = entry.vink_velden || [];
+    var colCount = 2 + vinkVelden.length;
+
+    var scrollWrap = document.createElement('div');
+    scrollWrap.className = 'items-scroll';
+    var table = document.createElement('table');
+    table.className = 'items-table';
+    table.style.minWidth = (180 + vinkVelden.length * 54 + 90) + 'px';
+
+    if (vinkVelden.length) {
+      var thead = document.createElement('thead');
+      var headRow = document.createElement('tr');
+      var titleTh = document.createElement('th');
+      titleTh.className = 'col-title col-title-head';
+      headRow.appendChild(titleTh);
+      vinkVelden.forEach(function (vk) {
+        var th = document.createElement('th');
+        th.className = 'col-check'; th.textContent = vk.label;
+        headRow.appendChild(th);
+      });
+      var actionsTh = document.createElement('th');
+      actionsTh.className = 'col-actions col-actions-head';
+      headRow.appendChild(actionsTh);
+      thead.appendChild(headRow);
+      table.appendChild(thead);
     }
+
+    var tbody = document.createElement('tbody');
+
+    if (!items.length) {
+      var emptyRow = document.createElement('tr');
+      var emptyTd = document.createElement('td');
+      emptyTd.colSpan = colCount; emptyTd.className = 'items-empty';
+      emptyTd.textContent = fullItems.length ? 'Geen items met dit filter.' : 'Nog geen items op dit lijstje.';
+      emptyRow.appendChild(emptyTd);
+      tbody.appendChild(emptyRow);
+    }
+
     items.forEach(function (item) {
       var idx = fullItems.indexOf(item);
-      var li = document.createElement('li');
-      var primaryDone = (entry.vink_velden || [])[0] ? !!(item.vinkjes && item.vinkjes[entry.vink_velden[0].key]) : false;
-      li.className = 'item-row' + ((entry.doorstrepen && primaryDone) ? ' done' : '');
-
-      var moveCol = document.createElement('div');
-      moveCol.className = 'move-col';
-      var upBtn = document.createElement('button');
-      upBtn.type = 'button'; upBtn.className = 'move-btn'; upBtn.innerHTML = '&#9650;';
-      upBtn.setAttribute('aria-label', 'Verplaats omhoog'); upBtn.disabled = idx === 0;
-      upBtn.addEventListener('click', function () { moveItem(fullItems, item, -1); });
-      var downBtn = document.createElement('button');
-      downBtn.type = 'button'; downBtn.className = 'move-btn'; downBtn.innerHTML = '&#9660;';
-      downBtn.setAttribute('aria-label', 'Verplaats omlaag'); downBtn.disabled = idx === fullItems.length - 1;
-      downBtn.addEventListener('click', function () { moveItem(fullItems, item, 1); });
-      moveCol.appendChild(upBtn); moveCol.appendChild(downBtn);
-      li.appendChild(moveCol);
-
-      if ((entry.vink_velden || []).length) {
-        var checksWrap = document.createElement('div');
-        checksWrap.className = 'item-checks';
-        entry.vink_velden.forEach(function (vk) {
-          var single = document.createElement('div');
-          single.className = 'item-check-single';
-          var checked = !!(item.vinkjes && item.vinkjes[vk.key]);
-          var box = document.createElement('button');
-          box.type = 'button'; box.className = 'checkbox' + (checked ? ' checked' : '');
-          box.setAttribute('aria-pressed', checked ? 'true' : 'false');
-          box.setAttribute('aria-label', vk.label + (checked ? ' (aan)' : ' (uit)'));
-          box.appendChild(checkSvg());
-          box.addEventListener('click', function () {
-            var next = Object.assign({}, item.vinkjes || {});
-            next[vk.key] = !checked;
-            supabase.from('lijst_items').update({ vinkjes: next }).eq('id', item.id).then(refetchSoft);
-          });
-          var lbl = document.createElement('span');
-          lbl.className = 'cc-label'; lbl.textContent = vk.label;
-          single.appendChild(box); single.appendChild(lbl);
-          checksWrap.appendChild(single);
-        });
-        li.appendChild(checksWrap);
-      }
+      var tr = document.createElement('tr');
+      var primaryDone = vinkVelden[0] ? !!(item.vinkjes && item.vinkjes[vinkVelden[0].key]) : false;
+      tr.className = 'item-row' + ((entry.doorstrepen && primaryDone) ? ' done' : '');
 
       if (state.editingItem === item.id) {
+        var editTd = document.createElement('td');
+        editTd.colSpan = colCount; editTd.className = 'edit-row-cell';
         var form = document.createElement('form');
         form.className = 'edit-form';
         var titelInput = document.createElement('input');
@@ -701,54 +747,104 @@
           supabase.from('lijst_items').update({ titel: titel, extra: extra }).eq('id', item.id).then(refetchSoft);
           state.editingItem = null;
         });
-        li.appendChild(form);
-      } else {
-        if (item.omslag_url) {
-          var thumb = document.createElement('img');
-          thumb.className = 'item-thumb'; thumb.src = item.omslag_url; thumb.alt = ''; thumb.loading = 'lazy';
-          li.appendChild(thumb);
-        }
-        var main = document.createElement('div');
-        main.className = 'item-main';
-        main.addEventListener('click', function () { state.editingItem = item.id; renderDetail(); });
-        var pEl = document.createElement('span');
-        pEl.className = 'item-primary'; pEl.textContent = item.titel || '(geen titel)';
-        main.appendChild(pEl);
-        var summary = extraSummary(entry, item);
-        if (summary) {
-          var sEl = document.createElement('span');
-          sEl.className = 'item-secondary'; sEl.textContent = summary;
-          main.appendChild(sEl);
-        }
-        li.appendChild(main);
-
-        var itemActions = document.createElement('div');
-        itemActions.className = 'item-actions';
-        var photoBtn = document.createElement('button');
-        photoBtn.type = 'button'; photoBtn.className = 'icon-btn'; photoBtn.appendChild(cameraSvg());
-        photoBtn.setAttribute('aria-label', item.omslag_url ? 'Wijzig foto' : 'Foto toevoegen');
-        var photoInput = document.createElement('input');
-        photoInput.type = 'file'; photoInput.accept = 'image/*'; photoInput.style.display = 'none';
-        photoInput.addEventListener('change', function () {
-          if (photoInput.files && photoInput.files[0]) uploadItemCover(item, photoInput.files[0]);
-        });
-        photoBtn.addEventListener('click', function () { photoInput.click(); });
-        itemActions.appendChild(photoBtn); itemActions.appendChild(photoInput);
-        var editBtn = document.createElement('button');
-        editBtn.type = 'button'; editBtn.className = 'icon-btn'; editBtn.innerHTML = '&#9998;'; editBtn.setAttribute('aria-label', 'Bewerk item');
-        editBtn.addEventListener('click', function () { state.editingItem = item.id; renderDetail(); });
-        var removeBtn = document.createElement('button');
-        removeBtn.type = 'button'; removeBtn.className = 'icon-btn danger'; removeBtn.innerHTML = '&#10005;';
-        removeBtn.setAttribute('aria-label', 'Verwijder item');
-        removeBtn.addEventListener('click', function () {
-          supabase.from('lijst_items').delete().eq('id', item.id).then(refetchSoft);
-        });
-        itemActions.appendChild(editBtn); itemActions.appendChild(removeBtn);
-        li.appendChild(itemActions);
+        editTd.appendChild(form);
+        tr.appendChild(editTd);
+        tbody.appendChild(tr);
+        return;
       }
-      ul.appendChild(li);
+
+      var titleTd = document.createElement('td');
+      titleTd.className = 'col-title';
+      var titleCellInner = document.createElement('div');
+      titleCellInner.className = 'title-cell-inner';
+      if (manualOrder) {
+        var moveCol = document.createElement('div');
+        moveCol.className = 'move-col';
+        var upBtn = document.createElement('button');
+        upBtn.type = 'button'; upBtn.className = 'move-btn'; upBtn.innerHTML = '&#9650;';
+        upBtn.title = 'Verplaats omhoog'; upBtn.setAttribute('aria-label', 'Verplaats omhoog'); upBtn.disabled = idx === 0;
+        upBtn.addEventListener('click', function () { moveItem(fullItems, item, -1); });
+        var downBtn = document.createElement('button');
+        downBtn.type = 'button'; downBtn.className = 'move-btn'; downBtn.innerHTML = '&#9660;';
+        downBtn.title = 'Verplaats omlaag'; downBtn.setAttribute('aria-label', 'Verplaats omlaag'); downBtn.disabled = idx === fullItems.length - 1;
+        downBtn.addEventListener('click', function () { moveItem(fullItems, item, 1); });
+        moveCol.appendChild(upBtn); moveCol.appendChild(downBtn);
+        titleCellInner.appendChild(moveCol);
+      }
+      if (item.omslag_url) {
+        var thumb = document.createElement('img');
+        thumb.className = 'item-thumb'; thumb.src = item.omslag_url; thumb.alt = ''; thumb.loading = 'lazy';
+        titleCellInner.appendChild(thumb);
+      }
+      var main = document.createElement('div');
+      main.className = 'item-main';
+      main.addEventListener('click', function () { state.editingItem = item.id; renderDetail(); });
+      var pEl = document.createElement('span');
+      pEl.className = 'item-primary'; pEl.textContent = item.titel || '(geen titel)';
+      main.appendChild(pEl);
+      var summary = extraSummary(entry, item);
+      if (summary) {
+        var sEl = document.createElement('span');
+        sEl.className = 'item-secondary'; sEl.textContent = summary;
+        main.appendChild(sEl);
+      }
+      titleCellInner.appendChild(main);
+      titleTd.appendChild(titleCellInner);
+      tr.appendChild(titleTd);
+
+      vinkVelden.forEach(function (vk) {
+        var checkTd = document.createElement('td');
+        checkTd.className = 'col-check';
+        var checked = !!(item.vinkjes && item.vinkjes[vk.key]);
+        var box = document.createElement('button');
+        box.type = 'button'; box.className = 'checkbox' + (checked ? ' checked' : '');
+        box.setAttribute('aria-pressed', checked ? 'true' : 'false');
+        box.setAttribute('aria-label', vk.label + (checked ? ' (aan)' : ' (uit)'));
+        box.appendChild(checkSvg());
+        box.addEventListener('click', function () {
+          var next = Object.assign({}, item.vinkjes || {});
+          next[vk.key] = !checked;
+          supabase.from('lijst_items').update({ vinkjes: next }).eq('id', item.id).then(refetchSoft);
+        });
+        checkTd.appendChild(box);
+        tr.appendChild(checkTd);
+      });
+
+      var actionsTd = document.createElement('td');
+      actionsTd.className = 'col-actions';
+      var itemActions = document.createElement('div');
+      itemActions.className = 'item-actions';
+      var photoBtn = document.createElement('button');
+      photoBtn.type = 'button'; photoBtn.className = 'icon-btn'; photoBtn.appendChild(cameraSvg());
+      photoBtn.title = item.omslag_url ? 'Wijzig foto' : 'Foto toevoegen';
+      photoBtn.setAttribute('aria-label', item.omslag_url ? 'Wijzig foto' : 'Foto toevoegen');
+      var photoInput = document.createElement('input');
+      photoInput.type = 'file'; photoInput.accept = 'image/*'; photoInput.style.display = 'none';
+      photoInput.addEventListener('change', function () {
+        if (photoInput.files && photoInput.files[0]) uploadItemCover(item, photoInput.files[0]);
+      });
+      photoBtn.addEventListener('click', function () { photoInput.click(); });
+      itemActions.appendChild(photoBtn); itemActions.appendChild(photoInput);
+      var editBtn = document.createElement('button');
+      editBtn.type = 'button'; editBtn.className = 'icon-btn'; editBtn.innerHTML = '&#9998;';
+      editBtn.title = 'Bewerk item'; editBtn.setAttribute('aria-label', 'Bewerk item');
+      editBtn.addEventListener('click', function () { state.editingItem = item.id; renderDetail(); });
+      var removeBtn = document.createElement('button');
+      removeBtn.type = 'button'; removeBtn.className = 'icon-btn danger'; removeBtn.innerHTML = '&#10005;';
+      removeBtn.title = 'Verwijder item'; removeBtn.setAttribute('aria-label', 'Verwijder item');
+      removeBtn.addEventListener('click', function () {
+        supabase.from('lijst_items').delete().eq('id', item.id).then(refetchSoft);
+      });
+      itemActions.appendChild(editBtn); itemActions.appendChild(removeBtn);
+      actionsTd.appendChild(itemActions);
+      tr.appendChild(actionsTd);
+
+      tbody.appendChild(tr);
     });
-    dbody.appendChild(ul);
+
+    table.appendChild(tbody);
+    scrollWrap.appendChild(table);
+    dbody.appendChild(scrollWrap);
 
     var form = document.createElement('form');
     form.className = 'add-item';
@@ -793,6 +889,42 @@
     dbody.appendChild(footer);
 
     detailCardEl.appendChild(dbody);
+
+    if (restoreSearchFocus !== null) {
+      var searchInputEl = detailCardEl.querySelector('.search-input');
+      if (searchInputEl) { searchInputEl.focus(); searchInputEl.setSelectionRange(restoreSearchFocus, restoreSearchFocus); }
+    }
+  }
+
+  // ---------- Search & sort row ----------
+  function renderSearchSortRow(entry) {
+    var row = document.createElement('div');
+    row.className = 'search-sort-row';
+
+    var input = document.createElement('input');
+    input.type = 'search'; input.className = 'search-input'; input.placeholder = 'Zoeken in dit lijstje…';
+    input.value = state.search[entry.id] || '';
+    input.setAttribute('aria-label', 'Zoeken in dit lijstje');
+    input.addEventListener('input', function () { state.search[entry.id] = input.value; renderDetail(); });
+    row.appendChild(input);
+
+    var sortWrap = document.createElement('label');
+    sortWrap.className = 'sort-wrap';
+    var sortLabel = document.createElement('span'); sortLabel.className = 'fg-label'; sortLabel.textContent = 'Sorteer:';
+    var select = document.createElement('select');
+    select.className = 'sort-select';
+    var options = [{ key: 'volgorde', label: 'Handmatig' }, { key: 'titel', label: 'Titel' }]
+      .concat((entry.extra_velden || []).map(function (f) { return { key: f.key, label: f.label }; }));
+    var current = state.sortBy[entry.id] || 'volgorde';
+    options.forEach(function (o) {
+      var opt = document.createElement('option'); opt.value = o.key; opt.textContent = o.label;
+      if (current === o.key) opt.selected = true;
+      select.appendChild(opt);
+    });
+    select.addEventListener('change', function () { state.sortBy[entry.id] = select.value; renderDetail(); });
+    sortWrap.appendChild(sortLabel); sortWrap.appendChild(select);
+    row.appendChild(sortWrap);
+    return row;
   }
 
   // ---------- Filter row ----------
@@ -1064,14 +1196,14 @@
     try {
       var works = [];
       if (flow.source === 'openlibrary') {
-        var res = await fetch('https://openlibrary.org/search.json?author_key=' + encodeURIComponent(cand.id) + '&language=dut&limit=300&fields=key,title');
+        var res = await fetch('https://openlibrary.org/search.json?author_key=' + encodeURIComponent(cand.id) + '&language=dut&limit=300&fields=key,title,cover_i');
         var data = await res.json();
         var seen = {};
         (data.docs || []).forEach(function (w) {
           var norm = (w.title || '').trim().toLowerCase();
           if (!norm || seen[norm]) return;
           seen[norm] = true;
-          works.push({ id: w.key, title: w.title });
+          works.push({ id: w.key, title: w.title, coverUrl: w.cover_i ? ('https://covers.openlibrary.org/b/id/' + w.cover_i + '-M.jpg') : null });
         });
         works.sort(function (a, b) { return a.title.localeCompare(b.title); });
       } else {
@@ -1111,7 +1243,7 @@
       var extra = {}; if (extraKey) extra[extraKey] = flow.candidateName;
       var vinkjes = {};
       (entry.vink_velden || []).forEach(function (vk) { vinkjes[vk.key] = false; });
-      rows.push({ lijst_id: entry.id, titel: w.title, extra: extra, vinkjes: vinkjes, bron: flow.source, extern_id: w.id, volgorde: base + i });
+      rows.push({ lijst_id: entry.id, titel: w.title, extra: extra, vinkjes: vinkjes, bron: flow.source, extern_id: w.id, omslag_url: w.coverUrl || null, volgorde: base + i });
     });
     closeImportFlow();
     if (!rows.length) return;
