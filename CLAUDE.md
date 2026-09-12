@@ -25,12 +25,17 @@ Gedeelde lijstjes-app voor de eigenaar en zijn partner (Ellen): boeken, muziek, 
    tegen vorige versie, testresultaten herhaald bij levering, zelf-check tegen deze werkafspraken.
 5. Kleine backlogpunten mogen automatisch mee in de eerstvolgende bouwronde.
 
-## Datamodel (kern)
-- `lijsten`: naam, omschrijving, sjabloon (`simpel`/`boeken`/`muziek`), omslag_url, volgorde
-- `lijst_items`: lijst_id (FK, on delete cascade), titel, subtitel (auteur/artiest, ongebruikt bij
-  `simpel`), afgevinkt (alleen betekenisvol bij `simpel`), volgorde
-- Generieke `titel`/`subtitel`-kolommen i.p.v. aparte auteur/artiest-kolommen per sjabloon — het
-  sjabloon op de lijst bepaalt hoe de UI die twee kolommen labelt en rendert.
+## Datamodel (kern) — generiek velden-systeem (sinds v1.1, zie git-historie voor de oudere sjabloon-vaste versie)
+- `lijsten`: naam, omschrijving, omslag_url, volgorde, `type_label` (vrije tekst, getoond als pill),
+  `extra_velden` (jsonb array van `{key,label}`, max 4 — tekstvelden per item), `vink_velden` (jsonb
+  array van `{key,label}`, max 3 — checkboxvelden per item), `auto_import` (`openlibrary`/
+  `musicbrainz`/`bgg`/null), `bgg_username` (alleen gezet na een BGG-collectie-import).
+- `lijst_items`: lijst_id (FK, on delete cascade), titel, `extra` (jsonb, matcht keys uit
+  `extra_velden`), `vinkjes` (jsonb, matcht keys uit `vink_velden`), `bron` + `extern_id` (herkomst
+  bij auto-import, voorkomt dubbele import), volgorde.
+- Snelkeuzes (Lijst/Boeken/Muziek/Strips/Bordspellen/Aangepast) vullen bij aanmaken alleen de
+  velden hierboven vooraf in — daarna is alles per lijstje los aan te passen via "Velden bewerken".
+  Nieuwe types toevoegen is meestal een kleine JS-wijziging (preset), geen migratie.
 - Volgorde wordt bijgehouden als timestamp (nieuw item/lijst = `Date.now()`); verplaatsen wisselt de
   `volgorde`-waarde van twee buren om (last-writer-wins, geen transacties nodig op deze schaal).
 
@@ -53,3 +58,23 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   mtg_kaarten, sealed_producten, tassen(+fotos), items(+fotos), prijs_update_log) hebben RLS
   uitgeschakeld — volledig open voor iedereen met de anon-key. Niet aangeraakt vanuit dit project;
   los oppakken als de eigenaar dat wil.
+- BGG-collectie-import voor Bordspellen (auto_import: 'bgg'): username "bertuf", inclusief
+  uitbreidingen. Ontwerp al uitgewerkt maar nog niet gebouwd: BGG's `collection`-endpoint (met
+  `stats=1`) geeft titel + BGG-id + rank in één call — genoeg voor import én een latere "Ververs
+  BGG-ranks"-knop (herhaalt dezelfde call, matcht op `extern_id`). Ontwerper/uitgever bewust NIET
+  automatisch invullen: dat zit achter BGG's `thing`-endpoint, die tijdens testen herhaaldelijk door
+  Cloudflare werd geblokkeerd vanuit deze dev-omgeving (mogelijk bot-detectie op het IP, onduidelijk
+  of dit ook vanaf een gewoon netwerk gebeurt) — pas automatiseren als blijkt dat het wél werkt vanaf
+  een telefoon/thuisnetwerk. Async-gedrag (BGG kan 202 teruggeven terwijl de export wordt voorbereid)
+  vraagt om een retry-met-backoff bij het ophalen.
+- MusicBrainz-auto-import (Muziek) kon vanuit deze dev-omgeving niet betrouwbaar getest worden
+  ("server is busy"-responses, waarschijnlijk rate-limiting op het dev-IP) — nog niet bevestigd dat
+  dit vanaf een telefoon/thuisnetwerk wél werkt.
+- Wensen van de eigenaar, nog te bouwen:
+  - Boeken ophalen (Open Library-import): filteren op Nederlandstalige titels/edities, i.p.v. alle
+    taalvarianten door elkaar tonen.
+  - Geen doorstreep-styling bij het aanvinken van een "in bezit"-achtig vinkje (Boeken/Muziek/Strips/
+    Bordspellen) — dat hoort bij een mancolijst/to-do, niet bij een verzameling. Doorstrepen mag wel
+    blijven bij het "simpel"-sjabloon (`gedaan`). Vermoedelijk: alleen doorstrepen als de lijst maar
+    één vinkje heeft én dat semantisch een to-do is — nader te bepalen hoe dit onderscheid gemaakt
+    wordt (aparte vlag per vink-veld, of per sjabloon).
