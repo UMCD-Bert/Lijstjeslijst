@@ -51,12 +51,24 @@ toegang (geen aparte accounts per persoon).
   array van `{key,label}`, max 5 — checkboxvelden per item), `doorstrepen` (boolean, default true —
   bepaalt of het aanvinken van het EERSTE vinkje het item doorstreept; staat op `false` bij
   Boeken/Muziek/Strips/Bordspellen omdat een verzameling geen mancolijst is, op `true` bij
-  Lijst/Aangepast), `auto_import` (`openlibrary`/`musicbrainz`/`bgg`/null — `bgg` nog niet gebouwd),
-  `bgg_username` (alleen relevant zodra BGG-import gebouwd wordt).
+  Lijst/Aangepast), `auto_import` (`openlibrary`/`musicbrainz`/`discogs`/`bgg`/null — `bgg` nog niet
+  gebouwd), `bgg_username` (alleen relevant zodra BGG-import gebouwd wordt), `discogs_username`
+  (alleen relevant bij `auto_import: 'discogs'`), `genest` (boolean, default false — generieke
+  aan/uit-schakelaar voor een echte 1:n-structuur reeks→albums, zie hieronder; alleen de
+  Strips-preset zet 'm standaard aan, geen UI-toggle voor andere lijsttypes gebouwd want niet
+  gevraagd).
 - `lijst_items`: lijst_id (FK, on delete cascade), titel, `extra` (jsonb, matcht keys uit
   `extra_velden`), `vinkjes` (jsonb, matcht keys uit `vink_velden`), `omslag_url` (foto per item,
   los van de omslagfoto van de lijst), `bron` + `extern_id` (herkomst bij auto-import, voorkomt
-  dubbele import), volgorde.
+  dubbele import), `reeks_id` (FK → `reeksen`, on delete cascade, alleen gebruikt bij `genest`
+  lijstjes), volgorde.
+- `reeksen` (2026-09-13, voor `genest` lijstjes): eigen tabel i.p.v. een tekstveld — `lijst_id` (FK,
+  on delete cascade), `naam`, `omslag_url` (nog niet gebruikt in UI), `volgorde`. Een `genest`
+  lijstje toont items gegroepeerd per reeks (reeksnaam 1x als inklapbare kop met rename/verplaats/
+  verwijder, verwijderen cascadeert naar de albums erin) i.p.v. als platte tabel; elke reeks-groep
+  heeft een eigen mini "album toevoegen"-formulier, plus een "+ Nieuwe reeks"-formulier onderaan.
+  Zoeken matcht ook op reeksnaam. Items zonder `reeks_id` (zou niet via de UI moeten ontstaan)
+  worden alsnog getoond onder een niet-verwijderbare "Zonder reeks"-kop, als vangnet.
 - Snelkeuzes (Lijst/Boeken/Muziek/Strips/Bordspellen/Aangepast) vullen bij aanmaken alleen de
   velden hierboven vooraf in — daarna is alles per lijstje los aan te passen via "Velden bewerken".
   Nieuwe types toevoegen is meestal een kleine JS-wijziging (preset), geen migratie.
@@ -144,3 +156,8 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   `BarcodeDetector` API vs. een JS-library als ZXing, i.v.m. browserondersteuning op iPhone
   Safari), en welke databron per type (boeken: Open Library heeft ISBN-lookup; platen: Discogs
   heeft ook barcode-zoekfunctie op releases).
+- ~~Strips: geneste reeks→albums-structuur~~ — gebouwd (2026-09-13). Was eerst een plat
+  `reeks`-tekstveld per item (elk album herhaalde de reeksnaam apart); nu een echte 1:n-relatie:
+  nieuwe tabel `reeksen` + `lijst_items.reeks_id`, generieke `lijsten.genest`-schakelaar (zie
+  Datamodel hierboven). Enige bestaande Strips-lijst ("Strips Bert", 1 item/reeks "Suske en
+  Wiske") gemigreerd. Muziek-label-vraag hieronder blijft nog los staan.
