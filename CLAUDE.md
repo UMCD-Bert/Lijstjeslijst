@@ -18,8 +18,8 @@ Gedeelde lijstjes-app voor de eigenaar en zijn partner (Ellen): boeken, muziek, 
 
 ## Werkafspraken — ALTIJD aanhouden
 1. Wacht op expliciete GO voordat je gaat coderen, ook bij kleine/directe instructies.
-2. SQL-wijzigingen als los, copy-pastebaar blok — niet als bestand; de eigenaar voert ze zelf uit
-   in de Supabase SQL-editor.
+2. SQL-wijzigingen eerst als los, copy-pastebaar blok tonen en om goedkeuring vragen — na akkoord
+   voert Claude ze zelf uit via de Supabase MCP-connector (niet de eigenaar in de SQL-editor).
 3. Na elke niet-triviale JS-wijziging: verifieer met een jsdom-simulatie (Supabase gemockt) vóór levering.
 4. Vaste kwaliteitscontrole vóór elke levering: versienummer verhoogd + expliciet genoemd, gediffed
    tegen vorige versie, testresultaten herhaald bij levering, zelf-check tegen deze werkafspraken.

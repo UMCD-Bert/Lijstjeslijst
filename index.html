@@ -68,6 +68,7 @@
     box-shadow: 0 1px 2px var(--shadow); transition: transform 0.12s ease, box-shadow 0.12s ease; white-space: nowrap;
   }
   .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 10px var(--shadow); }
+  .btn-primary:disabled { opacity: 0.5; cursor: default; transform: none; box-shadow: none; }
   .btn-secondary {
     background: var(--surface-2); color: var(--ink); border: 1px solid var(--border); border-radius: 9px;
     padding: 8px 14px; font-size: 0.85rem; font-weight: 500;
@@ -77,6 +78,9 @@
   .btn-text:hover { color: var(--ink); }
   .btn-text.danger { color: var(--danger); }
   .btn-text.danger:hover { text-decoration: underline; }
+  .link-btn { background: none; border: none; color: var(--accent); font-size: 0.82rem; padding: 4px 2px; align-self: flex-start; font-weight: 500; }
+  .link-btn:hover { text-decoration: underline; }
+  .link-btn:disabled { color: var(--muted); cursor: default; text-decoration: none; }
 
   main { position: relative; }
   [hidden] { display: none !important; }
@@ -115,7 +119,7 @@
   .card:hover .card-controls, .card:focus-within .card-controls { opacity: 1; }
   .icon-btn {
     width: 27px; height: 27px; border-radius: 7px; border: none; background: rgba(251,251,247,0.9); color: var(--muted);
-    display: flex; align-items: center; justify-content: center; font-size: 0.8rem; box-shadow: 0 1px 3px var(--shadow);
+    display: flex; align-items: center; justify-content: center; font-size: 0.8rem; box-shadow: 0 1px 3px var(--shadow); flex-shrink: 0;
   }
   .icon-btn:hover { color: var(--ink); background: var(--surface); }
   .icon-btn.danger:hover { color: var(--danger); background: var(--danger-soft); }
@@ -159,12 +163,43 @@
   .detail-title { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 1.55rem; margin: 0; padding: 4px 2px; border: none;
     background: transparent; color: var(--ink); flex: 1 1 auto; min-width: 160px; }
   .detail-title:focus { outline: none; border-bottom: 1.5px solid var(--accent); }
-  .detail-meta { display: flex; align-items: center; gap: 10px; margin: 6px 0 14px; flex-wrap: wrap; }
+  .detail-meta { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; flex-wrap: wrap; }
   .detail-desc { width: 100%; border: none; background: transparent; color: var(--muted); font-family: inherit; font-size: 0.92rem;
-    padding: 2px; resize: none; line-height: 1.5; margin-bottom: 14px; }
+    padding: 2px; resize: none; line-height: 1.5; margin-bottom: 6px; }
   .detail-desc:focus { outline: none; background: var(--surface-2); border-radius: 8px; }
   .detail-desc::placeholder { color: var(--muted); opacity: 0.7; }
   hr.div { border: none; border-top: 1px solid var(--border); margin: 4px 0 14px; }
+
+  .fields-toggle-row { margin-bottom: 4px; }
+
+  .fields-editor { border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin: 0 0 16px; background: var(--surface-2); display: flex; flex-direction: column; gap: 16px; }
+  .fields-editor h4 { margin: 0 0 8px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600; }
+  .fields-editor-group { display: flex; flex-direction: column; gap: 6px; }
+  .fields-editor-row { display: flex; align-items: center; gap: 8px; }
+  .fields-editor-row input { flex: 1; border: 1px solid var(--border); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 0.88rem; color: var(--ink); }
+
+  .filter-row { display: flex; flex-wrap: wrap; gap: 14px 20px; margin: 0 0 16px; }
+  .filter-group { display: flex; align-items: center; gap: 7px; }
+  .filter-group .fg-label { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+  .filter-seg { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .filter-seg button { background: var(--surface); border: none; padding: 5px 10px; font-size: 0.76rem; color: var(--muted); }
+  .filter-seg button + button { border-left: 1px solid var(--border); }
+  .filter-seg button.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+
+  .import-toggle-row { margin-bottom: 14px; }
+  .import-panel { border: 1.5px dashed var(--border); border-radius: 10px; padding: 14px; margin: 0 0 16px; display: flex; flex-direction: column; gap: 12px; }
+  .import-search { display: flex; gap: 8px; }
+  .import-search input { flex: 1; border: 1px solid var(--border); background: var(--surface-2); border-radius: 8px; padding: 8px 11px; font-family: inherit; font-size: 0.9rem; color: var(--ink); }
+  .import-candidates { display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; }
+  .import-candidate { text-align: left; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 8px 11px; font-size: 0.86rem; }
+  .import-candidate:hover { background: var(--accent-soft); }
+  .import-candidate small { display: block; color: var(--muted); font-size: 0.76rem; margin-top: 2px; }
+  .import-works { display: flex; flex-direction: column; gap: 4px; max-height: 280px; overflow-y: auto; border-top: 1px solid var(--border); padding-top: 10px; }
+  .import-work-row { display: flex; align-items: center; gap: 8px; font-size: 0.86rem; padding: 3px 0; }
+  .import-work-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); flex-shrink: 0; }
+  .import-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .import-msg { font-size: 0.84rem; color: var(--muted); font-style: italic; }
+  .import-msg.error { color: var(--danger); font-style: normal; }
 
   ul.items { list-style: none; margin: 0 0 18px; padding: 0; display: flex; flex-direction: column; }
   .item-row { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--border); }
@@ -173,6 +208,9 @@
   .move-btn { width: 20px; height: 16px; border: none; background: none; color: var(--border); display: flex; align-items: center; justify-content: center; padding: 0; line-height: 0; }
   .move-btn:not(:disabled):hover { color: var(--accent); }
   .move-btn:disabled { visibility: hidden; }
+  .item-checks { display: flex; gap: 8px; flex-shrink: 0; }
+  .item-check-single { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .item-check-single .cc-label { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.02em; max-width: 44px; text-align: center; line-height: 1.1; }
   .checkbox {
     width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--border); background: var(--surface); flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; padding: 0; transition: background 0.15s ease, border-color 0.15s ease;
@@ -245,16 +283,24 @@
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
   var COVER_PREFIX = 'lijstjeslijst/';
+  var FIELD_CAP = { extra: 4, vink: 3 };
 
-  var TEMPLATES = {
-    simpel: { label: 'Lijst', fields: [{ key: 'titel', label: 'Item', placeholder: 'Wat wil je onthouden?' }], hasDone: true },
-    boeken: { label: 'Boeken', fields: [{ key: 'titel', label: 'Titel', placeholder: 'Titel van het boek' }, { key: 'subtitel', label: 'Auteur', placeholder: 'Auteur (optioneel)' }], hasDone: false },
-    muziek: { label: 'Muziek', fields: [{ key: 'titel', label: 'Titel', placeholder: 'Titel of album' }, { key: 'subtitel', label: 'Artiest', placeholder: 'Artiest (optioneel)' }], hasDone: false }
+  var PRESETS = {
+    simpel:      { label: 'Lijst',       desc: 'losse items, afvinkbaar',    type_label: 'Lijst',       extra_velden: [], vink_velden: [{ key: 'gedaan', label: 'Gedaan' }], auto_import: null },
+    boeken:      { label: 'Boeken',      desc: 'titel + auteur',             type_label: 'Boeken',      extra_velden: [{ key: 'auteur', label: 'Auteur' }], vink_velden: [{ key: 'in_bezit', label: 'In bezit' }], auto_import: 'openlibrary' },
+    muziek:      { label: 'Muziek',      desc: 'titel + artiest',            type_label: 'Muziek',      extra_velden: [{ key: 'artiest', label: 'Artiest' }], vink_velden: [{ key: 'in_bezit', label: 'In bezit' }], auto_import: 'musicbrainz' },
+    strips:      { label: 'Strips',      desc: 'reeks + volgnummer',         type_label: 'Strips',      extra_velden: [{ key: 'reeks', label: 'Reeks' }, { key: 'volgnummer', label: 'Volgnummer' }], vink_velden: [{ key: 'in_bezit', label: 'In bezit' }, { key: 'gelezen', label: 'Gelezen' }], auto_import: null },
+    bordspellen: { label: 'Bordspellen', desc: 'auteur, uitgever, BGG-rank', type_label: 'Bordspellen', extra_velden: [{ key: 'auteur', label: 'Auteur/ontwerper' }, { key: 'uitgever', label: 'Uitgever' }, { key: 'bgg_rank', label: 'BGG-rank' }], vink_velden: [{ key: 'gespeeld', label: 'Gespeeld' }], auto_import: null },
+    aangepast:   { label: 'Aangepast',   desc: 'zelf velden kiezen',         type_label: null,          extra_velden: [], vink_velden: [{ key: 'gedaan', label: 'Gedaan' }], auto_import: null }
   };
-  var TEMPLATE_ORDER = ['simpel', 'boeken', 'muziek'];
+  var PRESET_ORDER = ['simpel', 'boeken', 'muziek', 'strips', 'bordspellen', 'aangepast'];
+  var IMPORT_LABELS = { openlibrary: 'Auteur toevoegen', musicbrainz: 'Artiest toevoegen' };
 
   var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  var state = { lijsten: [], items: [], currentId: null, editingItem: null };
+  var state = {
+    lijsten: [], items: [], currentId: null, editingItem: null,
+    filters: {}, showFieldsEditor: false, importFlow: null
+  };
 
   var gridEl = document.getElementById('grid');
   var emptyStateEl = document.getElementById('empty-state');
@@ -281,18 +327,44 @@
     return svg;
   }
 
+  function slugify(label) {
+    var s = (label || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    return s || 'veld';
+  }
+  function uniqueKey(base, existingKeys) {
+    var key = base, i = 2;
+    while (existingKeys.indexOf(key) !== -1) { key = base + '_' + i; i++; }
+    return key;
+  }
+
   function itemsFor(listId) {
     return state.items.filter(function (i) { return i.lijst_id === listId; })
       .sort(function (a, b) { return a.volgorde - b.volgorde; });
   }
-  function counts(listId, tpl) {
+  function filteredItems(entry) {
+    var items = itemsFor(entry.id);
+    var f = state.filters[entry.id] || {};
+    return items.filter(function (item) {
+      return (entry.vink_velden || []).every(function (vk) {
+        var want = f[vk.key] || 'alle';
+        if (want === 'alle') return true;
+        var val = !!(item.vinkjes && item.vinkjes[vk.key]);
+        return want === 'wel' ? val : !val;
+      });
+    });
+  }
+  function vinkCounts(listId, vinkKey) {
     var items = itemsFor(listId);
-    var total = items.length;
-    var done = items.filter(function (i) { return i.afgevinkt; }).length;
-    return { total: total, done: done };
+    var yes = items.filter(function (i) { return i.vinkjes && i.vinkjes[vinkKey]; }).length;
+    return { total: items.length, yes: yes };
   }
   function sortedLists() { return state.lijsten.slice().sort(function (a, b) { return a.volgorde - b.volgorde; }); }
   function initials(name) { return (name || '?').trim().charAt(0).toUpperCase() || '?'; }
+  function extraSummary(entry, item) {
+    return (entry.extra_velden || []).map(function (f) { return item.extra && item.extra[f.key]; })
+      .filter(function (v) { return v; }).join(' · ');
+  }
 
   // ---------- Overview ----------
   function renderOverview() {
@@ -301,9 +373,7 @@
     emptyStateEl.hidden = lists.length > 0;
 
     lists.forEach(function (entry, idx) {
-      var tpl = TEMPLATES[entry.sjabloon] || TEMPLATES.simpel;
       var items = itemsFor(entry.id);
-      var c = counts(entry.id);
       var card = document.createElement('button');
       card.type = 'button';
       card.className = 'card';
@@ -327,7 +397,7 @@
       var title = document.createElement('h3');
       title.className = 'card-title'; title.textContent = entry.naam || 'Naamloos lijstje';
       var pill = document.createElement('span');
-      pill.className = 'pill'; pill.textContent = tpl.label;
+      pill.className = 'pill'; pill.textContent = entry.type_label || 'Lijst';
       head.appendChild(title); head.appendChild(pill);
       body.appendChild(head);
 
@@ -339,26 +409,29 @@
 
       var countTag = document.createElement('span');
       countTag.className = 'count-tag';
-      countTag.textContent = tpl.hasDone ? (c.total ? (c.done + '/' + c.total + ' gedaan') : 'leeg') : (c.total + (c.total === 1 ? ' item' : ' items'));
+      countTag.textContent = items.length ? (items.length + (items.length === 1 ? ' item' : ' items')) : 'leeg';
       body.appendChild(countTag);
 
+      var firstVink = (entry.vink_velden || [])[0];
       if (items.length) {
         var ul = document.createElement('ul');
         ul.className = 'preview';
         items.slice(0, 3).forEach(function (item) {
+          var done = firstVink ? !!(item.vinkjes && item.vinkjes[firstVink.key]) : false;
           var li = document.createElement('li');
-          if (item.afgevinkt) li.className = 'done';
-          if (tpl.hasDone) {
+          if (done) li.className = 'done';
+          if (firstVink) {
             var dot = document.createElement('span'); dot.className = 'dot';
             li.appendChild(dot);
           }
           var pSpan = document.createElement('span');
-          pSpan.className = 'p-primary' + (item.afgevinkt ? ' done' : '');
+          pSpan.className = 'p-primary' + (done ? ' done' : '');
           pSpan.textContent = item.titel || '';
           li.appendChild(pSpan);
-          if (item.subtitel) {
+          var summary = extraSummary(entry, item);
+          if (summary) {
             var sSpan = document.createElement('span');
-            sSpan.className = 'p-secondary'; sSpan.textContent = '— ' + item.subtitel;
+            sSpan.className = 'p-secondary'; sSpan.textContent = '— ' + summary;
             li.appendChild(sSpan);
           }
           ul.appendChild(li);
@@ -407,12 +480,12 @@
 
   // ---------- Detail ----------
   function openDetail(id) {
-    state.currentId = id; state.editingItem = null;
+    state.currentId = id; state.editingItem = null; state.showFieldsEditor = false; state.importFlow = null;
     detailEl.hidden = false; gridEl.hidden = true; emptyStateEl.hidden = true; newListBtn.hidden = true;
     renderDetail();
   }
   function goHome() {
-    state.currentId = null;
+    state.currentId = null; state.importFlow = null;
     detailEl.hidden = true; gridEl.hidden = false; newListBtn.hidden = false;
     renderOverview();
   }
@@ -420,7 +493,6 @@
   function renderDetail() {
     var entry = state.lijsten.find(function (l) { return l.id === state.currentId; });
     if (!entry) { goHome(); return; }
-    var tpl = TEMPLATES[entry.sjabloon] || TEMPLATES.simpel;
     detailCardEl.innerHTML = '';
 
     var backRow = document.createElement('div');
@@ -485,12 +557,15 @@
 
     var meta = document.createElement('div');
     meta.className = 'detail-meta';
-    var pill = document.createElement('span'); pill.className = 'pill'; pill.textContent = tpl.label;
-    var c = counts(entry.id);
-    var countEl = document.createElement('span');
-    countEl.className = 'count-tag';
-    countEl.textContent = tpl.hasDone ? (c.total ? (c.done + ' van ' + c.total + ' klaar') : 'leeg') : (c.total + (c.total === 1 ? ' item' : ' items'));
-    meta.appendChild(pill); meta.appendChild(countEl);
+    var pill = document.createElement('span'); pill.className = 'pill'; pill.textContent = entry.type_label || 'Lijst';
+    meta.appendChild(pill);
+    (entry.vink_velden || []).forEach(function (vk) {
+      var vc = vinkCounts(entry.id, vk.key);
+      var badge = document.createElement('span');
+      badge.className = 'count-tag';
+      badge.textContent = vc.total ? (vc.yes + '/' + vc.total + ' ' + vk.label.toLowerCase()) : ('0 ' + vk.label.toLowerCase());
+      meta.appendChild(badge);
+    });
     dbody.appendChild(meta);
 
     var descArea = document.createElement('textarea');
@@ -505,54 +580,89 @@
     dbody.appendChild(descArea);
     setTimeout(function () { descArea.style.height = 'auto'; descArea.style.height = descArea.scrollHeight + 'px'; }, 0);
 
+    var fieldsToggleRow = document.createElement('div');
+    fieldsToggleRow.className = 'fields-toggle-row';
+    var fieldsToggleBtn = document.createElement('button');
+    fieldsToggleBtn.type = 'button'; fieldsToggleBtn.className = 'btn-text';
+    fieldsToggleBtn.textContent = state.showFieldsEditor ? 'Velden sluiten' : 'Velden bewerken';
+    fieldsToggleBtn.addEventListener('click', function () { state.showFieldsEditor = !state.showFieldsEditor; renderDetail(); });
+    fieldsToggleRow.appendChild(fieldsToggleBtn);
+    dbody.appendChild(fieldsToggleRow);
+
+    if (state.showFieldsEditor) dbody.appendChild(renderFieldsEditor(entry));
+
     dbody.appendChild(document.createElement('hr')).className = 'div';
+
+    if (entry.auto_import) dbody.appendChild(renderImportSection(entry));
+
+    if ((entry.vink_velden || []).length) dbody.appendChild(renderFilterRow(entry));
 
     var ul = document.createElement('ul');
     ul.className = 'items';
-    var items = itemsFor(entry.id);
+    var fullItems = itemsFor(entry.id);
+    var items = filteredItems(entry);
     if (!items.length) {
       var emptyLi = document.createElement('li');
-      emptyLi.className = 'items-empty'; emptyLi.textContent = 'Nog geen items op dit lijstje.';
+      emptyLi.className = 'items-empty';
+      emptyLi.textContent = fullItems.length ? 'Geen items met dit filter.' : 'Nog geen items op dit lijstje.';
       ul.appendChild(emptyLi);
     }
-    items.forEach(function (item, idx) {
+    items.forEach(function (item) {
+      var idx = fullItems.indexOf(item);
       var li = document.createElement('li');
-      li.className = 'item-row' + (item.afgevinkt ? ' done' : '');
+      var primaryDone = (entry.vink_velden || [])[0] ? !!(item.vinkjes && item.vinkjes[entry.vink_velden[0].key]) : false;
+      li.className = 'item-row' + (primaryDone ? ' done' : '');
 
       var moveCol = document.createElement('div');
       moveCol.className = 'move-col';
       var upBtn = document.createElement('button');
       upBtn.type = 'button'; upBtn.className = 'move-btn'; upBtn.innerHTML = '&#9650;';
       upBtn.setAttribute('aria-label', 'Verplaats omhoog'); upBtn.disabled = idx === 0;
-      upBtn.addEventListener('click', function () { moveItem(items, item, -1); });
+      upBtn.addEventListener('click', function () { moveItem(fullItems, item, -1); });
       var downBtn = document.createElement('button');
       downBtn.type = 'button'; downBtn.className = 'move-btn'; downBtn.innerHTML = '&#9660;';
-      downBtn.setAttribute('aria-label', 'Verplaats omlaag'); downBtn.disabled = idx === items.length - 1;
-      downBtn.addEventListener('click', function () { moveItem(items, item, 1); });
+      downBtn.setAttribute('aria-label', 'Verplaats omlaag'); downBtn.disabled = idx === fullItems.length - 1;
+      downBtn.addEventListener('click', function () { moveItem(fullItems, item, 1); });
       moveCol.appendChild(upBtn); moveCol.appendChild(downBtn);
       li.appendChild(moveCol);
 
-      if (tpl.hasDone) {
-        var box = document.createElement('button');
-        box.type = 'button'; box.className = 'checkbox' + (item.afgevinkt ? ' checked' : '');
-        box.setAttribute('aria-pressed', item.afgevinkt ? 'true' : 'false');
-        box.setAttribute('aria-label', item.afgevinkt ? 'Markeer als niet gedaan' : 'Markeer als gedaan');
-        box.appendChild(checkSvg());
-        box.addEventListener('click', function () {
-          supabase.from('lijst_items').update({ afgevinkt: !item.afgevinkt }).eq('id', item.id).then(refetchSoft);
+      if ((entry.vink_velden || []).length) {
+        var checksWrap = document.createElement('div');
+        checksWrap.className = 'item-checks';
+        entry.vink_velden.forEach(function (vk) {
+          var single = document.createElement('div');
+          single.className = 'item-check-single';
+          var checked = !!(item.vinkjes && item.vinkjes[vk.key]);
+          var box = document.createElement('button');
+          box.type = 'button'; box.className = 'checkbox' + (checked ? ' checked' : '');
+          box.setAttribute('aria-pressed', checked ? 'true' : 'false');
+          box.setAttribute('aria-label', vk.label + (checked ? ' (aan)' : ' (uit)'));
+          box.appendChild(checkSvg());
+          box.addEventListener('click', function () {
+            var next = Object.assign({}, item.vinkjes || {});
+            next[vk.key] = !checked;
+            supabase.from('lijst_items').update({ vinkjes: next }).eq('id', item.id).then(refetchSoft);
+          });
+          var lbl = document.createElement('span');
+          lbl.className = 'cc-label'; lbl.textContent = vk.label;
+          single.appendChild(box); single.appendChild(lbl);
+          checksWrap.appendChild(single);
         });
-        li.appendChild(box);
+        li.appendChild(checksWrap);
       }
 
       if (state.editingItem === item.id) {
         var form = document.createElement('form');
         form.className = 'edit-form';
-        var inputs = tpl.fields.map(function (f) {
+        var titelInput = document.createElement('input');
+        titelInput.value = item.titel || ''; titelInput.placeholder = 'Titel'; titelInput.dataset.key = '__titel';
+        form.appendChild(titelInput);
+        var extraInputs = (entry.extra_velden || []).map(function (f) {
           var inp = document.createElement('input');
-          inp.value = item[f.key] || ''; inp.placeholder = f.placeholder; inp.dataset.key = f.key;
+          inp.value = (item.extra && item.extra[f.key]) || ''; inp.placeholder = f.label; inp.dataset.key = f.key;
           return inp;
         });
-        inputs.forEach(function (inp) { form.appendChild(inp); });
+        extraInputs.forEach(function (inp) { form.appendChild(inp); });
         var actions = document.createElement('div');
         actions.className = 'edit-form-actions';
         var saveBtn = document.createElement('button');
@@ -564,13 +674,11 @@
         form.appendChild(actions);
         form.addEventListener('submit', function (e) {
           e.preventDefault();
-          var patch = {}; var hasPrimary = false;
-          inputs.forEach(function (inp) {
-            var v = inp.value.trim(); patch[inp.dataset.key] = v || null;
-            if (inp.dataset.key === 'titel' && v) hasPrimary = true;
-          });
-          if (!hasPrimary) return;
-          supabase.from('lijst_items').update(patch).eq('id', item.id).then(refetchSoft);
+          var titel = titelInput.value.trim();
+          if (!titel) return;
+          var extra = {};
+          extraInputs.forEach(function (inp) { extra[inp.dataset.key] = inp.value.trim() || null; });
+          supabase.from('lijst_items').update({ titel: titel, extra: extra }).eq('id', item.id).then(refetchSoft);
           state.editingItem = null;
         });
         li.appendChild(form);
@@ -581,9 +689,10 @@
         var pEl = document.createElement('span');
         pEl.className = 'item-primary'; pEl.textContent = item.titel || '(geen titel)';
         main.appendChild(pEl);
-        if (item.subtitel) {
+        var summary = extraSummary(entry, item);
+        if (summary) {
           var sEl = document.createElement('span');
-          sEl.className = 'item-secondary'; sEl.textContent = item.subtitel;
+          sEl.className = 'item-secondary'; sEl.textContent = summary;
           main.appendChild(sEl);
         }
         li.appendChild(main);
@@ -610,30 +719,33 @@
     form.className = 'add-item';
     var fieldsWrap = document.createElement('div');
     fieldsWrap.className = 'add-fields';
-    var addInputs = tpl.fields.map(function (f) {
+    var titelAddInput = document.createElement('input');
+    titelAddInput.type = 'text'; titelAddInput.placeholder = 'Titel'; titelAddInput.dataset.key = '__titel';
+    titelAddInput.setAttribute('aria-label', 'Titel');
+    fieldsWrap.appendChild(titelAddInput);
+    var addExtraInputs = (entry.extra_velden || []).map(function (f) {
       var inp = document.createElement('input');
-      inp.type = 'text'; inp.placeholder = f.placeholder; inp.dataset.key = f.key;
+      inp.type = 'text'; inp.placeholder = f.label; inp.dataset.key = f.key;
       inp.setAttribute('aria-label', f.label);
       return inp;
     });
-    addInputs.forEach(function (inp) { fieldsWrap.appendChild(inp); });
+    addExtraInputs.forEach(function (inp) { fieldsWrap.appendChild(inp); });
     var submitBtn = document.createElement('button');
     submitBtn.type = 'submit'; submitBtn.className = 'submit-btn'; submitBtn.innerHTML = '&#43;';
     submitBtn.setAttribute('aria-label', 'Item toevoegen');
     form.appendChild(fieldsWrap); form.appendChild(submitBtn);
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-      var data = { lijst_id: entry.id, volgorde: Date.now() };
-      var hasPrimary = false;
-      addInputs.forEach(function (inp) {
-        var v = inp.value.trim(); data[inp.dataset.key] = v || null;
-        if (inp.dataset.key === 'titel' && v) hasPrimary = true;
-      });
-      if (!hasPrimary) return;
-      if (tpl.hasDone) data.afgevinkt = false;
-      supabase.from('lijst_items').insert(data).then(refetchSoft);
-      addInputs.forEach(function (inp) { inp.value = ''; });
-      addInputs[0].focus();
+      var titel = titelAddInput.value.trim();
+      if (!titel) return;
+      var extra = {};
+      addExtraInputs.forEach(function (inp) { extra[inp.dataset.key] = inp.value.trim() || null; });
+      var vinkjes = {};
+      (entry.vink_velden || []).forEach(function (vk) { vinkjes[vk.key] = false; });
+      supabase.from('lijst_items').insert({ lijst_id: entry.id, titel: titel, extra: extra, vinkjes: vinkjes, volgorde: Date.now() }).then(refetchSoft);
+      titelAddInput.value = '';
+      addExtraInputs.forEach(function (inp) { inp.value = ''; });
+      titelAddInput.focus();
     });
     dbody.appendChild(form);
 
@@ -648,6 +760,86 @@
     detailCardEl.appendChild(dbody);
   }
 
+  // ---------- Filter row ----------
+  function renderFilterRow(entry) {
+    var row = document.createElement('div');
+    row.className = 'filter-row';
+    entry.vink_velden.forEach(function (vk) {
+      var group = document.createElement('div');
+      group.className = 'filter-group';
+      var lbl = document.createElement('span'); lbl.className = 'fg-label'; lbl.textContent = vk.label + ':';
+      var seg = document.createElement('div'); seg.className = 'filter-seg';
+      var current = (state.filters[entry.id] && state.filters[entry.id][vk.key]) || 'alle';
+      [['alle', 'Alles'], ['wel', 'Wel'], ['niet', 'Niet']].forEach(function (pair) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.textContent = pair[1];
+        if (current === pair[0]) b.className = 'active';
+        b.addEventListener('click', function () {
+          if (!state.filters[entry.id]) state.filters[entry.id] = {};
+          state.filters[entry.id][vk.key] = pair[0];
+          renderDetail();
+        });
+        seg.appendChild(b);
+      });
+      group.appendChild(lbl); group.appendChild(seg);
+      row.appendChild(group);
+    });
+    return row;
+  }
+
+  // ---------- Fields editor ----------
+  function renderFieldsEditor(entry) {
+    var box = document.createElement('div');
+    box.className = 'fields-editor';
+
+    function persist(patch) { supabase.from('lijsten').update(patch).eq('id', entry.id).then(refetchSoft); }
+
+    function buildGroup(title, arr, cap, kindLabel, onAdd) {
+      var group = document.createElement('div');
+      group.className = 'fields-editor-group';
+      var h4 = document.createElement('h4'); h4.textContent = title;
+      group.appendChild(h4);
+      arr.forEach(function (f, i) {
+        var row = document.createElement('div'); row.className = 'fields-editor-row';
+        var inp = document.createElement('input'); inp.value = f.label;
+        inp.addEventListener('blur', function () {
+          var v = inp.value.trim();
+          if (!v || v === f.label) { inp.value = f.label; return; }
+          var copy = arr.slice(); copy[i] = { key: f.key, label: v };
+          persist(kindLabel === 'extra' ? { extra_velden: copy } : { vink_velden: copy });
+        });
+        var del = document.createElement('button');
+        del.type = 'button'; del.className = 'icon-btn danger'; del.innerHTML = '&#10005;';
+        del.setAttribute('aria-label', 'Verwijder veld ' + f.label);
+        del.addEventListener('click', function () {
+          var copy = arr.slice(); copy.splice(i, 1);
+          persist(kindLabel === 'extra' ? { extra_velden: copy } : { vink_velden: copy });
+        });
+        row.appendChild(inp); row.appendChild(del);
+        group.appendChild(row);
+      });
+      var addBtn = document.createElement('button');
+      addBtn.type = 'button'; addBtn.className = 'link-btn';
+      addBtn.textContent = kindLabel === 'extra' ? '+ tekstveld toevoegen' : '+ vinkje toevoegen';
+      addBtn.disabled = arr.length >= cap;
+      addBtn.addEventListener('click', onAdd);
+      group.appendChild(addBtn);
+      return group;
+    }
+
+    box.appendChild(buildGroup('Tekstvelden', entry.extra_velden || [], FIELD_CAP.extra, 'extra', function () {
+      var arr = entry.extra_velden || [];
+      var key = uniqueKey(slugify('Nieuw veld'), arr.map(function (f) { return f.key; }));
+      persist({ extra_velden: arr.concat([{ key: key, label: 'Nieuw veld' }]) });
+    }));
+    box.appendChild(buildGroup('Vinkjes', entry.vink_velden || [], FIELD_CAP.vink, 'vink', function () {
+      var arr = entry.vink_velden || [];
+      var key = uniqueKey(slugify('Nieuw vinkje'), arr.map(function (f) { return f.key; }));
+      persist({ vink_velden: arr.concat([{ key: key, label: 'Nieuw vinkje' }]) });
+    }));
+    return box;
+  }
+
   // ---------- New list ----------
   function showNewListForm() {
     if (document.getElementById('ghost-card')) return;
@@ -659,22 +851,29 @@
     card.appendChild(h3);
 
     var choice = document.createElement('div'); choice.className = 'template-choice';
-    var descByTpl = { simpel: 'los tekstitems, afvinkbaar', boeken: 'titel + auteur', muziek: 'titel + artiest' };
     var tplButtons = {};
-    TEMPLATE_ORDER.forEach(function (key) {
+    var customTypeRow;
+    PRESET_ORDER.forEach(function (key) {
       var b = document.createElement('button');
       b.type = 'button'; b.className = 'template-btn' + (key === selectedTpl ? ' selected' : '');
-      var strong = document.createElement('span'); strong.textContent = TEMPLATES[key].label;
-      var small = document.createElement('small'); small.textContent = descByTpl[key];
+      var strong = document.createElement('span'); strong.textContent = PRESETS[key].label;
+      var small = document.createElement('small'); small.textContent = PRESETS[key].desc;
       b.appendChild(strong); b.appendChild(small);
       b.addEventListener('click', function () {
         selectedTpl = key;
         Object.keys(tplButtons).forEach(function (k) { tplButtons[k].classList.toggle('selected', k === key); });
+        customTypeRow.hidden = key !== 'aangepast';
       });
       tplButtons[key] = b;
       choice.appendChild(b);
     });
     card.appendChild(choice);
+
+    customTypeRow = document.createElement('div'); customTypeRow.className = 'field-row'; customTypeRow.hidden = true;
+    var customTypeLabel = document.createElement('label'); customTypeLabel.textContent = 'Type naam';
+    var customTypeInput = document.createElement('input'); customTypeInput.placeholder = 'Bijv. Recepten';
+    customTypeRow.appendChild(customTypeLabel); customTypeRow.appendChild(customTypeInput);
+    card.appendChild(customTypeRow);
 
     var nameRow = document.createElement('div'); nameRow.className = 'field-row';
     var nameLabel = document.createElement('label'); nameLabel.textContent = 'Naam';
@@ -697,8 +896,12 @@
     function submit() {
       var v = nameInput.value.trim();
       if (!v) { nameInput.focus(); return; }
+      var preset = PRESETS[selectedTpl];
+      var typeLabel = selectedTpl === 'aangepast' ? (customTypeInput.value.trim() || 'Aangepast') : preset.type_label;
       supabase.from('lijsten').insert({
-        naam: v, omschrijving: descInput.value.trim() || null, sjabloon: selectedTpl, volgorde: Date.now()
+        naam: v, omschrijving: descInput.value.trim() || null, type_label: typeLabel,
+        auto_import: preset.auto_import, extra_velden: preset.extra_velden, vink_velden: preset.vink_velden,
+        volgorde: Date.now()
       }).then(refetchSoft);
       card.remove();
     }
@@ -765,16 +968,211 @@
 
   newListBtn.addEventListener('click', showNewListForm);
 
+  // ---------- Auto-import (Open Library / MusicBrainz) ----------
+  function openImportFlow(entry) {
+    state.importFlow = {
+      listId: entry.id, source: entry.auto_import, step: 'search', query: '',
+      candidates: [], candidateName: '', candidateId: '', works: [], selected: new Set(),
+      loading: false, error: ''
+    };
+    renderDetail();
+  }
+  function closeImportFlow() { state.importFlow = null; renderDetail(); }
+
+  async function importSearch(query) {
+    var flow = state.importFlow;
+    flow.query = query; flow.loading = true; flow.error = ''; renderDetail();
+    try {
+      if (flow.source === 'openlibrary') {
+        var res = await fetch('https://openlibrary.org/search/authors.json?q=' + encodeURIComponent(query));
+        var data = await res.json();
+        flow.candidates = (data.docs || []).slice(0, 8).map(function (d) {
+          return { id: d.key, name: d.name, meta: [d.birth_date, d.work_count ? (d.work_count + ' werken') : null].filter(Boolean).join(' · ') };
+        });
+      } else {
+        var res2 = await fetch('https://musicbrainz.org/ws/2/artist/?query=' + encodeURIComponent(query) + '&fmt=json&limit=8');
+        var data2 = await res2.json();
+        if (data2.error) throw new Error(data2.error);
+        flow.candidates = (data2.artists || []).map(function (a) {
+          return { id: a.id, name: a.name, meta: [a.disambiguation, a['life-span'] && a['life-span'].begin].filter(Boolean).join(' · ') };
+        });
+      }
+      flow.step = 'candidates';
+      if (!flow.candidates.length) flow.error = 'Geen resultaten voor "' + query + '".';
+    } catch (e) {
+      console.error('import search failed', e);
+      flow.error = 'Zoeken is niet gelukt. Probeer het later opnieuw.';
+    } finally {
+      flow.loading = false; renderDetail();
+    }
+  }
+
+  async function importPickCandidate(cand) {
+    var flow = state.importFlow;
+    flow.candidateName = cand.name; flow.candidateId = cand.id;
+    flow.loading = true; flow.error = ''; renderDetail();
+    try {
+      var works = [];
+      if (flow.source === 'openlibrary') {
+        var res = await fetch('https://openlibrary.org/authors/' + cand.id + '/works.json?limit=200');
+        var data = await res.json();
+        var seen = {};
+        (data.entries || []).forEach(function (w) {
+          var norm = (w.title || '').trim().toLowerCase();
+          if (!norm || seen[norm]) return;
+          seen[norm] = true;
+          works.push({ id: w.key, title: w.title });
+        });
+        works.sort(function (a, b) { return a.title.localeCompare(b.title); });
+      } else {
+        var res2 = await fetch('https://musicbrainz.org/ws/2/release-group?artist=' + cand.id + '&type=album&fmt=json&limit=100');
+        var data2 = await res2.json();
+        if (data2.error) throw new Error(data2.error);
+        var seen2 = {};
+        (data2['release-groups'] || []).forEach(function (rg) {
+          var norm = (rg.title || '').trim().toLowerCase();
+          if (!norm || seen2[norm]) return;
+          seen2[norm] = true;
+          works.push({ id: rg.id, title: rg.title, year: (rg['first-release-date'] || '').slice(0, 4) });
+        });
+        works.sort(function (a, b) { return (a.year || '9999').localeCompare(b.year || '9999') || a.title.localeCompare(b.title); });
+      }
+      flow.works = works;
+      flow.selected = new Set(works.map(function (w) { return w.id; }));
+      flow.step = 'works';
+      if (!works.length) flow.error = 'Geen titels gevonden.';
+    } catch (e) {
+      console.error('import fetch works failed', e);
+      flow.error = 'Ophalen is niet gelukt. Probeer het later opnieuw.';
+    } finally {
+      flow.loading = false; renderDetail();
+    }
+  }
+
+  async function importCommit(entry) {
+    var flow = state.importFlow;
+    var existingExternIds = {};
+    itemsFor(entry.id).forEach(function (i) { if (i.extern_id) existingExternIds[i.extern_id] = true; });
+    var extraKey = entry.extra_velden && entry.extra_velden[0] ? entry.extra_velden[0].key : null;
+    var vinkKey = entry.vink_velden && entry.vink_velden[0] ? entry.vink_velden[0].key : null;
+    var rows = [];
+    var base = Date.now();
+    flow.works.forEach(function (w, i) {
+      if (!flow.selected.has(w.id) || existingExternIds[w.id]) return;
+      var extra = {}; if (extraKey) extra[extraKey] = flow.candidateName;
+      var vinkjes = {}; if (vinkKey) vinkjes[vinkKey] = false;
+      rows.push({ lijst_id: entry.id, titel: w.title, extra: extra, vinkjes: vinkjes, bron: flow.source, extern_id: w.id, volgorde: base + i });
+    });
+    closeImportFlow();
+    if (!rows.length) return;
+    var result = await supabase.from('lijst_items').insert(rows);
+    refetchSoft(result);
+  }
+
+  function renderImportSection(entry) {
+    var wrap = document.createElement('div');
+    var flow = state.importFlow;
+    if (!flow || flow.listId !== entry.id) {
+      var row = document.createElement('div'); row.className = 'import-toggle-row';
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'btn-secondary'; btn.textContent = IMPORT_LABELS[entry.auto_import] || 'Toevoegen';
+      btn.addEventListener('click', function () { openImportFlow(entry); });
+      row.appendChild(btn);
+      wrap.appendChild(row);
+      return wrap;
+    }
+
+    var panel = document.createElement('div'); panel.className = 'import-panel';
+    var header = document.createElement('div'); header.className = 'import-actions';
+    var titleSpan = document.createElement('strong'); titleSpan.textContent = IMPORT_LABELS[entry.auto_import] || 'Toevoegen';
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button'; closeBtn.className = 'btn-text'; closeBtn.textContent = 'Sluiten';
+    closeBtn.addEventListener('click', closeImportFlow);
+    header.appendChild(titleSpan); header.appendChild(closeBtn);
+    panel.appendChild(header);
+
+    if (flow.step === 'search') {
+      var searchRow = document.createElement('div'); searchRow.className = 'import-search';
+      var input = document.createElement('input');
+      input.type = 'text'; input.placeholder = entry.auto_import === 'openlibrary' ? 'Naam van de auteur' : 'Naam van de artiest';
+      input.value = flow.query;
+      var searchBtn = document.createElement('button');
+      searchBtn.type = 'button'; searchBtn.className = 'btn-primary'; searchBtn.textContent = flow.loading ? 'Bezig…' : 'Zoeken';
+      searchBtn.disabled = flow.loading;
+      function go() { var v = input.value.trim(); if (v) importSearch(v); }
+      searchBtn.addEventListener('click', go);
+      input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); go(); } });
+      searchRow.appendChild(input); searchRow.appendChild(searchBtn);
+      panel.appendChild(searchRow);
+      setTimeout(function () { input.focus(); }, 0);
+    } else if (flow.step === 'candidates') {
+      var list = document.createElement('div'); list.className = 'import-candidates';
+      flow.candidates.forEach(function (c) {
+        var cb = document.createElement('button');
+        cb.type = 'button'; cb.className = 'import-candidate';
+        var nameEl = document.createElement('span'); nameEl.textContent = c.name;
+        cb.appendChild(nameEl);
+        if (c.meta) { var small = document.createElement('small'); small.textContent = c.meta; cb.appendChild(small); }
+        cb.addEventListener('click', function () { importPickCandidate(c); });
+        list.appendChild(cb);
+      });
+      panel.appendChild(list);
+      var backToSearch = document.createElement('button');
+      backToSearch.type = 'button'; backToSearch.className = 'btn-text'; backToSearch.textContent = '← Opnieuw zoeken';
+      backToSearch.addEventListener('click', function () { flow.step = 'search'; flow.error = ''; renderDetail(); });
+      panel.appendChild(backToSearch);
+    } else if (flow.step === 'works') {
+      var sub = document.createElement('p'); sub.className = 'import-msg';
+      sub.textContent = flow.works.length + ' titels gevonden voor ' + flow.candidateName + '. Vink uit wat je niet wilt toevoegen.';
+      panel.appendChild(sub);
+      var worksList = document.createElement('div'); worksList.className = 'import-works';
+      flow.works.forEach(function (w) {
+        var row = document.createElement('label'); row.className = 'import-work-row';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.checked = flow.selected.has(w.id);
+        cb.addEventListener('change', function () {
+          if (cb.checked) flow.selected.add(w.id); else flow.selected.delete(w.id);
+          addBtn.textContent = 'Toevoegen (' + flow.selected.size + ')';
+        });
+        var span = document.createElement('span');
+        span.textContent = w.title + (w.year ? ' (' + w.year + ')' : '');
+        row.appendChild(cb); row.appendChild(span);
+        worksList.appendChild(row);
+      });
+      panel.appendChild(worksList);
+      var commitRow = document.createElement('div'); commitRow.className = 'import-actions';
+      var addBtn = document.createElement('button');
+      addBtn.type = 'button'; addBtn.className = 'btn-primary';
+      addBtn.textContent = 'Toevoegen (' + flow.selected.size + ')';
+      addBtn.addEventListener('click', function () { importCommit(entry); });
+      commitRow.appendChild(addBtn);
+      panel.appendChild(commitRow);
+    }
+
+    if (flow.error) {
+      var errP = document.createElement('p'); errP.className = 'import-msg error'; errP.textContent = flow.error;
+      panel.appendChild(errP);
+    }
+
+    wrap.appendChild(panel);
+    return wrap;
+  }
+
   // ---------- Data ----------
   async function refetchAll() {
-    var [{ data: lijsten, error: e1 }, { data: items, error: e2 }] = await Promise.all([
+    var res = await Promise.all([
       supabase.from('lijsten').select('*').order('volgorde', { ascending: true }),
       supabase.from('lijst_items').select('*').order('volgorde', { ascending: true })
     ]);
-    if (e1 || e2) { console.error(e1 || e2); showStatus('Kon lijstjes niet laden. Controleer je verbinding.'); return; }
+    var lijstenRes = res[0], itemsRes = res[1];
+    if (lijstenRes.error || itemsRes.error) {
+      console.error(lijstenRes.error || itemsRes.error);
+      showStatus('Kon lijstjes niet laden. Controleer je verbinding.');
+      return;
+    }
     showStatus('');
-    state.lijsten = lijsten || [];
-    state.items = items || [];
+    state.lijsten = lijstenRes.data || [];
+    state.items = itemsRes.data || [];
     renderOverview();
     if (state.currentId) renderDetail();
   }
