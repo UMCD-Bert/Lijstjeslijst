@@ -209,8 +209,16 @@
   .import-works { display: flex; flex-direction: column; gap: 4px; max-height: 280px; overflow-y: auto; border-top: 1px solid var(--border); padding-top: 10px; }
   .import-work-row { display: flex; align-items: center; gap: 8px; font-size: 0.86rem; padding: 3px 0; }
   .import-work-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); flex-shrink: 0; }
+  .import-work-thumb { width: 30px; height: 30px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
   .import-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
   .import-msg { font-size: 0.84rem; color: var(--muted); font-style: italic; }
+  .cover-search-row { display: flex; flex-direction: column; gap: 10px; padding: 10px 0; }
+  .cover-search-msg { font-size: 0.84rem; color: var(--muted); font-style: italic; }
+  .cover-search-candidates { display: flex; flex-wrap: wrap; gap: 10px; }
+  .cover-search-candidate { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 84px; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px; text-align: center; }
+  .cover-search-candidate:hover { background: var(--accent-soft); }
+  .cover-search-candidate img { width: 100%; height: 84px; object-fit: cover; border-radius: 4px; }
+  .cover-search-candidate small { font-size: 0.72rem; color: var(--muted); line-height: 1.2; }
   .import-msg.error { color: var(--danger); font-style: normal; }
 
   .items-scroll { overflow-x: auto; margin: 0 0 18px; -webkit-overflow-scrolling: touch; }
@@ -303,7 +311,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.2.1';
+  var APP_VERSION = '1.3.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -319,12 +327,12 @@
     aangepast:   { label: 'Aangepast',   desc: 'zelf velden kiezen',         type_label: null,          extra_velden: [], vink_velden: [{ key: 'gedaan', label: 'Gedaan' }], auto_import: null, doorstrepen: true }
   };
   var PRESET_ORDER = ['simpel', 'boeken', 'muziek', 'strips', 'bordspellen', 'aangepast'];
-  var IMPORT_LABELS = { openlibrary: 'Auteur toevoegen', musicbrainz: 'Artiest toevoegen' };
+  var IMPORT_LABELS = { openlibrary: 'Auteur toevoegen', musicbrainz: 'Artiest toevoegen', discogs: 'Discogs-collectie importeren' };
 
   var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var state = {
     lijsten: [], items: [], currentId: null, editingItem: null,
-    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, importFlow: null
+    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, importFlow: null, coverSearch: null
   };
 
   var gridEl = document.getElementById('grid');
@@ -367,6 +375,20 @@
     circle.setAttribute('cx', '8'); circle.setAttribute('cy', '9'); circle.setAttribute('r', '2.4');
     circle.setAttribute('fill', 'none'); circle.setAttribute('stroke', 'currentColor'); circle.setAttribute('stroke-width', '1.3');
     svg.appendChild(rect); svg.appendChild(bump); svg.appendChild(circle);
+    return svg;
+  }
+
+  function coverSearchSvg() {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('width', '14'); svg.setAttribute('height', '14');
+    var circle = document.createElementNS(ns, 'circle');
+    circle.setAttribute('cx', '6.7'); circle.setAttribute('cy', '6.7'); circle.setAttribute('r', '4.2');
+    circle.setAttribute('fill', 'none'); circle.setAttribute('stroke', 'currentColor'); circle.setAttribute('stroke-width', '1.3');
+    var handle = document.createElementNS(ns, 'path');
+    handle.setAttribute('d', 'M9.8 9.8L13.5 13.5');
+    handle.setAttribute('stroke', 'currentColor'); handle.setAttribute('stroke-width', '1.3'); handle.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(circle); svg.appendChild(handle);
     return svg;
   }
 
@@ -542,7 +564,7 @@
 
   // ---------- Detail ----------
   function openDetail(id) {
-    state.currentId = id; state.editingItem = null; state.showFieldsEditor = false; state.importFlow = null;
+    state.currentId = id; state.editingItem = null; state.showFieldsEditor = false; state.importFlow = null; state.coverSearch = null;
     detailEl.hidden = false; gridEl.hidden = true; emptyStateEl.hidden = true; newListBtn.hidden = true;
     appHeaderEl.hidden = true;
     renderDetail();
@@ -753,6 +775,44 @@
         return;
       }
 
+      if (state.coverSearch && state.coverSearch.itemId === item.id) {
+        var cs = state.coverSearch;
+        var csTd = document.createElement('td');
+        csTd.colSpan = colCount; csTd.className = 'edit-row-cell';
+        var csWrap = document.createElement('div');
+        csWrap.className = 'cover-search-row';
+        var csHeader = document.createElement('div'); csHeader.className = 'import-actions';
+        var csTitle = document.createElement('strong'); csTitle.textContent = 'Cover zoeken: ' + (item.titel || '');
+        var csClose = document.createElement('button');
+        csClose.type = 'button'; csClose.className = 'btn-text'; csClose.textContent = 'Sluiten';
+        csClose.addEventListener('click', closeCoverSearch);
+        csHeader.appendChild(csTitle); csHeader.appendChild(csClose);
+        csWrap.appendChild(csHeader);
+        if (cs.loading) {
+          var csLoading = document.createElement('p'); csLoading.className = 'cover-search-msg'; csLoading.textContent = 'Zoeken…';
+          csWrap.appendChild(csLoading);
+        } else if (cs.error) {
+          var csErr = document.createElement('p'); csErr.className = 'cover-search-msg'; csErr.textContent = cs.error;
+          csWrap.appendChild(csErr);
+        } else {
+          var csList = document.createElement('div'); csList.className = 'cover-search-candidates';
+          cs.results.forEach(function (r) {
+            var cbtn = document.createElement('button');
+            cbtn.type = 'button'; cbtn.className = 'cover-search-candidate';
+            var cimg = document.createElement('img'); cimg.src = r.coverUrl; cimg.alt = '';
+            var clabel = document.createElement('small'); clabel.textContent = r.title + (r.author ? ' — ' + r.author : '');
+            cbtn.appendChild(cimg); cbtn.appendChild(clabel);
+            cbtn.addEventListener('click', function () { applyCoverSearchResult(item, r.coverUrl); });
+            csList.appendChild(cbtn);
+          });
+          csWrap.appendChild(csList);
+        }
+        csTd.appendChild(csWrap);
+        tr.appendChild(csTd);
+        tbody.appendChild(tr);
+        return;
+      }
+
       var titleTd = document.createElement('td');
       titleTd.className = 'col-title';
       var titleCellInner = document.createElement('div');
@@ -814,6 +874,13 @@
       actionsTd.className = 'col-actions';
       var itemActions = document.createElement('div');
       itemActions.className = 'item-actions';
+      if (entry.auto_import === 'openlibrary' && !item.omslag_url) {
+        var coverSearchBtn = document.createElement('button');
+        coverSearchBtn.type = 'button'; coverSearchBtn.className = 'icon-btn'; coverSearchBtn.appendChild(coverSearchSvg());
+        coverSearchBtn.title = 'Cover ophalen (Open Library)'; coverSearchBtn.setAttribute('aria-label', 'Cover ophalen');
+        coverSearchBtn.addEventListener('click', function () { openCoverSearch(item, entry); });
+        itemActions.appendChild(coverSearchBtn);
+      }
       var photoBtn = document.createElement('button');
       photoBtn.type = 'button'; photoBtn.className = 'icon-btn'; photoBtn.appendChild(cameraSvg());
       photoBtn.title = item.omslag_url ? 'Wijzig foto' : 'Foto toevoegen';
@@ -994,6 +1061,36 @@
       return group;
     }
 
+    if (entry.auto_import === 'musicbrainz' || entry.auto_import === 'discogs') {
+      var sourceGroup = document.createElement('div'); sourceGroup.className = 'fields-editor-group';
+      var sh4 = document.createElement('h4'); sh4.textContent = 'Muziekbron';
+      sourceGroup.appendChild(sh4);
+      var sourceRow = document.createElement('div'); sourceRow.className = 'field-row';
+      var sourceSelect = document.createElement('select'); sourceSelect.className = 'sort-select';
+      [['musicbrainz', 'MusicBrainz — zoek per artiest'], ['discogs', 'Discogs — importeer eigen collectie']].forEach(function (opt) {
+        var o = document.createElement('option'); o.value = opt[0]; o.textContent = opt[1];
+        if (entry.auto_import === opt[0]) o.selected = true;
+        sourceSelect.appendChild(o);
+      });
+      sourceSelect.addEventListener('change', function () { persist({ auto_import: sourceSelect.value }); });
+      sourceRow.appendChild(sourceSelect);
+      sourceGroup.appendChild(sourceRow);
+      if (entry.auto_import === 'discogs') {
+        var userRow = document.createElement('div'); userRow.className = 'field-row';
+        var userLabel = document.createElement('label'); userLabel.textContent = 'Discogs-gebruikersnaam';
+        var userInput = document.createElement('input');
+        userInput.value = entry.discogs_username || ''; userInput.placeholder = 'Bijv. bertellen';
+        userInput.addEventListener('blur', function () {
+          var v = userInput.value.trim();
+          if (v === (entry.discogs_username || '')) return;
+          persist({ discogs_username: v || null });
+        });
+        userRow.appendChild(userLabel); userRow.appendChild(userInput);
+        sourceGroup.appendChild(userRow);
+      }
+      box.appendChild(sourceGroup);
+    }
+
     box.appendChild(buildGroup('Tekstvelden', entry.extra_velden || [], FIELD_CAP.extra, 'extra', function () {
       var arr = entry.extra_velden || [];
       var key = uniqueKey(slugify('Nieuw veld'), arr.map(function (f) { return f.key; }));
@@ -1148,18 +1245,107 @@
     }
   }
 
+  // ---------- Cover ophalen (Open Library) voor handmatig toegevoegde boeken ----------
+  function openCoverSearch(item, entry) {
+    state.editingItem = null;
+    state.coverSearch = { itemId: item.id, loading: true, error: '', results: [] };
+    renderDetail();
+    runCoverSearch(item, entry);
+  }
+  function closeCoverSearch() { state.coverSearch = null; renderDetail(); }
+
+  async function runCoverSearch(item, entry) {
+    var cs = state.coverSearch;
+    var authorKey = entry.extra_velden && entry.extra_velden[0] ? entry.extra_velden[0].key : null;
+    var author = (authorKey && item.extra && item.extra[authorKey]) || '';
+    try {
+      var mainTitle = (item.titel || '').split(' - ')[0];
+      var q = (mainTitle + ' ' + author).trim();
+      var url = 'https://openlibrary.org/search.json?q=' + encodeURIComponent(q)
+        + '&fields=key,title,author_name,cover_i&limit=8';
+      var res = await fetch(url);
+      var data = await res.json();
+      var seen = {};
+      cs.results = (data.docs || []).filter(function (d) { return d.cover_i; }).filter(function (d) {
+        if (seen[d.cover_i]) return false;
+        seen[d.cover_i] = true;
+        return true;
+      }).slice(0, 6).map(function (d) {
+        return {
+          id: d.key, title: d.title, author: (d.author_name || [])[0] || '',
+          coverUrl: 'https://covers.openlibrary.org/b/id/' + d.cover_i + '-M.jpg'
+        };
+      });
+      if (!cs.results.length) cs.error = 'Geen cover gevonden voor "' + (item.titel || '') + '".';
+    } catch (e) {
+      console.error('cover search failed', e);
+      cs.error = 'Zoeken is niet gelukt. Probeer het later opnieuw.';
+    } finally {
+      cs.loading = false; renderDetail();
+    }
+  }
+
+  async function applyCoverSearchResult(item, coverUrl) {
+    state.coverSearch = null;
+    renderDetail();
+    await supabase.from('lijst_items').update({ omslag_url: coverUrl }).eq('id', item.id);
+    await refetchAll();
+  }
+
   newListBtn.addEventListener('click', showNewListForm);
 
-  // ---------- Auto-import (Open Library / MusicBrainz) ----------
+  // ---------- Auto-import (Open Library / MusicBrainz / Discogs) ----------
   function openImportFlow(entry) {
     state.importFlow = {
       listId: entry.id, source: entry.auto_import, step: 'search', query: '',
       candidates: [], candidateName: '', candidateId: '', works: [], selected: new Set(),
       loading: false, error: ''
     };
+    if (entry.auto_import === 'discogs') {
+      state.importFlow.step = 'works';
+      state.importFlow.loading = true;
+      runDiscogsFetch(entry);
+    }
     renderDetail();
   }
   function closeImportFlow() { state.importFlow = null; renderDetail(); }
+
+  async function runDiscogsFetch(entry) {
+    var flow = state.importFlow;
+    try {
+      var username = entry.discogs_username;
+      var page = 1, perPage = 100, all = [];
+      while (true) {
+        var res = await fetch('https://api.discogs.com/users/' + encodeURIComponent(username) + '/collection/folders/0/releases?per_page=' + perPage + '&page=' + page);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        var data = await res.json();
+        all = all.concat(data.releases || []);
+        var pages = (data.pagination && data.pagination.pages) || 1;
+        if (page >= pages || !data.releases || !data.releases.length) break;
+        page++;
+      }
+      var seen = {};
+      flow.works = all.filter(function (r) {
+        if (seen[r.id]) return false;
+        seen[r.id] = true; return true;
+      }).map(function (r) {
+        var bi = r.basic_information || {};
+        return {
+          id: String(r.id), title: bi.title || '(onbekende titel)',
+          artist: (bi.artists && bi.artists[0] && bi.artists[0].name) || '',
+          coverUrl: bi.cover_image || null, year: bi.year || null
+        };
+      });
+      flow.works.sort(function (a, b) { return a.title.localeCompare(b.title); });
+      flow.selected = new Set(flow.works.map(function (w) { return w.id; }));
+      if (!flow.works.length) flow.error = 'Geen items gevonden in je Discogs-collectie.';
+    } catch (e) {
+      console.error('discogs import failed', e);
+      flow.error = 'Ophalen van je Discogs-collectie is niet gelukt. Klopt de gebruikersnaam en staat de collectie op publiek?';
+    } finally {
+      flow.loading = false; renderDetail();
+    }
+  }
 
   async function importSearch(query) {
     var flow = state.importFlow;
@@ -1240,9 +1426,10 @@
     var base = Date.now();
     flow.works.forEach(function (w, i) {
       if (!flow.selected.has(w.id) || existingExternIds[w.id]) return;
-      var extra = {}; if (extraKey) extra[extraKey] = flow.candidateName;
+      var extra = {}; if (extraKey) extra[extraKey] = flow.source === 'discogs' ? (w.artist || '') : flow.candidateName;
       var vinkjes = {};
       (entry.vink_velden || []).forEach(function (vk) { vinkjes[vk.key] = false; });
+      if (flow.source === 'discogs' && vinkjes.hasOwnProperty('in_bezit')) vinkjes.in_bezit = true;
       rows.push({ lijst_id: entry.id, titel: w.title, extra: extra, vinkjes: vinkjes, bron: flow.source, extern_id: w.id, omslag_url: w.coverUrl || null, volgorde: base + i });
     });
     closeImportFlow();
@@ -1256,10 +1443,16 @@
     var flow = state.importFlow;
     if (!flow || flow.listId !== entry.id) {
       var row = document.createElement('div'); row.className = 'import-toggle-row';
-      var btn = document.createElement('button');
-      btn.type = 'button'; btn.className = 'btn-secondary'; btn.textContent = IMPORT_LABELS[entry.auto_import] || 'Toevoegen';
-      btn.addEventListener('click', function () { openImportFlow(entry); });
-      row.appendChild(btn);
+      if (entry.auto_import === 'discogs' && !entry.discogs_username) {
+        var hint = document.createElement('p'); hint.className = 'import-msg';
+        hint.textContent = 'Vul je Discogs-gebruikersnaam in bij "Velden bewerken" om te kunnen importeren.';
+        row.appendChild(hint);
+      } else {
+        var btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'btn-secondary'; btn.textContent = IMPORT_LABELS[entry.auto_import] || 'Toevoegen';
+        btn.addEventListener('click', function () { openImportFlow(entry); });
+        row.appendChild(btn);
+      }
       wrap.appendChild(row);
       return wrap;
     }
@@ -1304,32 +1497,46 @@
       backToSearch.addEventListener('click', function () { flow.step = 'search'; flow.error = ''; renderDetail(); });
       panel.appendChild(backToSearch);
     } else if (flow.step === 'works') {
-      var sub = document.createElement('p'); sub.className = 'import-msg';
-      var countLabel = flow.source === 'openlibrary' ? ' Nederlandstalige titels gevonden voor ' : ' titels gevonden voor ';
-      sub.textContent = flow.works.length + countLabel + flow.candidateName + '. Vink uit wat je niet wilt toevoegen.';
-      panel.appendChild(sub);
-      var worksList = document.createElement('div'); worksList.className = 'import-works';
-      flow.works.forEach(function (w) {
-        var row = document.createElement('label'); row.className = 'import-work-row';
-        var cb = document.createElement('input');
-        cb.type = 'checkbox'; cb.checked = flow.selected.has(w.id);
-        cb.addEventListener('change', function () {
-          if (cb.checked) flow.selected.add(w.id); else flow.selected.delete(w.id);
-          addBtn.textContent = 'Toevoegen (' + flow.selected.size + ')';
+      if (flow.loading) {
+        var loadingP = document.createElement('p'); loadingP.className = 'import-msg';
+        loadingP.textContent = flow.source === 'discogs' ? 'Collectie ophalen…' : 'Bezig…';
+        panel.appendChild(loadingP);
+      } else {
+        var sub = document.createElement('p'); sub.className = 'import-msg';
+        var msg;
+        if (flow.source === 'discogs') msg = flow.works.length + ' items gevonden in je Discogs-collectie.';
+        else msg = flow.works.length + (flow.source === 'openlibrary' ? ' Nederlandstalige titels gevonden voor ' : ' titels gevonden voor ') + flow.candidateName + '.';
+        sub.textContent = msg + ' Vink uit wat je niet wilt toevoegen.';
+        panel.appendChild(sub);
+        var worksList = document.createElement('div'); worksList.className = 'import-works';
+        flow.works.forEach(function (w) {
+          var row = document.createElement('label'); row.className = 'import-work-row';
+          var cb = document.createElement('input');
+          cb.type = 'checkbox'; cb.checked = flow.selected.has(w.id);
+          cb.addEventListener('change', function () {
+            if (cb.checked) flow.selected.add(w.id); else flow.selected.delete(w.id);
+            addBtn.textContent = 'Toevoegen (' + flow.selected.size + ')';
+          });
+          row.appendChild(cb);
+          if (w.coverUrl) {
+            var thumb = document.createElement('img'); thumb.className = 'import-work-thumb'; thumb.src = w.coverUrl; thumb.alt = ''; thumb.loading = 'lazy';
+            row.appendChild(thumb);
+          }
+          var span = document.createElement('span');
+          span.textContent = w.title + (w.artist ? ' — ' + w.artist : '') + (w.year ? ' (' + w.year + ')' : '');
+          row.appendChild(span);
+          worksList.appendChild(row);
         });
-        var span = document.createElement('span');
-        span.textContent = w.title + (w.year ? ' (' + w.year + ')' : '');
-        row.appendChild(cb); row.appendChild(span);
-        worksList.appendChild(row);
-      });
-      panel.appendChild(worksList);
-      var commitRow = document.createElement('div'); commitRow.className = 'import-actions';
-      var addBtn = document.createElement('button');
-      addBtn.type = 'button'; addBtn.className = 'btn-primary';
-      addBtn.textContent = 'Toevoegen (' + flow.selected.size + ')';
-      addBtn.addEventListener('click', function () { importCommit(entry); });
-      commitRow.appendChild(addBtn);
-      panel.appendChild(commitRow);
+        panel.appendChild(worksList);
+        var commitRow = document.createElement('div'); commitRow.className = 'import-actions';
+        var addBtn = document.createElement('button');
+        addBtn.type = 'button'; addBtn.className = 'btn-primary';
+        addBtn.textContent = 'Toevoegen (' + flow.selected.size + ')';
+        addBtn.disabled = !flow.works.length;
+        addBtn.addEventListener('click', function () { importCommit(entry); });
+        commitRow.appendChild(addBtn);
+        panel.appendChild(commitRow);
+      }
     }
 
     if (flow.error) {

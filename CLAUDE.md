@@ -104,10 +104,15 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   uitbreidingen. Ontwerp uitgewerkt maar nog niet gebouwd: BGG's `collection`-endpoint (met
   `stats=1`) geeft titel + BGG-id + rank in één call — genoeg voor import én een latere "Ververs
   BGG-ranks"-knop (herhaalt dezelfde call, matcht op `extern_id`). Ontwerper/uitgever bewust NIET
-  automatisch invullen: dat zit achter BGG's `thing`-endpoint, die tijdens testen herhaaldelijk door
-  Cloudflare werd geblokkeerd vanuit deze dev-omgeving — pas automatiseren als blijkt dat het wél
-  werkt vanaf een telefoon/thuisnetwerk. Async-gedrag (BGG kan 202 teruggeven terwijl de export
-  wordt voorbereid) vraagt om een retry-met-backoff bij het ophalen.
+  automatisch invullen: dat zit achter BGG's `thing`-endpoint. **Update (2026-09-12): BGG vereist
+  sinds kort verplichte app-registratie + Bearer-token voor de HELE XML-API (v1, v2, GraphQL)** —
+  geverifieerd via directe test (401 + `WWW-Authenticate: Bearer`), bevestigd door BGG's eigen
+  `/using_the_xml_api`-pagina. Applicatie is aangevraagd (non-commercial, app-URL = live Lijster-
+  site) — goedkeuring kan volgens BGG een week of langer duren. Zodra het token er is: token in de
+  client-JS zetten (onvermijdelijk zichtbaar in broncode bij een statische app zonder backend — BGG
+  noemt dat zelf een aanvaard risico, vergelijkbaar met de storage-orphan-trade-off hierboven) en
+  pas dan de import bouwen. Async-gedrag (BGG kan 202 teruggeven terwijl de export wordt
+  voorbereid) vraagt om een retry-met-backoff bij het ophalen.
 - MusicBrainz-auto-import (Muziek) kon vanuit deze dev-omgeving niet betrouwbaar getest worden
   ("server is busy"-responses, waarschijnlijk rate-limiting op het dev-IP) — nog niet bevestigd dat
   dit vanaf een telefoon/thuisnetwerk wél werkt.
@@ -117,9 +122,19 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   moeten zeggen i.p.v. het generieke "Niet" — het bestaande "In bezit"-vinkje dekt het wishlist/
   in-bezit-gedrag zelf al (aanvinken bij aankoop = van wishlist naar in bezit), dit is puur een
   tekst/UI-vraag.
-- Muziek-collectie inlezen vanaf **Discogs** (ze hebben een account) — zelfde patroon als de
-  BGG-import hierboven: collectie-endpoint (`api.discogs.com/users/{username}/collection/folders/0/
-  releases`) kan zonder auth voor een publieke collectie, vereist een beschrijvende User-Agent (kan
-  niet vanuit browser-fetch, zelfde beperking als MusicBrainz) en heeft rate limits. Nog niet
-  getest op CORS/bereikbaarheid vanuit deze omgeving — eerst verifiëren voor het gebouwd wordt.
-  Discogs-gebruikersnaam nog op te vragen zodra dit wordt opgepakt.
+- ~~Muziek-collectie inlezen vanaf Discogs~~ — wordt gebouwd (2026-09-12). Verificatie vooraf: geen
+  auth nodig voor een publieke collectie, CORS staat open (`Access-Control-Allow-Origin: *`, alleen
+  zichtbaar als de request een `Origin`-header meestuurt — vanuit een browser dus altijd, curl
+  zonder `-H Origin` liet dit ten onrechte lijken op een blokkade), geen custom User-Agent vereist
+  (in tegenstelling tot wat eerder aangenomen werd), rate limit 25 req/min onbevestigd — ruimschoots
+  genoeg. `cover_image` zit al in de collection-respons, geen aparte aanroep nodig. Gebruikersnaam:
+  "bertellen" — collectie stond eerst op privé (401), inmiddels op publiek gezet. Nieuwe
+  DB-kolom `lijsten.discogs_username` toegevoegd. `auto_import: 'discogs'` is een los te kiezen
+  Muziekbron naast `musicbrainz` (schakelaar in "Velden bewerken"), niet de nieuwe preset-default —
+  MusicBrainz-zoeken blijft nuttig voor wishlist-items die nog niet in bezit zijn.
+- Barcode/ISBN-scan via de camera (2026-09-12, wens voor later — geen GO): LP's scannen op
+  barcode en boeken op ISBN/barcode, metadata automatisch ophalen (vergelijkbaar met de
+  auteur-imports). Nog te ontwerpen: welke barcode-scanbibliotheek (bv. browser-native
+  `BarcodeDetector` API vs. een JS-library als ZXing, i.v.m. browserondersteuning op iPhone
+  Safari), en welke databron per type (boeken: Open Library heeft ISBN-lookup; platen: Discogs
+  heeft ook barcode-zoekfunctie op releases).
