@@ -1,6 +1,6 @@
 {
-  "name": "Lijstjeslijst",
-  "short_name": "Lijstjes",
+  "name": "Lijster",
+  "short_name": "Lijster",
   "description": "Gedeelde lijstjes voor boeken, muziek en meer",
   "start_url": "./index.html",
   "scope": "./",

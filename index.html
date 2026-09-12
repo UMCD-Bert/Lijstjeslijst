@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Lijstjeslijst</title>
+<title>Lijster</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
 <link rel="icon" href="icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Lijstjes">
+<meta name="apple-mobile-web-app-title" content="Lijster">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#2F6F5E">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -111,7 +111,7 @@
   .preview .p-primary.done { text-decoration: line-through; }
   .preview .p-secondary { color: var(--muted); font-size: 0.8rem; }
   .preview .dot { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--muted); flex-shrink: 0; }
-  .preview li.done .dot { background: var(--accent); border-color: var(--accent); }
+  .preview .dot.filled { background: var(--accent); border-color: var(--accent); }
   .preview .more { color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 0.74rem; }
   .card-empty { color: var(--muted); font-size: 0.84rem; font-style: italic; margin: 0; }
 
@@ -205,6 +205,7 @@
   .item-row { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--border); }
   .item-row:last-child { border-bottom: none; }
   .move-col { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
+  .item-thumb { width: 34px; height: 46px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--surface-2); }
   .move-btn { width: 20px; height: 16px; border: none; background: none; color: var(--border); display: flex; align-items: center; justify-content: center; padding: 0; line-height: 0; }
   .move-btn:not(:disabled):hover { color: var(--accent); }
   .move-btn:disabled { visibility: hidden; }
@@ -256,7 +257,7 @@
 <div class="wrap">
   <header class="top">
     <div>
-      <h1 class="brand">Lijstjeslijst</h1>
+      <h1 class="brand">Lijster</h1>
       <p class="tagline">al je lijstjes, netjes bij elkaar</p>
     </div>
     <button class="btn-primary" id="new-list-btn" type="button"><span aria-hidden="true">+</span> Nieuw lijstje</button>
@@ -281,20 +282,20 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.0.0';
+  var APP_VERSION = '1.1.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
   var COVER_PREFIX = 'lijstjeslijst/';
-  var FIELD_CAP = { extra: 4, vink: 3 };
+  var FIELD_CAP = { extra: 4, vink: 5 };
 
   var PRESETS = {
-    simpel:      { label: 'Lijst',       desc: 'losse items, afvinkbaar',    type_label: 'Lijst',       extra_velden: [], vink_velden: [{ key: 'gedaan', label: 'Gedaan' }], auto_import: null },
-    boeken:      { label: 'Boeken',      desc: 'titel + auteur',             type_label: 'Boeken',      extra_velden: [{ key: 'auteur', label: 'Auteur' }], vink_velden: [{ key: 'in_bezit', label: 'In bezit' }], auto_import: 'openlibrary' },
-    muziek:      { label: 'Muziek',      desc: 'titel + artiest',            type_label: 'Muziek',      extra_velden: [{ key: 'artiest', label: 'Artiest' }], vink_velden: [{ key: 'in_bezit', label: 'In bezit' }], auto_import: 'musicbrainz' },
-    strips:      { label: 'Strips',      desc: 'reeks + volgnummer',         type_label: 'Strips',      extra_velden: [{ key: 'reeks', label: 'Reeks' }, { key: 'volgnummer', label: 'Volgnummer' }], vink_velden: [{ key: 'in_bezit', label: 'In bezit' }, { key: 'gelezen', label: 'Gelezen' }], auto_import: null },
-    bordspellen: { label: 'Bordspellen', desc: 'auteur, uitgever, BGG-rank', type_label: 'Bordspellen', extra_velden: [{ key: 'auteur', label: 'Auteur/ontwerper' }, { key: 'uitgever', label: 'Uitgever' }, { key: 'bgg_rank', label: 'BGG-rank' }], vink_velden: [{ key: 'gespeeld', label: 'Gespeeld' }], auto_import: null },
-    aangepast:   { label: 'Aangepast',   desc: 'zelf velden kiezen',         type_label: null,          extra_velden: [], vink_velden: [{ key: 'gedaan', label: 'Gedaan' }], auto_import: null }
+    simpel:      { label: 'Lijst',       desc: 'losse items, afvinkbaar',    type_label: 'Lijst',       extra_velden: [], vink_velden: [{ key: 'gedaan', label: 'Gedaan' }], auto_import: null, doorstrepen: true },
+    boeken:      { label: 'Boeken',      desc: 'auteur, formaat, gelezen',   type_label: 'Boeken',      extra_velden: [{ key: 'auteur', label: 'Auteur' }], vink_velden: [{ key: 'e_book', label: 'E-book' }, { key: 'fysiek', label: 'Fysiek boek' }, { key: 'gelezen_ellen', label: 'Gelezen door Ellen' }, { key: 'gelezen_bert', label: 'Gelezen door Bert' }], auto_import: 'openlibrary', doorstrepen: false },
+    muziek:      { label: 'Muziek',      desc: 'titel + artiest',            type_label: 'Muziek',      extra_velden: [{ key: 'artiest', label: 'Artiest' }], vink_velden: [{ key: 'in_bezit', label: 'In bezit' }], auto_import: 'musicbrainz', doorstrepen: false },
+    strips:      { label: 'Strips',      desc: 'reeks + volgnummer',         type_label: 'Strips',      extra_velden: [{ key: 'reeks', label: 'Reeks' }, { key: 'volgnummer', label: 'Volgnummer' }], vink_velden: [{ key: 'in_bezit', label: 'In bezit' }, { key: 'gelezen', label: 'Gelezen' }], auto_import: null, doorstrepen: false },
+    bordspellen: { label: 'Bordspellen', desc: 'auteur, uitgever, BGG-rank', type_label: 'Bordspellen', extra_velden: [{ key: 'auteur', label: 'Auteur/ontwerper' }, { key: 'uitgever', label: 'Uitgever' }, { key: 'bgg_rank', label: 'BGG-rank' }], vink_velden: [{ key: 'gespeeld', label: 'Gespeeld' }], auto_import: null, doorstrepen: false },
+    aangepast:   { label: 'Aangepast',   desc: 'zelf velden kiezen',         type_label: null,          extra_velden: [], vink_velden: [{ key: 'gedaan', label: 'Gedaan' }], auto_import: null, doorstrepen: true }
   };
   var PRESET_ORDER = ['simpel', 'boeken', 'muziek', 'strips', 'bordspellen', 'aangepast'];
   var IMPORT_LABELS = { openlibrary: 'Auteur toevoegen', musicbrainz: 'Artiest toevoegen' };
@@ -327,6 +328,23 @@
     var path = document.createElementNS(ns, 'path');
     path.setAttribute('d', 'M3 8.5L6.2 12L13 4');
     svg.appendChild(path);
+    return svg;
+  }
+
+  function cameraSvg() {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('width', '14'); svg.setAttribute('height', '14');
+    var rect = document.createElementNS(ns, 'rect');
+    rect.setAttribute('x', '1.5'); rect.setAttribute('y', '4.5'); rect.setAttribute('width', '13'); rect.setAttribute('height', '9'); rect.setAttribute('rx', '1.5');
+    rect.setAttribute('fill', 'none'); rect.setAttribute('stroke', 'currentColor'); rect.setAttribute('stroke-width', '1.3');
+    var bump = document.createElementNS(ns, 'path');
+    bump.setAttribute('d', 'M5.5 4.5L6.5 2.5H9.5L10.5 4.5');
+    bump.setAttribute('fill', 'none'); bump.setAttribute('stroke', 'currentColor'); bump.setAttribute('stroke-width', '1.3'); bump.setAttribute('stroke-linejoin', 'round');
+    var circle = document.createElementNS(ns, 'circle');
+    circle.setAttribute('cx', '8'); circle.setAttribute('cy', '9'); circle.setAttribute('r', '2.4');
+    circle.setAttribute('fill', 'none'); circle.setAttribute('stroke', 'currentColor'); circle.setAttribute('stroke-width', '1.3');
+    svg.appendChild(rect); svg.appendChild(bump); svg.appendChild(circle);
     return svg;
   }
 
@@ -421,14 +439,15 @@
         ul.className = 'preview';
         items.slice(0, 3).forEach(function (item) {
           var done = firstVink ? !!(item.vinkjes && item.vinkjes[firstVink.key]) : false;
+          var strike = entry.doorstrepen && done;
           var li = document.createElement('li');
-          if (done) li.className = 'done';
+          if (strike) li.className = 'done';
           if (firstVink) {
-            var dot = document.createElement('span'); dot.className = 'dot';
+            var dot = document.createElement('span'); dot.className = 'dot' + (done ? ' filled' : '');
             li.appendChild(dot);
           }
           var pSpan = document.createElement('span');
-          pSpan.className = 'p-primary' + (done ? ' done' : '');
+          pSpan.className = 'p-primary' + (strike ? ' done' : '');
           pSpan.textContent = item.titel || '';
           li.appendChild(pSpan);
           var summary = extraSummary(entry, item);
@@ -614,7 +633,7 @@
       var idx = fullItems.indexOf(item);
       var li = document.createElement('li');
       var primaryDone = (entry.vink_velden || [])[0] ? !!(item.vinkjes && item.vinkjes[entry.vink_velden[0].key]) : false;
-      li.className = 'item-row' + (primaryDone ? ' done' : '');
+      li.className = 'item-row' + ((entry.doorstrepen && primaryDone) ? ' done' : '');
 
       var moveCol = document.createElement('div');
       moveCol.className = 'move-col';
@@ -686,6 +705,11 @@
         });
         li.appendChild(form);
       } else {
+        if (item.omslag_url) {
+          var thumb = document.createElement('img');
+          thumb.className = 'item-thumb'; thumb.src = item.omslag_url; thumb.alt = ''; thumb.loading = 'lazy';
+          li.appendChild(thumb);
+        }
         var main = document.createElement('div');
         main.className = 'item-main';
         main.addEventListener('click', function () { state.editingItem = item.id; renderDetail(); });
@@ -702,6 +726,16 @@
 
         var itemActions = document.createElement('div');
         itemActions.className = 'item-actions';
+        var photoBtn = document.createElement('button');
+        photoBtn.type = 'button'; photoBtn.className = 'icon-btn'; photoBtn.appendChild(cameraSvg());
+        photoBtn.setAttribute('aria-label', item.omslag_url ? 'Wijzig foto' : 'Foto toevoegen');
+        var photoInput = document.createElement('input');
+        photoInput.type = 'file'; photoInput.accept = 'image/*'; photoInput.style.display = 'none';
+        photoInput.addEventListener('change', function () {
+          if (photoInput.files && photoInput.files[0]) uploadItemCover(item, photoInput.files[0]);
+        });
+        photoBtn.addEventListener('click', function () { photoInput.click(); });
+        itemActions.appendChild(photoBtn); itemActions.appendChild(photoInput);
         var editBtn = document.createElement('button');
         editBtn.type = 'button'; editBtn.className = 'icon-btn'; editBtn.innerHTML = '&#9998;'; editBtn.setAttribute('aria-label', 'Bewerk item');
         editBtn.addEventListener('click', function () { state.editingItem = item.id; renderDetail(); });
@@ -903,7 +937,7 @@
       var typeLabel = selectedTpl === 'aangepast' ? (customTypeInput.value.trim() || 'Aangepast') : preset.type_label;
       supabase.from('lijsten').insert({
         naam: v, omschrijving: descInput.value.trim() || null, type_label: typeLabel,
-        auto_import: preset.auto_import, extra_velden: preset.extra_velden, vink_velden: preset.vink_velden,
+        auto_import: preset.auto_import, extra_velden: preset.extra_velden, vink_velden: preset.vink_velden, doorstrepen: preset.doorstrepen,
         volgorde: Date.now()
       }).then(refetchSoft);
       card.remove();
@@ -969,6 +1003,21 @@
     supabase.from('lijsten').update({ omslag_url: null }).eq('id', listId).then(refetchSoft);
   }
 
+  async function uploadItemCover(item, file) {
+    try {
+      var ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+      var path = COVER_PREFIX + 'item-' + item.id + '-' + Date.now() + '.' + ext;
+      var upload = await supabase.storage.from(COVER_BUCKET).upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' });
+      if (upload.error) throw upload.error;
+      var pub = supabase.storage.from(COVER_BUCKET).getPublicUrl(path);
+      await supabase.from('lijst_items').update({ omslag_url: pub.data.publicUrl }).eq('id', item.id);
+      await refetchAll();
+    } catch (e) {
+      console.error('item cover upload failed', e);
+      window.alert('Uploaden van de foto is niet gelukt.');
+    }
+  }
+
   newListBtn.addEventListener('click', showNewListForm);
 
   // ---------- Auto-import (Open Library / MusicBrainz) ----------
@@ -1017,10 +1066,10 @@
     try {
       var works = [];
       if (flow.source === 'openlibrary') {
-        var res = await fetch('https://openlibrary.org/authors/' + cand.id + '/works.json?limit=200');
+        var res = await fetch('https://openlibrary.org/search.json?author_key=' + encodeURIComponent(cand.id) + '&language=dut&limit=300&fields=key,title');
         var data = await res.json();
         var seen = {};
-        (data.entries || []).forEach(function (w) {
+        (data.docs || []).forEach(function (w) {
           var norm = (w.title || '').trim().toLowerCase();
           if (!norm || seen[norm]) return;
           seen[norm] = true;
@@ -1057,13 +1106,13 @@
     var existingExternIds = {};
     itemsFor(entry.id).forEach(function (i) { if (i.extern_id) existingExternIds[i.extern_id] = true; });
     var extraKey = entry.extra_velden && entry.extra_velden[0] ? entry.extra_velden[0].key : null;
-    var vinkKey = entry.vink_velden && entry.vink_velden[0] ? entry.vink_velden[0].key : null;
     var rows = [];
     var base = Date.now();
     flow.works.forEach(function (w, i) {
       if (!flow.selected.has(w.id) || existingExternIds[w.id]) return;
       var extra = {}; if (extraKey) extra[extraKey] = flow.candidateName;
-      var vinkjes = {}; if (vinkKey) vinkjes[vinkKey] = false;
+      var vinkjes = {};
+      (entry.vink_velden || []).forEach(function (vk) { vinkjes[vk.key] = false; });
       rows.push({ lijst_id: entry.id, titel: w.title, extra: extra, vinkjes: vinkjes, bron: flow.source, extern_id: w.id, volgorde: base + i });
     });
     closeImportFlow();
@@ -1126,7 +1175,8 @@
       panel.appendChild(backToSearch);
     } else if (flow.step === 'works') {
       var sub = document.createElement('p'); sub.className = 'import-msg';
-      sub.textContent = flow.works.length + ' titels gevonden voor ' + flow.candidateName + '. Vink uit wat je niet wilt toevoegen.';
+      var countLabel = flow.source === 'openlibrary' ? ' Nederlandstalige titels gevonden voor ' : ' titels gevonden voor ';
+      sub.textContent = flow.works.length + countLabel + flow.candidateName + '. Vink uit wat je niet wilt toevoegen.';
       panel.appendChild(sub);
       var worksList = document.createElement('div'); worksList.className = 'import-works';
       flow.works.forEach(function (w) {
