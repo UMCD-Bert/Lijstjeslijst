@@ -35,6 +35,15 @@ toegang (geen aparte accounts per persoon).
 6. Wees terughoudend met live tests tegen externe API's (Open Library/MusicBrainz/BGG/Discogs)
    vanuit deze dev-omgeving — herhaalde aanroepen triggerden al Cloudflare-blokkades/rate-limits.
    Eén gerichte verificatie is genoeg; niet blijven herhalen.
+7. **Geen enkel interactief element mag alleen bereikbaar zijn via `:hover`/`:focus-within`** (bv.
+   `opacity: 0` die pas bij hover naar `1` gaat) — op een touchscreen bestaat hover niet, dus zo'n
+   knop is daar onzichtbaar én onbereikbaar. Dit soort bugs valt NIET op via de gebruikelijke
+   browser-testflow hier: geautomatiseerde clicks op coördinaten werken ook als het element
+   opacity:0 heeft, dus een geslaagde test in deze omgeving bewijst niets over bruikbaarheid op een
+   telefoon. Vaste stap vóór levering van UI-wijzigingen: `grep -n "opacity: 0"` (en vergelijkbare
+   hover-only-reveal patronen) door `index.html` en handmatig nalopen of elk zo'n element ook zonder
+   hover/focus bereikbaar is. (Aanleiding: v1.1.0 verstopte de bewerk/foto/verwijder-knoppen per item
+   en de verplaats/verwijder-knoppen per lijstje volledig achter `:hover`, onbruikbaar op iPhone.)
 
 ## Datamodel (kern) — generiek velden-systeem
 - `lijsten`: naam, omschrijving, omslag_url, volgorde, `type_label` (vrije tekst, getoond als pill),
