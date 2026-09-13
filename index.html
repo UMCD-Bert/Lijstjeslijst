@@ -330,7 +330,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.13.0';
+  var APP_VERSION = '1.14.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -341,7 +341,7 @@
     simpel:      { label: 'Lijst',       desc: 'losse items, afvinkbaar',    type_label: 'Lijst',       extra_velden: [], vink_velden: [{ key: 'gedaan', label: 'Gedaan' }], auto_import: null, doorstrepen: true },
     boeken:      { label: 'Boeken',      desc: 'gegroepeerd per auteur/reeks', type_label: 'Boeken',      extra_velden: [{ key: 'jaar', label: 'Jaar van uitgave' }], vink_velden: [{ key: 'e_book', label: 'E-book' }, { key: 'fysiek', label: 'Fysiek boek' }, { key: 'gelezen_ellen', label: 'Gelezen door Ellen' }, { key: 'gelezen_bert', label: 'Gelezen door Bert' }], auto_import: 'openlibrary', doorstrepen: false, genest: true },
     muziek:      { label: 'Muziek',      desc: 'gegroepeerd per artiest',    type_label: 'Muziek',      extra_velden: [{ key: 'jaar', label: 'Jaar van uitgave' }], vink_velden: [{ key: 'in_bezit', label: 'In bezit' }, { key: 'lp', label: 'LP' }, { key: 'cd', label: 'CD' }], auto_import: 'musicbrainz', doorstrepen: false, genest: true },
-    strips:      { label: 'Strips',      desc: 'reeksen met albums',         type_label: 'Strips',      extra_velden: [{ key: 'volgnummer', label: 'Volgnummer' }, { key: 'jaar', label: 'Jaar van uitgave' }], vink_velden: [{ key: 'in_bezit', label: 'In bezit' }, { key: 'gelezen', label: 'Gelezen' }], auto_import: null, doorstrepen: false, genest: true },
+    strips:      { label: 'Strips',      desc: 'reeksen met albums',         type_label: 'Strips',      extra_velden: [{ key: 'volgnummer', label: 'Volgnummer' }, { key: 'jaar', label: 'Jaar van uitgave' }], vink_velden: [{ key: 'fysiek', label: 'Fysiek' }, { key: 'digitaal', label: 'Digitaal' }, { key: 'gelezen', label: 'Gelezen' }], auto_import: null, doorstrepen: false, genest: true },
     bordspellen: { label: 'Bordspellen', desc: 'auteur, uitgever, BGG-rank', type_label: 'Bordspellen', extra_velden: [{ key: 'auteur', label: 'Auteur/ontwerper' }, { key: 'uitgever', label: 'Uitgever' }, { key: 'bgg_rank', label: 'BGG-rank' }], vink_velden: [{ key: 'gespeeld', label: 'Gespeeld' }], auto_import: null, doorstrepen: false },
     aangepast:   { label: 'Aangepast',   desc: 'zelf velden kiezen',         type_label: null,          extra_velden: [], vink_velden: [{ key: 'gedaan', label: 'Gedaan' }], auto_import: null, doorstrepen: true }
   };

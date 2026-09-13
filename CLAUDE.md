@@ -259,6 +259,11 @@ toegang (geen aparte accounts per persoon).
   een in-/uitklap-icoontje (alleen zichtbaar als er een tracklist is) dat een extra rij toont; in de
   bewerk-modus van een item een eigen tekstvak (alleen bij Muziek-lijstjes, `auto_import` musicbrainz
   of discogs) om 'm handmatig te zetten/aan te passen.
+- Strips-sjabloon (2026-09-13 herzien): generieke "In bezit" vervangen door "Fysiek"/"Digitaal",
+  zelfde reden als bij Boeken (e-book/fysiek) — veel strips heeft de gebruiker in digitale vorm
+  (CBR/CBZ, gelezen via een externe comicreader-app, zie hieronder), dus één generiek "in bezit"
+  dekte dat onderscheid niet meer. "Gelezen" blijft. Bestaande data gemigreerd: oude `in_bezit`-
+  waarde → `fysiek`, `digitaal` overal op false (gebruiker vinkt zelf aan waar van toepassing).
 - Items worden getoond als een tabel (`.items-table` in `.items-scroll`, `overflow-x:auto`):
   titelkolom sticky links, vinkjes-koppen (E-book/Auteur/etc.) ÉÉN keer bovenaan i.p.v. per rij
   herhaald, actieskolom (foto/bewerk/verwijder) sticky rechts. Tabelbreedte wordt expliciet in JS
@@ -288,6 +293,13 @@ PWA via `manifest.json` + `apple-touch-icon.png` + service worker — "Zet op be
 geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen native app.
 
 ## Bekende openstaande punten (geen GO — pas oppakken na expliciete instructie)
+- CBR/CBZ-strips in-app lezen: overwogen (2026-09-13) en bewust NIET gebouwd. Technisch mogelijk
+  (RAR-extractie client-side kan via WASM-bibliotheken, CBZ/ZIP zou een stuk eenvoudiger zijn), maar
+  een forse klus: opslagomvang (scans al snel 50-300MB per album, onduidelijk of het Supabase-
+  abonnement dat aankan), grote-bestanden-upload vanaf de browser, en geheugenrisico bij het
+  uitpakken in Safari op iPhone (PWA-geheugenlimieten). Gebruiker leest digitale strips liever
+  gewoon in zijn bestaande comicreader-app — Lijster hoeft dat niet over te nemen, alleen het
+  fysiek/digitaal-onderscheid bijhouden (zie Strips-sjabloon in Datamodel hierboven).
 - Cover-foto's kunnen niet verwijderd worden uit Supabase Storage (geen anon-delete-policy op
   `afbeeldingen`) — alleen de databaseverwijzing wordt gewist.
 - Losstaand van dit project: de bestaande `Verzamelingen`-tabellen hadden RLS uitgeschakeld — dit is
