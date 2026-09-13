@@ -384,7 +384,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.25.0';
+  var APP_VERSION = '1.25.1';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -667,6 +667,14 @@
   }
 
   // ---------- Reeksen (genest datamodel) ----------
+  // Bij het alfabetisch sorteren van reeksen mag een lidwoord-voorvoegsel genegeerd worden, zoals in
+  // een platenkast/bibliotheek: "The Beatles" hoort bij de B, niet bij de T. Alleen "The " (Engels,
+  // bandnamen) — geen Nederlandse lidwoorden ("De"/"Het"), want die kunnen ook gewoon onderdeel van
+  // een eigennaam/achternaam zijn (bv. "De Kiekeboes", of een auteur "De Vries") en zouden dan onterecht
+  // verplaatst worden.
+  function sortNaam(naam) {
+    return (naam || '').replace(/^the\s+/i, '');
+  }
   function normalizeReeksNaam(naam) {
     return (naam || '')
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -1574,7 +1582,7 @@
       var reeksSortActive = currentSortKey(entry) === 'reeks';
       var reeksen = reeksenFor(entry.id);
       if (reeksSortActive) {
-        reeksen = reeksen.slice().sort(function (a, b) { return (a.naam || '').localeCompare(b.naam || '', 'nl', { sensitivity: 'base' }); });
+        reeksen = reeksen.slice().sort(function (a, b) { return sortNaam(a.naam).localeCompare(sortNaam(b.naam), 'nl', { sensitivity: 'base' }); });
       }
 
       if (!reeksen.length) {

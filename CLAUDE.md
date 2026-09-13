@@ -453,6 +453,13 @@ toegang (geen aparte accounts per persoon).
   item-sortering: bij een actieve alfabetische reeks-sortering verdwijnen de handmatige reeks-
   verplaats-pijltjes (omhoog/omlaag) uit de reeks-kop, want handmatig verslepen heeft geen zin
   zolang de volgorde toch alfabetisch herberekend wordt.
+  **Aanvulling (2026-09-13, v1.25.1): lidwoord-voorvoegsel "The" wordt genegeerd bij het alfabetisch
+  sorteren van reeksen** — explicit gevraagd: "The Beatles" hoort bij de B, niet bij de T (zelfde
+  conventie als een platenkast/bibliotheek). `sortNaam(naam)` strip alleen een leidend `"the "`
+  (case-insensitive, Engelse bandnamen) vóór de `localeCompare`. Bewust GEEN Nederlandse lidwoorden
+  ("De"/"Het") gestript: die kunnen ook gewoon onderdeel zijn van een eigennaam/achternaam (bv. de
+  strip-reeks "De Kiekeboes", of een auteursnaam) en zouden dan onterecht verplaatst worden — de
+  scope is expliciet gehouden tot het gevraagde "The"-geval.
   **Herzien (2026-09-13, v1.23.0): alfabetisch op reeks is nu de DEFAULT** bij elk genest lijstje
   (`defaultSortKey(entry)`: 'reeks' als `entry.genest`, anders 'volgorde') — expliciet gevraagd:
   "doe de alfabetische sortering als default, bij alle lijstjes". `state.sortBy` is per-sessie
