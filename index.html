@@ -161,12 +161,19 @@
   .fields-editor-desc { width: 100%; box-sizing: border-box; border: 1px solid var(--border); background: var(--surface); border-radius: 7px; padding: 8px 10px; font-family: inherit; font-size: 16px; color: var(--ink); resize: vertical; }
 
   .search-sort-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 0 0 14px; }
+  .search-input-wrap { position: relative; flex: 1; min-width: 140px; }
   .search-input {
-    flex: 1; min-width: 140px; border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px;
-    padding: 8px 12px; font-family: inherit; font-size: 16px; color: var(--ink);
+    width: 100%; box-sizing: border-box; border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px;
+    padding: 8px 30px 8px 12px; font-family: inherit; font-size: 16px; color: var(--ink);
   }
   .search-input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
-  .search-input::-webkit-search-cancel-button { cursor: pointer; }
+  .search-input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+  .search-clear-btn {
+    position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+    width: 26px; height: 26px; border: none; background: none; color: var(--muted);
+    font-size: 1.1rem; line-height: 1; cursor: pointer; border-radius: 50%;
+  }
+  .search-clear-btn:hover, .search-clear-btn:active { background: var(--surface-2); color: var(--ink); }
   .sort-wrap { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
   .sort-select {
     border: 1px solid var(--border); background: var(--surface-2); border-radius: 8px; padding: 6px 9px;
@@ -330,7 +337,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.16.0';
+  var APP_VERSION = '1.16.1';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -1470,12 +1477,26 @@
     var row = document.createElement('div');
     row.className = 'search-sort-row';
 
+    var searchWrap = document.createElement('div'); searchWrap.className = 'search-input-wrap';
     var input = document.createElement('input');
     input.type = 'search'; input.className = 'search-input'; input.placeholder = 'Zoeken in dit lijstje…';
     input.value = state.search[entry.id] || '';
     input.setAttribute('aria-label', 'Zoeken in dit lijstje');
     input.addEventListener('input', function () { state.search[entry.id] = input.value; renderDetail(); });
-    row.appendChild(input);
+    searchWrap.appendChild(input);
+    if (input.value) {
+      var clearBtn = document.createElement('button');
+      clearBtn.type = 'button'; clearBtn.className = 'search-clear-btn'; clearBtn.innerHTML = '&#10005;';
+      clearBtn.setAttribute('aria-label', 'Zoekopdracht wissen');
+      clearBtn.addEventListener('click', function () {
+        state.search[entry.id] = '';
+        renderDetail();
+        var el = detailCardEl.querySelector('.search-input');
+        if (el) el.focus();
+      });
+      searchWrap.appendChild(clearBtn);
+    }
+    row.appendChild(searchWrap);
 
     var sortWrap = document.createElement('label');
     sortWrap.className = 'sort-wrap';

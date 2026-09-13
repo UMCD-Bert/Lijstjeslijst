@@ -294,7 +294,11 @@ toegang (geen aparte accounts per persoon).
   Lege omslagfoto-placeholder in detailweergave vervangen door een smal "+ Omslagfoto toevoegen"-
   linkje i.p.v. een grote lege blok van 140px+.
 - Zoeken (op titel + alle tekstvelden) en sorteren (Handmatig/Titel/per tekstveld) per lijstje,
-  boven de items. Bij een actieve sortering verdwijnen de handmatige verplaats-pijltjes.
+  boven de items. Bij een actieve sortering verdwijnen de handmatige verplaats-pijltjes. Het
+  zoekveld heeft een eigen "x"-knopje om de tekst te wissen (2026-09-13, v1.16.1) i.p.v. te
+  vertrouwen op de native browser-clearknop van `type="search"` — die is inconsistent aanwezig
+  tussen browsers/platforms (o.a. onopvallend/afwezig op iPhone), dus een eigen zichtbare knop
+  is betrouwbaarder.
 - Volgorde wordt bijgehouden als timestamp (nieuw item/lijst = `Date.now()`); verplaatsen wisselt de
   `volgorde`-waarde van twee buren om (last-writer-wins, geen transacties nodig op deze schaal).
 
