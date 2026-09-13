@@ -177,7 +177,48 @@ toegang (geen aparte accounts per persoon).
   screenshots van (een deel van) zo'n Wikipedia-lijst in de chat, Claude leest de tabel visueel uit
   (nr/titel/datum) en stelt een SQL-insert voor ter goedkeuring — zelfde werkwijze als elke andere
   migratie. Op deze manier is de volledige Suske en Wiske-reeks (VK-nummering 67 t/m 385, incl.
-  jaartal per album) in één keer gevuld.
+  jaartal per album) in één keer gevuld. Belangrijk bij het gebruik van meerdere nummeringskolommen
+  in zo'n screenshot (Wikipedia's chronologische Nr. vs. de nummering die letterlijk op de rug van
+  de fysieke boeken staat, bv. Vierkleurenreeks bij Suske en Wiske): altijd de nummering gebruiken
+  die op de fysieke uitgave staat, niet de eerste kolom klakkeloos aannemen.
+- Stripcovers ophalen via stripinfo.be (2026-09-13): analoog aan de Wikipedia-lijst-aanpak, maar dan
+  voor covers i.p.v. titels/jaartallen — losstaand van elkaar te gebruiken. stripinfo.be heeft geen
+  publieke API, maar wel bruikbare structuur: `https://stripinfo.be/reeks/index/<reeks-id>_<Naam>`
+  (vind je via `/zoek/zoek?zoekstring=...`) geeft één pagina met ALLE albums van een reeks incl.
+  hun eigen strip-id in de link (`reeks/strip/<strip-id>_<Reeksnaam>_<nr>_<Titel>`) — dat is genoeg
+  om albums te matchen op titel (genormaliseerd: underscores/streepjes naar spaties, diacritics eruit)
+  zonder per album een aparte pagina te hoeven laden. **Val (2026-09-13): de cover-URL zelf is NIET
+  simpelweg `image.php?s=<strip-id>` te raden** — dat leek in een eerste test te werken maar gaf bij
+  een steekproef de cover van een compleet ANDERE strip terug. De juiste URL is
+  `image.php?i=<image-id>&s=<strip-id>`, waarbij `i` alléén te vinden is op de eigen albumpagina
+  van dat strip-id (`reeks/strip/<strip-id>_x` volstaat als minimale URL) — dus wél één page-fetch
+  per album nodig, niet te vermijden. Gedownloade covers worden opnieuw gehost in de bestaande
+  Supabase-bucket `afbeeldingen` (net als handmatige foto-uploads) — **niet** direct naar
+  stripinfo.be gelinkt, want die site stuurt `Cross-Origin-Resource-Policy: same-site` mee, wat
+  cross-origin `<img>`-gebruik vanaf de Lijster-site blokkeert (geverifieerd door de afbeelding
+  in-browser te laden vanaf een ander origin: mislukte). Matching tussen onze albumtitels en
+  stripinfo's titels is niet altijd 1-op-1: stripinfo's eigen interne volgnummering wijkt vaak af
+  van de onze (andere Nederlandse vertaaledities, andere publicatievolgorde) — titel-matching (met
+  een fuzzy fallback) is betrouwbaarder dan op nummer matchen. Voor Suske en Wiske (319 albums) en
+  Asterix (42 albums, waarvan er 6 een net iets andere Nederlandse titel bleken te hebben op
+  stripinfo — handmatig gekoppeld) is dit al succesvol gedaan; niet elk album staat op stripinfo
+  (een nog niet verschenen toekomstig album, of een enkel album zonder coverscan) — dat is geen bug,
+  gewoon een ontbrekend brongegeven, op te lossen met de bestaande per-item foto-upload.
+- Reeksen vooraf aangemaakt zonder albums (2026-09-13, in "Strips Bert"): Asterix, Lucky Luke,
+  Bollie & Billie, Yoko Tsuno, Rik Ringers, Largo Winch, De partners, Kuifje, Robbedoes, Idefix,
+  Blake & Mortimer, Alex, Alex Senator, Jerom, De Rode Ridder, Thorgal (+ afgeleiden: De Jeugd van
+  Thorgal, Kriss de Valnor, Louve, Wendigo), Blacksad — leeg totdat de gebruiker per reeks
+  screenshots aanlevert om te vullen zoals bij Suske en Wiske/Asterix.
+- Overzichtspagina/"Alle lijstjes" (2026-09-13 herzien voor schermeconomie): elk lijstje was een
+  grote losse kaart (16:9-omslagfoto full-width + titel/pil/omschrijving/aantal + preview van de
+  eerste 3 items) — op iPhone vulde één kaart bijna het hele scherm, dus met een paar lijstjes was
+  scrollen door de kaarten zelf al vervelend. Nu een compacte rij per lijstje: klein vierkant
+  omslagfotootje (52×52) links, titel + pil/aantal ernaast, verplaats/verwijder-knoppen rechts —
+  geen preview-items en geen omschrijving meer (zelfde soort keuze als eerder bij de
+  detailweergave-header: minder relevant dan de ruimte die het kost). `#grid` is daarmee van een
+  CSS-grid met kaarten omgezet naar een simpele verticale lijst (`display:flex; flex-direction:
+  column`) — een aparte multi-kolom-indeling op desktop bleek geen meerwaarde te hebben t.o.v. één
+  consistente compacte lijst op elke breedte.
 - Items worden getoond als een tabel (`.items-table` in `.items-scroll`, `overflow-x:auto`):
   titelkolom sticky links, vinkjes-koppen (E-book/Auteur/etc.) ÉÉN keer bovenaan i.p.v. per rij
   herhaald, actieskolom (foto/bewerk/verwijder) sticky rechts. Tabelbreedte wordt expliciet in JS
