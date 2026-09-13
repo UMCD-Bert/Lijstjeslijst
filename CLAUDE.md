@@ -74,20 +74,30 @@ toegang (geen aparte accounts per persoon).
   on delete cascade), `naam`, `omslag_url` (nog niet gebruikt in UI), `volgorde`. Puur generiek
   concept: een reeks kan een auteur zijn, maar net zo goed een boekenserie (bv. reisgidsen) waar de
   auteur juist niet relevant is — de gebruiker kiest zelf de naam, er zit geen vast "type" achter.
-  Een `genest` lijstje toont per reeks: een kop (rename/verplaats/verwijder — verwijderen cascadeert
-  naar de items erin) buiten de tabel, dan een eigen items-tabel (sticky kolommen, alleen die reeks),
-  dan een eigen mini "titel toevoegen"-formulier — elk reeks-blok dus zelfstandig, GEEN gedeelde
-  tabel over meerdere reeksen heen (dat gaf op iPhone een verwarrende, te smalle horizontaal-
-  scrollbare strook met de mini-formulieren erin geperst, nauwelijks te onderscheiden van het
-  "+ Nieuwe reeks"-formulier — zie hieronder). Dat laatste staat nu in een duidelijk apart, dashed-
-  border vak met het label "NIEUWE REEKS", zodat "titel aan bestaande reeks toevoegen" en "nieuwe
-  reeks aanmaken" niet meer door elkaar lopen. Zoeken matcht ook op reeksnaam. Items zonder
-  `reeks_id` (zou niet via de UI moeten ontstaan) worden alsnog getoond onder een niet-verwijderbare
-  "Zonder reeks"-kop, als vangnet.
+  Een `genest` lijstje toont per reeks: een kop (in-/uitklap-driehoekje, rename, itemaantal, evt.
+  Open Library-zoekicoon, verplaats/verwijder — verwijderen cascadeert naar de items erin) buiten de
+  tabel, dan (als niet ingeklapt) een eigen items-tabel (sticky kolommen, alleen die reeks) — elk
+  reeks-blok dus zelfstandig, GEEN gedeelde tabel over meerdere reeksen heen (gaf op iPhone een
+  verwarrende, te smalle horizontaal-scrollbare strook). In-/uitklappen is puur UI-state
+  (`state.collapsedReeks`, niet in de DB) en wordt genegeerd zodra er een actieve zoekopdracht of
+  filter is (anders zou een ingeklapte reeks zoekresultaten verbergen). Toevoegen gaat via ÉÉN
+  gedeelde "+ Toevoegen"-knop onderaan de hele lijst (niet per reeks) — opent een klein formulier
+  met titel + een reeks-`<select>` (bestaande reeksen + een "+ Nieuwe reeks…"-optie die een naamveld
+  toont); dit verving eerdere losse mini-formulieren per reeks plus een apart "+ Nieuwe reeks"-vak,
+  wat samen te veel altijd-zichtbare UI was voor een handeling die zelden gebeurt. Zoeken matcht ook
+  op reeksnaam. Items zonder `reeks_id` (zou niet via de UI moeten ontstaan) worden alsnog getoond
+  onder een niet-verwijderbare "Zonder reeks"-kop, als vangnet.
+- Detailweergave-header (2026-09-13 herzien voor schermeconomie): terug-pijl, titel, "Velden
+  bewerken" (tandwiel-icoon) en omslagfoto-toevoegen (camera-icoon, alleen zonder cover) staan alle
+  vier op ÉÉN compacte regel i.p.v. losse rijen erboven/eronder. Omschrijving is verplaatst ván de
+  hoofdweergave náár binnen het "Velden bewerken"-paneel (bleek voor deze gebruiker geen
+  toegevoegde waarde te hebben als altijd-zichtbaar element). Zoeken, sorteren én de "Filters"-knop
+  (zie hieronder) staan samen op één regel i.p.v. gestapeld. Reden: bij meerdere vinkjes/velden
+  (Boeken had bv. auteur-tekstveld + 4 vinkjes) stond er een lange muur van chrome vóórdat de eerste
+  daadwerkelijke inhoud zichtbaar werd — deze herziening scheelt volgens de gebruiker "50% of meer
+  van de schermeconomie".
 - Filters (per-vinkje Alles/Wel/Niet) staan net als "Velden bewerken" standaard ingeklapt achter een
-  "Filters"-knop (2026-09-13) — klapt vanzelf open als er al een actief filter staat. Vóór deze
-  wijziging stond dit altijd open, wat bij meerdere vinkjes (Boeken heeft er 4) een lange muur van
-  UI gaf vóórdat de eerste daadwerkelijke lijst-inhoud zichtbaar werd.
+  "Filters"-knop (2026-09-13) — klapt vanzelf open als er al een actief filter staat.
 - Snelkeuzes (Lijst/Boeken/Muziek/Strips/Bordspellen/Aangepast) vullen bij aanmaken alleen de
   velden hierboven vooraf in — daarna is alles per lijstje los aan te passen via "Velden bewerken".
   Nieuwe types toevoegen is meestal een kleine JS-wijziging (preset), geen migratie.
@@ -209,3 +219,9 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   serienaam, bv. reisgidsen) is nu een reeks i.p.v. een tekstveld; Open Library-zoeken is secundair
   hulpmiddel per reeks geworden i.p.v. het enige, onbetrouwbare invoerpad. Bestaande data
   gemigreerd: reeksen "James Norbury" en "Charlie Mackesy" aangemaakt voor de 3 bestaande items.
+  ~~Vervolg (2026-09-13): schermeconomie~~ — n.a.v. concrete layout-feedback op deze herstructurering
+  (screenshot + puntsgewijze wensen) ook: header-regel gecombineerd (zie Datamodel hierboven),
+  omschrijving verplaatst naar "Velden bewerken", zoeken/sorteren/filters op één regel, per-reeks
+  mini-formulieren + los "Nieuwe reeks"-vak vervangen door één "+ Toevoegen"-knop met reeks-kiezer,
+  en reeksen zijn nu in-/uitklapbaar (met itemaantal in de kop) — geldt ook voor Strips, zelfde
+  gedeelde code.

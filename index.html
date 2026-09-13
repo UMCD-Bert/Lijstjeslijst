@@ -146,28 +146,18 @@
 
   /* ---- Detail view ---- */
   #detail-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 1px 2px var(--shadow); }
-  .back-row { padding: 14px 20px 0; }
-  .back-btn { background: none; border: none; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; font-size: 0.86rem; padding: 6px 4px; }
-  .back-btn:hover { color: var(--ink); }
 
   .cover-area { position: relative; width: 100%; }
   .cover-img { width: 100%; max-height: 260px; object-fit: cover; display: block; background: var(--surface-2); }
-  .cover-placeholder { width: 100%; height: 140px; display: flex; align-items: center; justify-content: center; background: var(--surface-2);
-    font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 3rem; color: var(--muted); }
   .cover-actions { position: absolute; bottom: 10px; right: 12px; display: flex; gap: 8px; }
-  .cover-slim-row { padding: 8px 24px 0; }
   .cover-actions .btn-secondary { background: rgba(251,251,247,0.92); }
 
   .detail-body { padding: 18px 24px 26px; }
-  .detail-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 4px; flex-wrap: wrap; }
+  .detail-head { display: flex; align-items: center; gap: 8px; padding-bottom: 4px; flex-wrap: wrap; }
   .detail-title { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 1.55rem; margin: 0; padding: 4px 2px; border: none;
-    background: transparent; color: var(--ink); flex: 1 1 auto; min-width: 160px; }
+    background: transparent; color: var(--ink); flex: 1 1 auto; min-width: 120px; }
   .detail-title:focus { outline: none; border-bottom: 1.5px solid var(--accent); }
   .detail-meta { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; flex-wrap: wrap; }
-  .detail-desc { width: 100%; border: none; background: transparent; color: var(--muted); font-family: inherit; font-size: 16px;
-    padding: 2px; resize: none; line-height: 1.5; margin-bottom: 6px; }
-  .detail-desc:focus { outline: none; background: var(--surface-2); border-radius: 8px; }
-  .detail-desc::placeholder { color: var(--muted); opacity: 0.7; }
   hr.div { border: none; border-top: 1px solid var(--border); margin: 4px 0 14px; }
 
   .fields-toggle-row { margin-bottom: 4px; }
@@ -177,6 +167,7 @@
   .fields-editor-group { display: flex; flex-direction: column; gap: 6px; }
   .fields-editor-row { display: flex; align-items: center; gap: 8px; }
   .fields-editor-row input { flex: 1; border: 1px solid var(--border); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 16px; color: var(--ink); }
+  .fields-editor-desc { width: 100%; box-sizing: border-box; border: 1px solid var(--border); background: var(--surface); border-radius: 7px; padding: 8px 10px; font-family: inherit; font-size: 16px; color: var(--ink); resize: vertical; }
 
   .search-sort-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 0 0 14px; }
   .search-input {
@@ -221,15 +212,20 @@
   .cover-search-candidate small { font-size: 0.72rem; color: var(--muted); line-height: 1.2; }
   .import-msg.error { color: var(--danger); font-style: normal; }
 
-  .reeks-header { display: flex; align-items: center; gap: 6px; margin: 22px 0 8px; }
-  .reeks-name-input { flex: 1; min-width: 60px; border: none; background: transparent; font-family: 'Fraunces', Georgia, serif;
+  .reeks-header { display: flex; align-items: center; gap: 6px; margin: 22px 0 8px; flex-wrap: wrap; }
+  .reeks-collapse-btn { width: 20px; height: 20px; border: none; background: none; color: var(--muted); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; padding: 0; font-size: 0.8rem; line-height: 0; }
+  .reeks-collapse-btn:hover { color: var(--ink); }
+  .reeks-name-input { flex: 1 1 120px; min-width: 100px; border: none; background: transparent; font-family: 'Fraunces', Georgia, serif;
     font-weight: 600; font-size: 1rem; color: var(--ink); padding: 3px 5px; border-radius: 6px; }
   .reeks-name-input:focus { outline: none; background: var(--surface-2); }
   .reeks-label-plain { flex: 1; font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1rem; color: var(--muted); padding: 3px 5px; }
-  .reeks-actions { display: flex; gap: 2px; flex-shrink: 0; }
-  .new-reeks-box { border: 1.5px dashed var(--border); border-radius: 10px; padding: 12px 14px; margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
-  .new-reeks-box form.add-item { border-top: none; padding-top: 0; }
-  .new-reeks-label { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600; }
+  .reeks-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .genest-add-wrap { margin-top: 18px; }
+  .genest-add-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; border: 1.5px dashed var(--border); border-radius: 10px; padding: 14px; }
+  .genest-add-form input { flex: 1; min-width: 120px; border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px;
+    padding: 9px 12px; font-family: inherit; font-size: 16px; color: var(--ink); }
+  .genest-add-form select.sort-select { flex: 1; min-width: 140px; }
 
   .items-scroll { overflow-x: auto; margin: 0 0 18px; -webkit-overflow-scrolling: touch; }
   .items-table { border-collapse: collapse; width: 100%; }
@@ -321,7 +317,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.5.0';
+  var APP_VERSION = '1.6.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -342,7 +338,7 @@
   var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var state = {
     lijsten: [], items: [], reeksen: [], currentId: null, editingItem: null,
-    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, importFlow: null, coverSearch: null
+    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, showAddGenestItem: {}, collapsedReeks: {}, importFlow: null, coverSearch: null
   };
 
   var gridEl = document.getElementById('grid');
@@ -399,6 +395,20 @@
     handle.setAttribute('d', 'M9.8 9.8L13.5 13.5');
     handle.setAttribute('stroke', 'currentColor'); handle.setAttribute('stroke-width', '1.3'); handle.setAttribute('stroke-linecap', 'round');
     svg.appendChild(circle); svg.appendChild(handle);
+    return svg;
+  }
+
+  function gearSvg() {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('width', '14'); svg.setAttribute('height', '14');
+    var circle = document.createElementNS(ns, 'circle');
+    circle.setAttribute('cx', '8'); circle.setAttribute('cy', '8'); circle.setAttribute('r', '2.3');
+    circle.setAttribute('fill', 'none'); circle.setAttribute('stroke', 'currentColor'); circle.setAttribute('stroke-width', '1.3');
+    var path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', 'M8 1.6V3.2M8 12.8V14.4M14.4 8H12.8M3.2 8H1.6M12.4 3.6L11.3 4.7M4.7 11.3L3.6 12.4M12.4 12.4L11.3 11.3M4.7 4.7L3.6 3.6');
+    path.setAttribute('stroke', 'currentColor'); path.setAttribute('stroke-width', '1.3'); path.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(path); svg.appendChild(circle);
     return svg;
   }
 
@@ -483,8 +493,7 @@
 
   // ---------- Reeksen (genest datamodel) ----------
   function addReeks(entry, naam) {
-    if (!naam) return;
-    supabase.from('reeksen').insert({ lijst_id: entry.id, naam: naam, volgorde: Date.now() }).then(refetchSoft);
+    return supabase.from('reeksen').insert({ lijst_id: entry.id, naam: naam, volgorde: Date.now() }).select().single();
   }
   function renameReeks(reeks, naam) {
     if (!naam || naam === reeks.naam) return;
@@ -504,14 +513,14 @@
       supabase.from('reeksen').update({ volgorde: a.volgorde }).eq('id', b.id)
     ]).then(refetchSoft);
   }
-  function buildAddItemForm(entry, reeks) {
+  function buildAddItemForm(entry) {
     var form = document.createElement('form');
     form.className = 'add-item';
     var fieldsWrap = document.createElement('div');
     fieldsWrap.className = 'add-fields';
     var titelInput = document.createElement('input');
-    titelInput.type = 'text'; titelInput.placeholder = reeks ? 'Nieuwe titel' : 'Titel'; titelInput.dataset.key = '__titel';
-    titelInput.setAttribute('aria-label', reeks ? 'Nieuwe titel in ' + reeks.naam : 'Titel');
+    titelInput.type = 'text'; titelInput.placeholder = 'Titel'; titelInput.dataset.key = '__titel';
+    titelInput.setAttribute('aria-label', 'Titel');
     fieldsWrap.appendChild(titelInput);
     var extraInputs = (entry.extra_velden || []).map(function (f) {
       var inp = document.createElement('input');
@@ -522,7 +531,7 @@
     extraInputs.forEach(function (inp) { fieldsWrap.appendChild(inp); });
     var submitBtn = document.createElement('button');
     submitBtn.type = 'submit'; submitBtn.className = 'submit-btn'; submitBtn.innerHTML = '&#43;';
-    submitBtn.setAttribute('aria-label', reeks ? 'Titel toevoegen aan ' + reeks.naam : 'Item toevoegen');
+    submitBtn.setAttribute('aria-label', 'Item toevoegen');
     form.appendChild(fieldsWrap); form.appendChild(submitBtn);
     form.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -533,7 +542,6 @@
       var vinkjes = {};
       (entry.vink_velden || []).forEach(function (vk) { vinkjes[vk.key] = false; });
       var payload = { lijst_id: entry.id, titel: titel, extra: extra, vinkjes: vinkjes, volgorde: Date.now() };
-      if (reeks) payload.reeks_id = reeks.id;
       supabase.from('lijst_items').insert(payload).then(refetchSoft);
       titelInput.value = '';
       extraInputs.forEach(function (inp) { inp.value = ''; });
@@ -541,24 +549,87 @@
     });
     return form;
   }
-  function buildNewReeksForm(entry) {
-    var form = document.createElement('form');
-    form.className = 'add-item';
-    var input = document.createElement('input');
-    input.type = 'text'; input.placeholder = 'Nieuwe reeks'; input.setAttribute('aria-label', 'Naam van nieuwe reeks');
-    var submitBtn = document.createElement('button');
-    submitBtn.type = 'submit'; submitBtn.className = 'submit-btn'; submitBtn.innerHTML = '&#43;';
-    submitBtn.setAttribute('aria-label', 'Reeks toevoegen');
-    form.appendChild(input); form.appendChild(submitBtn);
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var naam = input.value.trim();
-      if (!naam) return;
-      addReeks(entry, naam);
-      input.value = '';
-      input.focus();
+
+  function buildGenestAddForm(entry) {
+    var wrap = document.createElement('div');
+    wrap.className = 'genest-add-wrap';
+    if (!state.showAddGenestItem[entry.id]) {
+      var toggleBtn = document.createElement('button');
+      toggleBtn.type = 'button'; toggleBtn.className = 'btn-secondary'; toggleBtn.textContent = '+ Toevoegen';
+      toggleBtn.addEventListener('click', function () { state.showAddGenestItem[entry.id] = true; renderDetail(); });
+      wrap.appendChild(toggleBtn);
+      return wrap;
+    }
+
+    var reeksen = reeksenFor(entry.id);
+    var form = document.createElement('form'); form.className = 'genest-add-form';
+
+    var titelInput = document.createElement('input');
+    titelInput.type = 'text'; titelInput.placeholder = 'Titel'; titelInput.setAttribute('aria-label', 'Titel');
+    form.appendChild(titelInput);
+
+    var extraInputs = (entry.extra_velden || []).map(function (f) {
+      var inp = document.createElement('input');
+      inp.type = 'text'; inp.placeholder = f.label; inp.setAttribute('aria-label', f.label);
+      return inp;
     });
-    return form;
+    extraInputs.forEach(function (inp) { form.appendChild(inp); });
+
+    var reeksSelect = document.createElement('select');
+    reeksSelect.className = 'sort-select'; reeksSelect.setAttribute('aria-label', 'Reeks');
+    reeksen.forEach(function (r) {
+      var opt = document.createElement('option'); opt.value = r.id; opt.textContent = r.naam;
+      reeksSelect.appendChild(opt);
+    });
+    var newOpt = document.createElement('option'); newOpt.value = '__new__'; newOpt.textContent = '+ Nieuwe reeks…';
+    reeksSelect.appendChild(newOpt);
+    if (!reeksen.length) newOpt.selected = true;
+    form.appendChild(reeksSelect);
+
+    var newReeksInput = document.createElement('input');
+    newReeksInput.type = 'text'; newReeksInput.placeholder = 'Naam van nieuwe reeks';
+    newReeksInput.setAttribute('aria-label', 'Naam van nieuwe reeks');
+    newReeksInput.hidden = reeksSelect.value !== '__new__';
+    form.appendChild(newReeksInput);
+    reeksSelect.addEventListener('change', function () {
+      newReeksInput.hidden = reeksSelect.value !== '__new__';
+      if (!newReeksInput.hidden) newReeksInput.focus();
+    });
+
+    var actions = document.createElement('div'); actions.className = 'edit-form-actions';
+    var submitBtn = document.createElement('button');
+    submitBtn.type = 'submit'; submitBtn.className = 'btn-primary'; submitBtn.textContent = 'Toevoegen';
+    var cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button'; cancelBtn.className = 'btn-text'; cancelBtn.textContent = 'Annuleren';
+    cancelBtn.addEventListener('click', function () { state.showAddGenestItem[entry.id] = false; renderDetail(); });
+    actions.appendChild(submitBtn); actions.appendChild(cancelBtn);
+    form.appendChild(actions);
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var titel = titelInput.value.trim();
+      if (!titel) return;
+      var reeksId = reeksSelect.value;
+      if (reeksId === '__new__') {
+        var naam = newReeksInput.value.trim();
+        if (!naam) { newReeksInput.focus(); return; }
+        var reeksRes = await addReeks(entry, naam);
+        if (reeksRes.error || !reeksRes.data) { console.error(reeksRes.error); window.alert('Er ging iets mis bij het opslaan.'); return; }
+        reeksId = reeksRes.data.id;
+      }
+      var extra = {};
+      (entry.extra_velden || []).forEach(function (f, i) { extra[f.key] = extraInputs[i].value.trim() || null; });
+      var vinkjes = {};
+      (entry.vink_velden || []).forEach(function (vk) { vinkjes[vk.key] = false; });
+      var result = await supabase.from('lijst_items').insert({
+        lijst_id: entry.id, titel: titel, extra: extra, vinkjes: vinkjes, reeks_id: reeksId, volgorde: Date.now()
+      });
+      state.showAddGenestItem[entry.id] = false;
+      refetchSoft(result);
+    });
+
+    wrap.appendChild(form);
+    return wrap;
   }
 
   // ---------- Overview ----------
@@ -695,14 +766,6 @@
       ? document.activeElement.selectionStart : null;
     detailCardEl.innerHTML = '';
 
-    var backRow = document.createElement('div');
-    backRow.className = 'back-row';
-    var back = document.createElement('button');
-    back.type = 'button'; back.className = 'back-btn'; back.innerHTML = '&#8592; Alle lijstjes';
-    back.addEventListener('click', goHome);
-    backRow.appendChild(back);
-    detailCardEl.appendChild(backRow);
-
     var fileInput = document.createElement('input');
     fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
 
@@ -726,17 +789,6 @@
       coverActions.appendChild(changeBtn); coverActions.appendChild(fileInput); coverActions.appendChild(removeBtn);
       coverArea.appendChild(coverActions);
       detailCardEl.appendChild(coverArea);
-    } else {
-      var coverSlim = document.createElement('div');
-      coverSlim.className = 'cover-slim-row';
-      var addCoverBtn = document.createElement('button');
-      addCoverBtn.type = 'button'; addCoverBtn.className = 'link-btn'; addCoverBtn.textContent = '+ Omslagfoto toevoegen';
-      fileInput.addEventListener('change', function () {
-        if (fileInput.files && fileInput.files[0]) uploadCover(entry.id, fileInput.files[0], addCoverBtn);
-      });
-      addCoverBtn.addEventListener('click', function () { fileInput.click(); });
-      coverSlim.appendChild(addCoverBtn); coverSlim.appendChild(fileInput);
-      detailCardEl.appendChild(coverSlim);
     }
 
     var dbody = document.createElement('div');
@@ -744,6 +796,11 @@
 
     var head = document.createElement('div');
     head.className = 'detail-head';
+    var backBtn = document.createElement('button');
+    backBtn.type = 'button'; backBtn.className = 'icon-btn'; backBtn.innerHTML = '&#8592;';
+    backBtn.setAttribute('aria-label', 'Alle lijstjes'); backBtn.title = 'Alle lijstjes';
+    backBtn.addEventListener('click', goHome);
+    head.appendChild(backBtn);
     var titleInput = document.createElement('input');
     titleInput.className = 'detail-title'; titleInput.value = entry.naam;
     titleInput.setAttribute('aria-label', 'Naam van het lijstje');
@@ -757,6 +814,22 @@
       if (e.key === 'Escape') { titleInput.value = entry.naam; titleInput.blur(); }
     });
     head.appendChild(titleInput);
+    var fieldsToggleBtn = document.createElement('button');
+    fieldsToggleBtn.type = 'button'; fieldsToggleBtn.className = 'icon-btn'; fieldsToggleBtn.appendChild(gearSvg());
+    fieldsToggleBtn.title = state.showFieldsEditor ? 'Velden sluiten' : 'Velden bewerken';
+    fieldsToggleBtn.setAttribute('aria-label', fieldsToggleBtn.title);
+    fieldsToggleBtn.addEventListener('click', function () { state.showFieldsEditor = !state.showFieldsEditor; renderDetail(); });
+    head.appendChild(fieldsToggleBtn);
+    if (!entry.omslag_url) {
+      var addCoverBtn = document.createElement('button');
+      addCoverBtn.type = 'button'; addCoverBtn.className = 'icon-btn'; addCoverBtn.appendChild(cameraSvg());
+      addCoverBtn.title = 'Omslagfoto toevoegen'; addCoverBtn.setAttribute('aria-label', 'Omslagfoto toevoegen');
+      fileInput.addEventListener('change', function () {
+        if (fileInput.files && fileInput.files[0]) uploadCover(entry.id, fileInput.files[0], addCoverBtn);
+      });
+      addCoverBtn.addEventListener('click', function () { fileInput.click(); });
+      head.appendChild(addCoverBtn); head.appendChild(fileInput);
+    }
     dbody.appendChild(head);
 
     var meta = document.createElement('div');
@@ -772,27 +845,6 @@
     });
     dbody.appendChild(meta);
 
-    var descArea = document.createElement('textarea');
-    descArea.className = 'detail-desc'; descArea.rows = 1;
-    descArea.placeholder = 'Voeg een omschrijving toe…';
-    descArea.value = entry.omschrijving || '';
-    descArea.addEventListener('input', function () { descArea.style.height = 'auto'; descArea.style.height = descArea.scrollHeight + 'px'; });
-    descArea.addEventListener('blur', function () {
-      var v = descArea.value.trim();
-      if (v !== (entry.omschrijving || '')) supabase.from('lijsten').update({ omschrijving: v }).eq('id', entry.id).then(refetchSoft);
-    });
-    dbody.appendChild(descArea);
-    setTimeout(function () { descArea.style.height = 'auto'; descArea.style.height = descArea.scrollHeight + 'px'; }, 0);
-
-    var fieldsToggleRow = document.createElement('div');
-    fieldsToggleRow.className = 'fields-toggle-row';
-    var fieldsToggleBtn = document.createElement('button');
-    fieldsToggleBtn.type = 'button'; fieldsToggleBtn.className = 'btn-text';
-    fieldsToggleBtn.textContent = state.showFieldsEditor ? 'Velden sluiten' : 'Velden bewerken';
-    fieldsToggleBtn.addEventListener('click', function () { state.showFieldsEditor = !state.showFieldsEditor; renderDetail(); });
-    fieldsToggleRow.appendChild(fieldsToggleBtn);
-    dbody.appendChild(fieldsToggleRow);
-
     if (state.showFieldsEditor) dbody.appendChild(renderFieldsEditor(entry));
 
     dbody.appendChild(document.createElement('hr')).className = 'div';
@@ -800,17 +852,8 @@
     if (entry.auto_import && !entry.genest) dbody.appendChild(renderImportSection(entry));
 
     dbody.appendChild(renderSearchSortRow(entry));
-    if ((entry.vink_velden || []).length) {
-      var showFilters = !!state.showFilters[entry.id] || hasActiveFilter(entry);
-      var filterToggleRow = document.createElement('div');
-      filterToggleRow.className = 'fields-toggle-row';
-      var filterToggleBtn = document.createElement('button');
-      filterToggleBtn.type = 'button'; filterToggleBtn.className = 'btn-text';
-      filterToggleBtn.textContent = showFilters ? 'Filters verbergen' : 'Filters';
-      filterToggleBtn.addEventListener('click', function () { state.showFilters[entry.id] = !showFilters; renderDetail(); });
-      filterToggleRow.appendChild(filterToggleBtn);
-      dbody.appendChild(filterToggleRow);
-      if (showFilters) dbody.appendChild(renderFilterRow(entry));
+    if ((entry.vink_velden || []).length && (!!state.showFilters[entry.id] || hasActiveFilter(entry))) {
+      dbody.appendChild(renderFilterRow(entry));
     }
 
     var fullItems = itemsFor(entry.id);
@@ -1056,15 +1099,23 @@
 
       if (!reeksen.length) {
         var noReeksP = document.createElement('p'); noReeksP.className = 'items-empty';
-        noReeksP.textContent = 'Nog geen reeksen. Maak er hieronder een aan.';
+        noReeksP.textContent = 'Nog niets toegevoegd. Gebruik de knop hieronder om te beginnen.';
         dbody.appendChild(noReeksP);
       }
+
+      var hasActiveQuery = !!(state.search[entry.id] || '').trim() || hasActiveFilter(entry);
 
       reeksen.forEach(function (reeks, ridx) {
         var groupItems = filtered.filter(function (i) { return i.reeks_id === reeks.id; });
         var groupFull = fullItemsAll.filter(function (i) { return i.reeks_id === reeks.id; });
+        var collapsed = !!state.collapsedReeks[reeks.id] && !hasActiveQuery;
 
         var headerWrap = document.createElement('div'); headerWrap.className = 'reeks-header';
+        var collapseBtn = document.createElement('button');
+        collapseBtn.type = 'button'; collapseBtn.className = 'reeks-collapse-btn'; collapseBtn.innerHTML = collapsed ? '&#9656;' : '&#9662;';
+        collapseBtn.setAttribute('aria-label', collapsed ? 'Reeks uitklappen' : 'Reeks inklappen');
+        collapseBtn.addEventListener('click', function () { state.collapsedReeks[reeks.id] = !state.collapsedReeks[reeks.id]; renderDetail(); });
+        headerWrap.appendChild(collapseBtn);
         var nameInput = document.createElement('input');
         nameInput.className = 'reeks-name-input'; nameInput.value = reeks.naam;
         nameInput.setAttribute('aria-label', 'Naam van de reeks');
@@ -1075,6 +1126,9 @@
         });
         headerWrap.appendChild(nameInput);
         var actionsWrap = document.createElement('div'); actionsWrap.className = 'reeks-actions';
+        var countBadge = document.createElement('span'); countBadge.className = 'count-tag';
+        countBadge.textContent = groupFull.length ? (groupFull.length + (groupFull.length === 1 ? ' item' : ' items')) : 'leeg';
+        actionsWrap.appendChild(countBadge);
         if (reeksImportSources[entry.auto_import]) {
           var searchBtn = document.createElement('button');
           searchBtn.type = 'button'; searchBtn.className = 'icon-btn'; searchBtn.appendChild(coverSearchSvg());
@@ -1102,8 +1156,9 @@
           dbody.appendChild(buildImportPanel(entry));
         }
 
-        dbody.appendChild(buildItemsTable(groupItems, groupFull, groupFull.length ? 'Geen items met dit filter.' : 'Nog geen items in deze reeks.'));
-        dbody.appendChild(buildAddItemForm(entry, reeks));
+        if (!collapsed) {
+          dbody.appendChild(buildItemsTable(groupItems, groupFull, groupFull.length ? 'Geen items met dit filter.' : 'Nog geen items in deze reeks.'));
+        }
       });
 
       var orphanItems = filtered.filter(function (i) { return !i.reeks_id; });
@@ -1116,18 +1171,14 @@
         dbody.appendChild(buildItemsTable(orphanItems, orphanFull, 'Geen items met dit filter.'));
       }
 
-      var newBox = document.createElement('div'); newBox.className = 'new-reeks-box';
-      var newLabel = document.createElement('span'); newLabel.className = 'new-reeks-label'; newLabel.textContent = 'Nieuwe reeks';
-      newBox.appendChild(newLabel);
-      newBox.appendChild(buildNewReeksForm(entry));
-      dbody.appendChild(newBox);
     }
 
     if (entry.genest) {
       renderNestedItems(items, fullItems);
+      dbody.appendChild(buildGenestAddForm(entry));
     } else {
       dbody.appendChild(buildItemsTable(items, fullItems, fullItems.length ? 'Geen items met dit filter.' : 'Nog geen items op dit lijstje.'));
-      dbody.appendChild(buildAddItemForm(entry, null));
+      dbody.appendChild(buildAddItemForm(entry));
     }
 
     var footer = document.createElement('div');
@@ -1174,6 +1225,15 @@
     select.addEventListener('change', function () { state.sortBy[entry.id] = select.value; renderDetail(); });
     sortWrap.appendChild(sortLabel); sortWrap.appendChild(select);
     row.appendChild(sortWrap);
+
+    if ((entry.vink_velden || []).length) {
+      var showFilters = !!state.showFilters[entry.id] || hasActiveFilter(entry);
+      var filterToggleBtn = document.createElement('button');
+      filterToggleBtn.type = 'button'; filterToggleBtn.className = 'btn-text';
+      filterToggleBtn.textContent = showFilters ? 'Filters verbergen' : 'Filters';
+      filterToggleBtn.addEventListener('click', function () { state.showFilters[entry.id] = !showFilters; renderDetail(); });
+      row.appendChild(filterToggleBtn);
+    }
     return row;
   }
 
@@ -1210,6 +1270,21 @@
     box.className = 'fields-editor';
 
     function persist(patch) { supabase.from('lijsten').update(patch).eq('id', entry.id).then(refetchSoft); }
+
+    var descGroup = document.createElement('div');
+    descGroup.className = 'fields-editor-group';
+    var descH4 = document.createElement('h4'); descH4.textContent = 'Omschrijving';
+    descGroup.appendChild(descH4);
+    var descArea = document.createElement('textarea');
+    descArea.className = 'fields-editor-desc'; descArea.rows = 2;
+    descArea.placeholder = 'Voeg een omschrijving toe…';
+    descArea.value = entry.omschrijving || '';
+    descArea.addEventListener('blur', function () {
+      var v = descArea.value.trim();
+      if (v !== (entry.omschrijving || '')) persist({ omschrijving: v || null });
+    });
+    descGroup.appendChild(descArea);
+    box.appendChild(descGroup);
 
     function buildGroup(title, arr, cap, kindLabel, onAdd) {
       var group = document.createElement('div');
