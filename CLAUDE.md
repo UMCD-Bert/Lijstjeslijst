@@ -52,6 +52,14 @@ toegang (geen aparte accounts per persoon).
    op input/select/textarea-regels in `index.html` vangt het. (Aanleiding: meerdere bestaande
    velden — zoekbalk, sorteer-select, bewerk-/toevoeg-formulieren — stonden op 13–15px; gefixt in
    v1.4.1, 2026-09-13.)
+9. **Bij UI-wijzigingen rond de items-tabel: test ook op een smalle viewport (bv. 375px via
+   `resize_window`/mobile-preset), niet alleen op standaardbreedte.** De tabel is met opzet breder
+   dan een telefoonscherm kan zijn (zie hierboven, JS-berekende breedte) — een colSpan-rij (reeks-
+   kop, bewerk-form, cover-/tracklist-zoekpaneel) erft die volle breedte, en kan zo op een iPhone
+   gedeeltelijk buiten beeld vallen zonder dat dit op standaardbreedte zichtbaar is. Vaste stap:
+   nieuwe/gewijzigde colSpan-inhoud ook smal testen, of geef 'm de `.wide-row-content`-klasse
+   (sticky links + max-width op viewportbreedte) als 'ie flex-wrap-baar is. (Aanleiding: v1.17.1,
+   gemeld door de gebruiker met een iPhone-screenshot — "Jaar van uitgave" en de kolomkop vielen af.)
 
 ## Datamodel (kern) — generiek velden-systeem
 - `lijsten`: naam, omschrijving, omslag_url, volgorde, `type_label` (vrije tekst, getoond als pill),
@@ -306,6 +314,19 @@ toegang (geen aparte accounts per persoon).
   dwong ALLE tekst in de tabel tot één regel (titelkolom liep op tot 9000px), een echte val bij
   scrollbare tabellen: gebruik een berekende pixelbreedte, niet `max-content`, als je select
   kolommen vast moet houden terwijl andere mogen wrappen.
+  **Fix (2026-09-13, v1.17.1): colSpan-rijen (reeks-kop, bewerk-form, cover-/tracklist-zoekpaneel)
+  vielen op iPhone gedeeltelijk buiten beeld** — zo'n rij erft de volle (JS-berekende) tabelbreedte,
+  die bij een paar vinkjes-kolommen (bv. Muziek: 3 vinkjes → 432px) een smalle iPhone al kan
+  overschrijden; met alleen `overflow-x:auto` op de tabel bleef bv. het "Jaar van uitgave"-veld in
+  het bewerkformulier daardoor onbereikbaar zonder zelf naar rechts te scrollen, zonder enige hint
+  dat dat nodig was (concreet gemeld met een iPhone-screenshot: "Jaar van..." en de kolomkop "IN
+  BEZIT" liepen af, niet zichtbaar dat er meer te scrollen viel). Gefixt met een gedeelde
+  `.wide-row-content`-klasse: `position:sticky;left:0` houdt zo'n rij bij de zichtbare linkerrand
+  (net als de bestaande sticky titel-/actieskolom), en `max-width:calc(100vw - 88px)` (viewport
+  min de vaste `.wrap`+`.detail-body`-marges) laat de al aanwezige `flex-wrap` ook echt naar een
+  nieuwe regel omslaan i.p.v. buiten beeld doorlopen. Dit soort bug valt niet op in de Claude
+  Browser-testtool op standaardbreedte — moet je expliciet op een smalle viewport (bv. 375px)
+  testen, of zoals hier: een screenshot van de gebruiker zelf.
 - App-header (logo/tagline/"Nieuw lijstje") verdwijnt in de lijst-detailweergave (alleen "← Alle
   lijstjes" + lijstnaam) — was op iPhone te veel verloren ruimte vóór je daadwerkelijk items ziet.
   Lege omslagfoto-placeholder in detailweergave vervangen door een smal "+ Omslagfoto toevoegen"-

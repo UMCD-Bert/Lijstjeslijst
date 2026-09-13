@@ -224,6 +224,16 @@
 
   .reeks-row td { padding: 16px 4px 8px; border-bottom: none; }
   .reeks-row:first-child td { padding-top: 4px; }
+  /* Rijen die colSpan="colCount" gebruiken (reeks-kop, bewerk-form, cover-/tracklist-zoeken) erven
+     anders de volledige (JS-berekende, vaak bredere-dan-viewport) tabelbreedte — met alleen
+     `overflow-x:auto` op `.items-scroll` blijft hun inhoud dan onzichtbaar totdat je toevallig naar
+     rechts scrolt (bv. "Jaar van uitgave" bij Muziek/Strips, met hun extra vinkjes-kolommen, viel
+     zo volledig buiten beeld op iPhone). `position:sticky;left:0` houdt zo'n rij bij de zichtbare
+     linkerrand, en `max-width` (viewportbreedte min de vaste `.wrap`/`.detail-body`-marges) zorgt
+     dat de al aanwezige `flex-wrap` ook echt naar een nieuwe regel omslaat i.p.v. verder door te
+     lopen buiten beeld. */
+  .wide-row-content { position: sticky; left: 0; max-width: calc(100vw - 88px); box-sizing: border-box; }
+  @media (min-width: 640px) { .wide-row-content { max-width: calc(100vw - 96px); } }
   .reeks-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .reeks-collapse-btn { width: 20px; height: 20px; border: none; background: none; color: var(--muted); flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; padding: 0; font-size: 0.8rem; line-height: 0; }
@@ -349,7 +359,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.17.0';
+  var APP_VERSION = '1.17.1';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -1129,7 +1139,7 @@
         var editTd = document.createElement('td');
         editTd.colSpan = colCount; editTd.className = 'edit-row-cell';
         var form = document.createElement('form');
-        form.className = 'edit-form';
+        form.className = 'edit-form wide-row-content';
         var titelInput = document.createElement('input');
         titelInput.value = item.titel || ''; titelInput.placeholder = 'Titel'; titelInput.dataset.key = '__titel';
         form.appendChild(titelInput);
@@ -1188,7 +1198,7 @@
         var csTd = document.createElement('td');
         csTd.colSpan = colCount; csTd.className = 'edit-row-cell';
         var csWrap = document.createElement('div');
-        csWrap.className = 'cover-search-row';
+        csWrap.className = 'cover-search-row wide-row-content';
         var csHeader = document.createElement('div'); csHeader.className = 'import-actions';
         var csTitle = document.createElement('strong'); csTitle.textContent = 'Cover zoeken: ' + (item.titel || '');
         var csClose = document.createElement('button');
@@ -1224,7 +1234,7 @@
         var ts = state.trackSearch;
         var tsTd = document.createElement('td');
         tsTd.colSpan = colCount; tsTd.className = 'edit-row-cell';
-        var tsWrap = document.createElement('div'); tsWrap.className = 'track-search-row';
+        var tsWrap = document.createElement('div'); tsWrap.className = 'track-search-row wide-row-content';
         var tsHeader = document.createElement('div'); tsHeader.className = 'import-actions';
         var tsTitle = document.createElement('strong'); tsTitle.textContent = 'Tracklist zoeken (Discogs): ' + (item.titel || '');
         var tsClose = document.createElement('button');
@@ -1408,7 +1418,7 @@
     function buildReeksHeaderRow(reeks, ridx, reeksen, groupFull, collapsed) {
       var headRow = document.createElement('tr'); headRow.className = 'reeks-row';
       var headTd = document.createElement('td'); headTd.colSpan = colCount;
-      var headerWrap = document.createElement('div'); headerWrap.className = 'reeks-header';
+      var headerWrap = document.createElement('div'); headerWrap.className = 'reeks-header wide-row-content';
       var collapseBtn = document.createElement('button');
       collapseBtn.type = 'button'; collapseBtn.className = 'reeks-collapse-btn'; collapseBtn.innerHTML = collapsed ? '&#9656;' : '&#9662;';
       collapseBtn.setAttribute('aria-label', collapsed ? 'Reeks uitklappen' : 'Reeks inklappen');
