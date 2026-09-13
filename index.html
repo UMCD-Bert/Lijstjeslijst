@@ -365,7 +365,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.19.0';
+  var APP_VERSION = '1.19.1';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -1067,10 +1067,8 @@
 
     dbody.appendChild(renderModeTabs(entry));
     var viewMode = state.viewMode[entry.id] || 'bekijken';
-    if (viewMode === 'zoeken') {
-      dbody.appendChild(renderSearchRow(entry));
-    } else if (viewMode === 'bekijken') {
-      dbody.appendChild(renderSortRow(entry));
+    if (viewMode === 'bekijken') {
+      dbody.appendChild(renderSearchSortRow(entry));
       if ((entry.vink_velden || []).length && (!!state.showFilters[entry.id] || hasActiveFilter(entry))) {
         dbody.appendChild(renderFilterRow(entry));
       }
@@ -1574,23 +1572,18 @@
   function setViewMode(entry, mode) {
     var prev = state.viewMode[entry.id] || 'bekijken';
     if (prev === mode) return;
-    if (prev === 'zoeken') state.search[entry.id] = '';
     if (prev === 'toevoegen') {
       delete state.isbnLookup[entry.id];
       if (state.importFlow && state.importFlow.listId === entry.id) state.importFlow = null;
     }
     state.viewMode[entry.id] = mode;
     renderDetail();
-    if (mode === 'zoeken') {
-      var el = detailCardEl.querySelector('.search-input');
-      if (el) el.focus();
-    }
   }
 
   function renderModeTabs(entry) {
     var wrap = document.createElement('div'); wrap.className = 'mode-tabs';
     var current = state.viewMode[entry.id] || 'bekijken';
-    [['bekijken', 'Bekijken'], ['zoeken', 'Zoeken'], ['toevoegen', 'Toevoegen']].forEach(function (pair) {
+    [['bekijken', 'Bekijken'], ['toevoegen', 'Toevoegen']].forEach(function (pair) {
       var btn = document.createElement('button');
       btn.type = 'button'; btn.className = 'mode-tab-btn' + (current === pair[0] ? ' active' : '');
       btn.textContent = pair[1];
@@ -1600,8 +1593,8 @@
     return wrap;
   }
 
-  // ---------- Zoeken-modus ----------
-  function renderSearchRow(entry) {
+  // ---------- Bekijken-modus: zoeken + sorteren + filters ----------
+  function renderSearchSortRow(entry) {
     var row = document.createElement('div');
     row.className = 'search-sort-row';
 
@@ -1625,13 +1618,6 @@
       searchWrap.appendChild(clearBtn);
     }
     row.appendChild(searchWrap);
-    return row;
-  }
-
-  // ---------- Bekijken-modus: sorteren + filters ----------
-  function renderSortRow(entry) {
-    var row = document.createElement('div');
-    row.className = 'search-sort-row';
 
     var sortWrap = document.createElement('label');
     sortWrap.className = 'sort-wrap';

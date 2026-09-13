@@ -347,29 +347,26 @@ toegang (geen aparte accounts per persoon).
   vertrouwen op de native browser-clearknop van `type="search"` — die is inconsistent aanwezig
   tussen browsers/platforms (o.a. onopvallend/afwezig op iPhone), dus een eigen zichtbare knop
   is betrouwbaarder.
-  **Herzien (2026-09-13, v1.19.0): Bekijken/Zoeken/Toevoegen als aparte modus-tabs** i.p.v. zoeken +
-  sorteren/filteren + toevoegen allemaal tegelijk boven de lijst. Expliciete aanleiding (letterlijke
+  **Herzien (2026-09-13, v1.19.0→v1.19.1): Bekijken/Toevoegen als aparte modus-tabs** i.p.v. zoeken
+  + sorteren/filteren + toevoegen allemaal tegelijk boven de lijst. Expliciete aanleiding (letterlijke
   bewoording van de gebruiker): "je bent aan het zoeken, aan het bekijken (met filteren), of aan het
   toevoegen. Niet alle drie tegelijk. Maar je moet altijd makkelijk terug kunnen naar die keuze" —
   de knoppen "+ Toevoegen"/"Artiest toevoegen" pal onder de zoekbalk suggereerden een relatie die er
-  niet was ("als ik zoek ben ik niet aan het toevoegen"). Drie tabs (`state.viewMode[lijstId]`,
-  default 'bekijken') bepalen nu welk controle-blok boven de itemlijst staat: Bekijken toont
-  Sorteer + Filters-knop, Zoeken toont alleen het zoekveld (autofocus bij wisselen), Toevoegen toont
-  het toevoegformulier/ISBN-knop/Artiest-toevoegen/Discogs-collectie-import. De itemlijst zelf blijft
-  in alle drie de tabs gewoon zichtbaar (alleen de besturing erboven wisselt) — reeks-scoped
-  zoekicoontjes in de tabel (Open Library/MusicBrainz per reeks) zijn bewust NIET aan de tabs
-  gekoppeld, want die zijn al lokaal aan hun reeks-rij gebonden, geen onderdeel van de globale
-  besturingsbalk waar de klacht over ging. Wisselen van tab ruimt de vorige activiteit expliciet op
-  (weg uit Zoeken = zoekterm gewist; weg uit Toevoegen = evt. openstaande ISBN-/MusicBrainz-flow
-  gesloten) zodat de drie activiteiten ook mentaal gescheiden blijven, niet alleen visueel. De losse
-  "+ Toevoegen"-toggle binnen de genest-add-form is vervallen (het formulier staat nu meteen open
-  zodra je op de Toevoegen-tab klikt, dat IS al de bewuste keuze) — na een succesvolle toevoeging
-  leegt het formulier zichzelf voor de volgende (blijft in Toevoegen-modus voor snel achter elkaar
-  meerdere items invoeren). Nog een open vraag: een actief vinkjes-filter (uit Bekijken) blijft
-  technisch ook mee-filteren tijdens Zoeken (de onderliggende `filteredItems()` combineert nog
-  steeds zoekterm + filter) — puur de UI-zichtbaarheid is gescheiden, het filter zelf wordt niet
-  gereset bij het wisselen naar Zoeken. Nog niet gemeld als probleem; als dat verwarrend blijkt,
-  is het volgende punt om aan te scherpen.
+  niet was ("als ik zoek ben ik niet aan het toevoegen"). v1.19.0 begon met DRIE tabs (Bekijken/
+  Zoeken/Toevoegen los), maar meteen daarna kwam de nuance dat zoeken en bekijken/filteren juist
+  dicht bij elkaar liggen ("dat ligt misschien toch wel dichtbij elkaar. Maar toevoegen is echt een
+  aparte actie") — dus in v1.19.1 teruggebracht naar TWEE tabs: `state.viewMode[lijstId]`
+  ('bekijken', default, of 'toevoegen') bepaalt nu welk controle-blok boven de itemlijst staat.
+  Bekijken toont zoekveld + Sorteer + Filters-knop samen (zoals het al was, vóór dit hele
+  hoofdstuk), Toevoegen toont het toevoegformulier/ISBN-knop/Artiest-toevoegen/Discogs-collectie-
+  import. De itemlijst zelf blijft in beide tabs gewoon zichtbaar (alleen de besturing erboven
+  wisselt) — reeks-scoped zoekicoontjes in de tabel (Open Library/MusicBrainz per reeks) zijn
+  bewust NIET aan de tabs gekoppeld, want die zijn al lokaal aan hun reeks-rij gebonden, geen
+  onderdeel van de globale besturingsbalk waar de klacht over ging. Verlaten van Toevoegen ruimt
+  een evt. openstaande ISBN-/MusicBrainz-flow expliciet op. De losse "+ Toevoegen"-toggle binnen de
+  genest-add-form is vervallen (het formulier staat nu meteen open zodra je op de Toevoegen-tab
+  klikt, dat IS al de bewuste keuze) — na een succesvolle toevoeging leegt het formulier zichzelf
+  voor de volgende (blijft in Toevoegen-modus voor snel achter elkaar meerdere items invoeren).
 - Volgorde wordt bijgehouden als timestamp (nieuw item/lijst = `Date.now()`); verplaatsen wisselt de
   `volgorde`-waarde van twee buren om (last-writer-wins, geen transacties nodig op deze schaal).
 
