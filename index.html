@@ -273,9 +273,12 @@
   .item-row.done .item-primary { color: var(--muted); text-decoration: line-through; }
   .item-actions { display: flex; gap: 2px; flex-shrink: 0; }
   .items-empty { color: var(--muted); font-style: italic; padding: 14px 2px; font-size: 0.9rem; text-align: left; }
+  .tracklist-row td { padding: 4px 2px 14px; border-bottom: 1px solid var(--border); }
+  .tracklist-text { white-space: pre-wrap; font-size: 0.86rem; color: var(--muted); background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
 
   .edit-form { flex: 1; display: flex; gap: 8px; flex-wrap: wrap; padding: 4px 0; }
   .edit-form input { border: 1px solid var(--accent); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 16px; color: var(--ink); flex: 1; min-width: 100px; }
+  .edit-form .field-row-textarea { border: 1px solid var(--accent); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 16px; color: var(--ink); flex: 1 1 100%; min-height: 70px; resize: vertical; }
   .edit-form-actions { display: flex; gap: 4px; }
 
   form.add-item { display: flex; gap: 10px; align-items: center; border-top: 1.5px dashed var(--border); padding-top: 16px; flex-wrap: wrap; }
@@ -327,7 +330,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.12.0';
+  var APP_VERSION = '1.13.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -354,7 +357,7 @@
   var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var state = {
     lijsten: [], items: [], reeksen: [], currentId: null, editingItem: null,
-    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, showAddGenestItem: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}
+    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, showAddGenestItem: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}
   };
 
   var gridEl = document.getElementById('grid');
@@ -397,6 +400,22 @@
     circle.setAttribute('cx', '8'); circle.setAttribute('cy', '9'); circle.setAttribute('r', '2.4');
     circle.setAttribute('fill', 'none'); circle.setAttribute('stroke', 'currentColor'); circle.setAttribute('stroke-width', '1.3');
     svg.appendChild(rect); svg.appendChild(bump); svg.appendChild(circle);
+    return svg;
+  }
+
+  function tracklistSvg() {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('width', '14'); svg.setAttribute('height', '14');
+    [3.5, 8, 12.5].forEach(function (y) {
+      var dot = document.createElementNS(ns, 'circle');
+      dot.setAttribute('cx', '2'); dot.setAttribute('cy', y); dot.setAttribute('r', '1'); dot.setAttribute('fill', 'currentColor');
+      svg.appendChild(dot);
+      var line = document.createElementNS(ns, 'path');
+      line.setAttribute('d', 'M5 ' + y + 'H14');
+      line.setAttribute('stroke', 'currentColor'); line.setAttribute('stroke-width', '1.3'); line.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(line);
+    });
     return svg;
   }
 
@@ -475,7 +494,7 @@
         return want === 'wel' ? val : !val;
       })) return false;
       if (q) {
-        var haystackParts = [item.titel].concat((entry.extra_velden || []).map(function (ev) { return item.extra && item.extra[ev.key]; }));
+        var haystackParts = [item.titel, item.tracklist].concat((entry.extra_velden || []).map(function (ev) { return item.extra && item.extra[ev.key]; }));
         if (entry.genest) {
           var rk = state.reeksen.find(function (r) { return r.id === item.reeks_id; });
           if (rk) haystackParts.push(rk.naam);
@@ -1104,6 +1123,13 @@
           });
           form.appendChild(reeksSelect);
         }
+        var tracklistInput = null;
+        if (entry.auto_import === 'musicbrainz' || entry.auto_import === 'discogs') {
+          tracklistInput = document.createElement('textarea');
+          tracklistInput.value = item.tracklist || ''; tracklistInput.placeholder = 'Tracklist (één track per regel)';
+          tracklistInput.className = 'field-row-textarea';
+          form.appendChild(tracklistInput);
+        }
         var actions = document.createElement('div');
         actions.className = 'edit-form-actions';
         var saveBtn = document.createElement('button');
@@ -1121,6 +1147,7 @@
           extraInputs.forEach(function (inp) { extra[inp.dataset.key] = inp.value.trim() || null; });
           var patch = { titel: titel, extra: extra };
           if (reeksSelect) patch.reeks_id = parseInt(reeksSelect.value, 10);
+          if (tracklistInput) patch.tracklist = tracklistInput.value.trim() || null;
           supabase.from('lijst_items').update(patch).eq('id', item.id).then(refetchSoft);
           state.editingItem = null;
         });
@@ -1247,6 +1274,15 @@
       });
       photoBtn.addEventListener('click', function () { photoInput.click(); });
       itemActions.appendChild(photoBtn); itemActions.appendChild(photoInput);
+      if (item.tracklist) {
+        var tlExpanded = !!state.expandedTracklist[item.id];
+        var tracklistBtn = document.createElement('button');
+        tracklistBtn.type = 'button'; tracklistBtn.className = 'icon-btn'; tracklistBtn.appendChild(tracklistSvg());
+        tracklistBtn.title = tlExpanded ? 'Tracklist verbergen' : 'Tracklist tonen';
+        tracklistBtn.setAttribute('aria-label', tracklistBtn.title);
+        tracklistBtn.addEventListener('click', function () { state.expandedTracklist[item.id] = !state.expandedTracklist[item.id]; renderDetail(); });
+        itemActions.appendChild(tracklistBtn);
+      }
       var editBtn = document.createElement('button');
       editBtn.type = 'button'; editBtn.className = 'icon-btn'; editBtn.innerHTML = '&#9998;';
       editBtn.title = 'Bewerk item'; editBtn.setAttribute('aria-label', 'Bewerk item');
@@ -1261,7 +1297,16 @@
       actionsTd.appendChild(itemActions);
       tr.appendChild(actionsTd);
 
-      return tr;
+      if (!item.tracklist || !state.expandedTracklist[item.id]) return tr;
+      var frag = document.createDocumentFragment();
+      frag.appendChild(tr);
+      var tlRow = document.createElement('tr'); tlRow.className = 'tracklist-row';
+      var tlTd = document.createElement('td'); tlTd.colSpan = colCount;
+      var tlText = document.createElement('div'); tlText.className = 'tracklist-text'; tlText.textContent = item.tracklist;
+      tlTd.appendChild(tlText);
+      tlRow.appendChild(tlTd);
+      frag.appendChild(tlRow);
+      return frag;
     }
 
     function buildReeksHeaderRow(reeks, ridx, reeksen, groupFull, collapsed) {
@@ -1915,6 +1960,26 @@
     }
   }
 
+  function sleep(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
+
+  async function fetchDiscogsTracklist(releaseId) {
+    try {
+      var res = await fetch('https://api.discogs.com/releases/' + encodeURIComponent(releaseId));
+      if (!res.ok) return null;
+      var data = await res.json();
+      var list = data.tracklist || [];
+      if (!list.length) return null;
+      return list.map(function (t) {
+        var pos = t.position ? t.position + '. ' : '';
+        var dur = t.duration ? ' (' + t.duration + ')' : '';
+        return (pos + (t.title || '') + dur).trim();
+      }).filter(Boolean).join('\n');
+    } catch (e) {
+      console.error('discogs tracklist fetch failed', e);
+      return null;
+    }
+  }
+
   async function importCommit(entry) {
     var flow = state.importFlow;
     var existingExternIds = {};
@@ -1952,7 +2017,9 @@
     }
 
     var jaarKey = (entry.extra_velden || []).some(function (f) { return f.key === 'jaar'; }) ? 'jaar' : null;
-    var rows = selectedWorks.map(function (w, i) {
+    var rows = [];
+    for (var wi = 0; wi < selectedWorks.length; wi++) {
+      var w = selectedWorks[wi];
       var extra = {};
       if (entry.genest) {
         if (jaarKey && w.year) extra[jaarKey] = String(w.year);
@@ -1961,13 +2028,16 @@
       }
       var vinkjes = {};
       (entry.vink_velden || []).forEach(function (vk) { vinkjes[vk.key] = false; });
+      var tracklist = null;
       if (flow.source === 'discogs') {
         if (vinkjes.hasOwnProperty('in_bezit')) vinkjes.in_bezit = true;
         var fmts = w.formats || [];
         if (vinkjes.hasOwnProperty('lp') && fmts.indexOf('Vinyl') !== -1) vinkjes.lp = true;
         if (vinkjes.hasOwnProperty('cd') && fmts.indexOf('CD') !== -1) vinkjes.cd = true;
+        tracklist = await fetchDiscogsTracklist(w.id);
+        if (wi < selectedWorks.length - 1) await sleep(300);
       }
-      var row = { lijst_id: entry.id, titel: w.title, extra: extra, vinkjes: vinkjes, bron: flow.source, extern_id: w.id, omslag_url: w.coverUrl || null, volgorde: base + i };
+      var row = { lijst_id: entry.id, titel: w.title, extra: extra, vinkjes: vinkjes, bron: flow.source, extern_id: w.id, omslag_url: w.coverUrl || null, tracklist: tracklist, volgorde: base + wi };
       if (flow.reeksId) row.reeks_id = flow.reeksId;
       else if (entry.genest && flow.source === 'discogs') {
         var n = (w.artist || '').trim();
@@ -1976,8 +2046,8 @@
       } else if (entry.genest && singleReeksId) {
         row.reeks_id = singleReeksId;
       }
-      return row;
-    });
+      rows.push(row);
+    }
     var result = await supabase.from('lijst_items').insert(rows);
     refetchSoft(result);
   }

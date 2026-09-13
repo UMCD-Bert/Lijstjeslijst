@@ -69,7 +69,12 @@ toegang (geen aparte accounts per persoon).
   `extra_velden`), `vinkjes` (jsonb, matcht keys uit `vink_velden`), `omslag_url` (foto per item,
   los van de omslagfoto van de lijst), `bron` + `extern_id` (herkomst bij auto-import, voorkomt
   dubbele import), `reeks_id` (FK → `reeksen`, on delete cascade, alleen gebruikt bij `genest`
-  lijstjes), volgorde.
+  lijstjes), `tracklist` (text, 2026-09-13, alleen bij Muziek) — bewust een los tekstveld i.p.v. een
+  1:n-relatie zoals `reeksen`: het enige concrete doel was "op een track kunnen zoeken om te zien op
+  welk album die staat", en de bestaande zoekfunctie (title + alle tekstvelden) doorzoekt dit veld al
+  gratis mee zodra het meegenomen wordt in de haystack — een aparte `tracks`-tabel (met eigen
+  CRUD/UI) zou dat doel niet beter dienen en is een wezenlijk andere relatievorm (kind van één item,
+  niet een groepering van items zoals reeksen). Volgorde.
 - `reeksen` (2026-09-13, voor `genest` lijstjes): eigen tabel i.p.v. een tekstveld — `lijst_id` (FK,
   on delete cascade), `naam`, `omslag_url` (nog niet gebruikt in UI), `volgorde`. Puur generiek
   concept: een reeks kan een auteur zijn, maar net zo goed een boekenserie (bv. reisgidsen) waar de
@@ -242,6 +247,18 @@ toegang (geen aparte accounts per persoon).
   "verwijderen" betekent (op andere plekken altijd met `.danger`-styling en een eigen aria-label,
   maar het kale icoon zelf oogt hetzelfde). Nu gewoon tekstknoppen "Opslaan"/"Annuleren", zelfde
   patroon als de andere formulieren in de app (bv. bij "+ Toevoegen").
+- Tracklist per muziekalbum (2026-09-13): bron is Discogs (niet MusicBrainz) — bewuste keuze, want
+  Discogs' tracklijsten horen bij de specifieke fysieke persing (kant A/B bij vinyl etc.), wat beter
+  past bij een fysieke collectie dan MusicBrainz' generiekere release-group-data (die geen tracklist
+  heeft zonder eerst een specifieke, vaak dubbelzinnige "release"-editie te kiezen). Bij elke
+  Discogs-add wordt automatisch `GET /releases/{id}` opgehaald (tracklist zit niet in de
+  bulk-collectie-call) en als "Positie. Titel (duur)" per regel opgeslagen — met een korte pauze
+  tussen items bij een grotere batch, want dit is een aparte aanroep per item (Discogs' limiet is
+  25/min onbevestigd, zie eerdere notitie). Bestaande 162 items met terugwerkende kracht gevuld via
+  een rustig getempode achtergrond-script (zelfde aanpak als de stripcovers-backfill). In de tabel
+  een in-/uitklap-icoontje (alleen zichtbaar als er een tracklist is) dat een extra rij toont; in de
+  bewerk-modus van een item een eigen tekstvak (alleen bij Muziek-lijstjes, `auto_import` musicbrainz
+  of discogs) om 'm handmatig te zetten/aan te passen.
 - Items worden getoond als een tabel (`.items-table` in `.items-scroll`, `overflow-x:auto`):
   titelkolom sticky links, vinkjes-koppen (E-book/Auteur/etc.) ÉÉN keer bovenaan i.p.v. per rij
   herhaald, actieskolom (foto/bewerk/verwijder) sticky rechts. Tabelbreedte wordt expliciet in JS
