@@ -219,6 +219,29 @@ toegang (geen aparte accounts per persoon).
   CSS-grid met kaarten omgezet naar een simpele verticale lijst (`display:flex; flex-direction:
   column`) — een aparte multi-kolom-indeling op desktop bleek geen meerwaarde te hebben t.o.v. één
   consistente compacte lijst op elke breedte.
+- MusicBrainz-artiest+titel-zoeken werkt nu ook als Muziekbron op Discogs staat (2026-09-13): eerder
+  was de MusicBrainz-zoekfunctie (reeks-scoped icoon én de nieuwe globale "Artiest toevoegen"-knop,
+  zie hieronder) alleen actief als `auto_import` letterlijk `'musicbrainz'` was — dus onbruikbaar
+  zodra Discogs de gekozen Muziekbron was, ook al is dat een complementaire functie (los toevoegen
+  op naam) t.o.v. Discogs' bulk-collectie-sync. Losgekoppeld via `secondarySearchSource(entry)`: een
+  losstaand concept van "met welke bron zoek je één titel op", onafhankelijk van welke bron de
+  bulk-import gebruikt. `openImportFlow` accepteert nu een optionele source-override zodat een
+  MusicBrainz-flow gestart kan worden ook al is `entry.auto_import` op dat moment `'discogs'`.
+  Covers komen automatisch mee via de Cover Art Archive (`coverartarchive.org/release-group/<mbid>/
+  front`, gratis, open CORS, geen aparte aanroep nodig — het MBID van de release-group die
+  MusicBrainz al teruggeeft volstaat). Reeks-scoped (icoon in reeks-kop) werkte al, maar had ditzelfde
+  mankement; nu ook gefixt. Nieuw: een globale "Artiest toevoegen"-knop (net als bij Boeken de
+  ISBN-knop) voor als er nog géén reeks voor die artiest bestaat — matcht of maakt zelf de reeks aan,
+  zelfde patroon als de Discogs-bulkimport dat al deed per artiest.
+- Cover van een item vergroot bekijken (2026-09-13): klik/tik op het kleine omslagfotootje in de
+  tabel opent een lightbox (donkere overlay, sluiten via kruisje/Escape/ergens buiten de foto
+  klikken) — losstaand van de normale rij-klik die het item in bewerk-modus zet
+  (`e.stopPropagation()` op de thumbnail zelf).
+- Bewerk-modus van een item: opslaan/annuleren stonden als kale ✓/✕-icoontjes zonder zichtbaar
+  label — verwarrend, want ✕ betekent hier "annuleren", terwijl ✕ elders in de app juist
+  "verwijderen" betekent (op andere plekken altijd met `.danger`-styling en een eigen aria-label,
+  maar het kale icoon zelf oogt hetzelfde). Nu gewoon tekstknoppen "Opslaan"/"Annuleren", zelfde
+  patroon als de andere formulieren in de app (bv. bij "+ Toevoegen").
 - Items worden getoond als een tabel (`.items-table` in `.items-scroll`, `overflow-x:auto`):
   titelkolom sticky links, vinkjes-koppen (E-book/Auteur/etc.) ÉÉN keer bovenaan i.p.v. per rij
   herhaald, actieskolom (foto/bewerk/verwijder) sticky rechts. Tabelbreedte wordt expliciet in JS

@@ -245,7 +245,16 @@
   .col-check { text-align: center; width: 54px; min-width: 54px; }
   .title-cell-inner { display: flex; align-items: center; gap: 8px; }
   .move-col { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
-  .item-thumb { width: 30px; height: 42px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--surface-2); }
+  .item-thumb { width: 30px; height: 42px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--surface-2); cursor: zoom-in; }
+  .lightbox-overlay {
+    position: fixed; inset: 0; background: rgba(20,18,14,0.82); display: flex; align-items: center; justify-content: center;
+    z-index: 1000; padding: 28px; cursor: zoom-out;
+  }
+  .lightbox-img { max-width: 100%; max-height: 100%; border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
+  .lightbox-close {
+    position: fixed; top: 16px; right: 16px; width: 38px; height: 38px; border-radius: 10px; border: none;
+    background: rgba(251,251,247,0.92); color: var(--ink); font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
+  }
   .move-btn { width: 20px; height: 16px; border: none; background: none; color: var(--border); display: flex; align-items: center; justify-content: center; padding: 0; line-height: 0; }
   .move-btn:not(:disabled):hover { color: var(--accent); }
   .move-btn:disabled { visibility: hidden; }
@@ -318,7 +327,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.10.0';
+  var APP_VERSION = '1.12.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -335,6 +344,12 @@
   };
   var PRESET_ORDER = ['simpel', 'boeken', 'muziek', 'strips', 'bordspellen', 'aangepast'];
   var IMPORT_LABELS = { openlibrary: 'Auteur toevoegen', musicbrainz: 'Artiest toevoegen', discogs: 'Discogs-collectie importeren' };
+  var REEKS_SEARCH_LABELS = { openlibrary: 'Open Library', musicbrainz: 'MusicBrainz' };
+  function secondarySearchSource(entry) {
+    if (entry.auto_import === 'openlibrary') return 'openlibrary';
+    if (entry.auto_import === 'musicbrainz' || entry.auto_import === 'discogs') return 'musicbrainz';
+    return null;
+  }
 
   var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var state = {
@@ -493,6 +508,30 @@
     return (entry.vink_velden || []).some(function (vk) { return f[vk.key] && f[vk.key] !== 'alle'; });
   }
   function initials(name) { return (name || '?').trim().charAt(0).toUpperCase() || '?'; }
+
+  function lightboxKeyHandler(e) { if (e.key === 'Escape') closeLightbox(); }
+  function closeLightbox() {
+    var existing = document.getElementById('lightbox-overlay');
+    if (existing) existing.remove();
+    document.removeEventListener('keydown', lightboxKeyHandler);
+  }
+  function openLightbox(url) {
+    if (!url) return;
+    closeLightbox();
+    var overlay = document.createElement('div');
+    overlay.id = 'lightbox-overlay'; overlay.className = 'lightbox-overlay';
+    overlay.addEventListener('click', closeLightbox);
+    var img = document.createElement('img');
+    img.className = 'lightbox-img'; img.src = url; img.alt = '';
+    overlay.appendChild(img);
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button'; closeBtn.className = 'lightbox-close'; closeBtn.innerHTML = '&#10005;';
+    closeBtn.setAttribute('aria-label', 'Sluiten');
+    closeBtn.addEventListener('click', function (e) { e.stopPropagation(); closeLightbox(); });
+    overlay.appendChild(closeBtn);
+    document.addEventListener('keydown', lightboxKeyHandler);
+    document.body.appendChild(overlay);
+  }
   function extraSummary(entry, item) {
     return (entry.extra_velden || []).map(function (f) { return item.extra && item.extra[f.key]; })
       .filter(function (v) { return v; }).join(' · ');
@@ -973,7 +1012,7 @@
 
     dbody.appendChild(document.createElement('hr')).className = 'div';
 
-    if (entry.auto_import && (!entry.genest || entry.auto_import === 'discogs')) dbody.appendChild(renderImportSection(entry));
+    if (entry.auto_import && (!entry.genest || entry.auto_import === 'discogs' || entry.auto_import === 'musicbrainz')) dbody.appendChild(renderImportSection(entry));
 
     dbody.appendChild(renderSearchSortRow(entry));
     if ((entry.vink_velden || []).length && (!!state.showFilters[entry.id] || hasActiveFilter(entry))) {
@@ -1068,9 +1107,9 @@
         var actions = document.createElement('div');
         actions.className = 'edit-form-actions';
         var saveBtn = document.createElement('button');
-        saveBtn.type = 'submit'; saveBtn.className = 'icon-btn'; saveBtn.innerHTML = '&#10003;'; saveBtn.setAttribute('aria-label', 'Opslaan');
+        saveBtn.type = 'submit'; saveBtn.className = 'btn-primary'; saveBtn.textContent = 'Opslaan';
         var cancelBtn = document.createElement('button');
-        cancelBtn.type = 'button'; cancelBtn.className = 'icon-btn'; cancelBtn.innerHTML = '&#10005;'; cancelBtn.setAttribute('aria-label', 'Annuleren');
+        cancelBtn.type = 'button'; cancelBtn.className = 'btn-text'; cancelBtn.textContent = 'Annuleren';
         cancelBtn.addEventListener('click', function () { state.editingItem = null; renderDetail(); });
         actions.appendChild(saveBtn); actions.appendChild(cancelBtn);
         form.appendChild(actions);
@@ -1148,6 +1187,8 @@
       if (item.omslag_url) {
         var thumb = document.createElement('img');
         thumb.className = 'item-thumb'; thumb.src = item.omslag_url; thumb.alt = ''; thumb.loading = 'lazy';
+        thumb.setAttribute('aria-label', 'Cover vergroten');
+        thumb.addEventListener('click', function (e) { e.stopPropagation(); openLightbox(item.omslag_url); });
         titleCellInner.appendChild(thumb);
       }
       var main = document.createElement('div');
@@ -1223,9 +1264,6 @@
       return tr;
     }
 
-    var reeksImportSources = { openlibrary: true, musicbrainz: true };
-    var REEKS_SEARCH_LABELS = { openlibrary: 'Open Library', musicbrainz: 'MusicBrainz' };
-
     function buildReeksHeaderRow(reeks, ridx, reeksen, groupFull, collapsed) {
       var headRow = document.createElement('tr'); headRow.className = 'reeks-row';
       var headTd = document.createElement('td'); headTd.colSpan = colCount;
@@ -1248,12 +1286,13 @@
       var countBadge = document.createElement('span'); countBadge.className = 'count-tag';
       countBadge.textContent = groupFull.length ? (groupFull.length + (groupFull.length === 1 ? ' item' : ' items')) : 'leeg';
       actionsWrap.appendChild(countBadge);
-      if (reeksImportSources[entry.auto_import]) {
+      var secSource = secondarySearchSource(entry);
+      if (secSource) {
         var searchBtn = document.createElement('button');
         searchBtn.type = 'button'; searchBtn.className = 'icon-btn'; searchBtn.appendChild(coverSearchSvg());
-        var searchLabel = REEKS_SEARCH_LABELS[entry.auto_import] || entry.auto_import;
+        var searchLabel = REEKS_SEARCH_LABELS[secSource] || secSource;
         searchBtn.title = 'Titels zoeken op ' + searchLabel; searchBtn.setAttribute('aria-label', 'Titels zoeken op ' + searchLabel + ' voor ' + reeks.naam);
-        searchBtn.addEventListener('click', function () { openImportFlow(entry, reeks); });
+        searchBtn.addEventListener('click', function () { openImportFlow(entry, reeks, secSource); });
         actionsWrap.appendChild(searchBtn);
       }
       var rUpBtn = document.createElement('button');
@@ -1338,6 +1377,19 @@
       var addRow = document.createElement('div'); addRow.className = 'genest-add-row';
       addRow.appendChild(buildGenestAddForm(entry));
       if (entry.auto_import === 'openlibrary') addRow.appendChild(buildIsbnAddForm(entry));
+      if (entry.auto_import === 'discogs') {
+        var mbFlowActive = state.importFlow && state.importFlow.listId === entry.id && state.importFlow.source === 'musicbrainz' && !state.importFlow.reeksId;
+        var mbWrap = document.createElement('div'); mbWrap.className = 'genest-add-wrap';
+        if (mbFlowActive) {
+          mbWrap.appendChild(buildImportPanel(entry));
+        } else if (!(state.importFlow && state.importFlow.listId === entry.id)) {
+          var mbBtn = document.createElement('button');
+          mbBtn.type = 'button'; mbBtn.className = 'btn-secondary'; mbBtn.textContent = IMPORT_LABELS.musicbrainz;
+          mbBtn.addEventListener('click', function () { openImportFlow(entry, null, 'musicbrainz'); });
+          mbWrap.appendChild(mbBtn);
+        }
+        if (mbWrap.childNodes.length) addRow.appendChild(mbWrap);
+      }
       dbody.appendChild(addRow);
     } else {
       dbody.appendChild(buildItemsTable(items, fullItems, fullItems.length ? 'Geen items met dit filter.' : 'Nog geen items op dit lijstje.'));
@@ -1716,13 +1768,14 @@
   newListBtn.addEventListener('click', showNewListForm);
 
   // ---------- Auto-import (Open Library / MusicBrainz / Discogs) ----------
-  function openImportFlow(entry, reeks) {
+  function openImportFlow(entry, reeks, sourceOverride) {
+    var source = sourceOverride || entry.auto_import;
     state.importFlow = {
-      listId: entry.id, reeksId: reeks ? reeks.id : null, source: entry.auto_import, step: 'search', query: reeks ? reeks.naam : '',
+      listId: entry.id, reeksId: reeks ? reeks.id : null, source: source, step: 'search', query: reeks ? reeks.naam : '',
       candidates: [], candidateName: '', candidateId: '', works: [], selected: new Set(),
       loading: false, error: '', note: ''
     };
-    if (entry.auto_import === 'discogs') {
+    if (source === 'discogs') {
       state.importFlow.step = 'works';
       state.importFlow.loading = true;
       runDiscogsFetch(entry);
@@ -1846,7 +1899,7 @@
           var norm = (rg.title || '').trim().toLowerCase();
           if (!norm || seen2[norm]) return;
           seen2[norm] = true;
-          works.push({ id: rg.id, title: rg.title, year: (rg['first-release-date'] || '').slice(0, 4) });
+          works.push({ id: rg.id, title: rg.title, year: (rg['first-release-date'] || '').slice(0, 4), coverUrl: 'https://coverartarchive.org/release-group/' + rg.id + '/front' });
         });
         works.sort(function (a, b) { return (a.year || '9999').localeCompare(b.year || '9999') || a.title.localeCompare(b.title); });
       }
@@ -1873,6 +1926,7 @@
     if (!selectedWorks.length) return;
 
     var reeksByName = {};
+    var singleReeksId = null;
     if (entry.genest && !flow.reeksId && flow.source === 'discogs') {
       reeksenFor(entry.id).forEach(function (r) { reeksByName[r.naam.toLowerCase()] = r; });
       var neededNames = {};
@@ -1885,6 +1939,15 @@
         var newReeksRows = toCreate.map(function (naam, i) { return { lijst_id: entry.id, naam: naam, volgorde: base + i }; });
         var reeksInsertRes = await supabase.from('reeksen').insert(newReeksRows).select();
         (reeksInsertRes.data || []).forEach(function (r) { reeksByName[r.naam.toLowerCase()] = r; });
+      }
+    } else if (entry.genest && !flow.reeksId && flow.candidateName) {
+      var existingReeks = reeksenFor(entry.id).find(function (r) { return r.naam.toLowerCase() === flow.candidateName.toLowerCase(); });
+      if (existingReeks) {
+        singleReeksId = existingReeks.id;
+      } else {
+        var reeksRes2 = await addReeks(entry, flow.candidateName);
+        if (reeksRes2.error || !reeksRes2.data) { console.error(reeksRes2.error); window.alert('Er ging iets mis bij het opslaan.'); return; }
+        singleReeksId = reeksRes2.data.id;
       }
     }
 
@@ -1910,6 +1973,8 @@
         var n = (w.artist || '').trim();
         var rk = n ? reeksByName[n.toLowerCase()] : null;
         if (rk) row.reeks_id = rk.id;
+      } else if (entry.genest && singleReeksId) {
+        row.reeks_id = singleReeksId;
       }
       return row;
     });
@@ -1920,6 +1985,7 @@
   function renderImportSection(entry) {
     var wrap = document.createElement('div');
     var flow = state.importFlow;
+    if (flow && flow.listId === entry.id && flow.source !== entry.auto_import) return wrap;
     if (!flow || flow.listId !== entry.id) {
       if (entry.auto_import !== 'discogs') {
         var row = document.createElement('div'); row.className = 'import-toggle-row';
@@ -1946,7 +2012,7 @@
     var panel = document.createElement('div'); panel.className = 'import-panel';
     var header = document.createElement('div'); header.className = 'import-actions';
     var titleSpan = document.createElement('strong');
-    titleSpan.textContent = flow.reeksId ? ('Titels zoeken op ' + (REEKS_SEARCH_LABELS[entry.auto_import] || entry.auto_import)) : (IMPORT_LABELS[entry.auto_import] || 'Toevoegen');
+    titleSpan.textContent = flow.reeksId ? ('Titels zoeken op ' + (REEKS_SEARCH_LABELS[flow.source] || flow.source)) : (IMPORT_LABELS[flow.source] || 'Toevoegen');
     var closeBtn = document.createElement('button');
     closeBtn.type = 'button'; closeBtn.className = 'btn-text'; closeBtn.textContent = 'Sluiten';
     closeBtn.addEventListener('click', closeImportFlow);
