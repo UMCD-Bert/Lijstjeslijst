@@ -330,7 +330,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.15.1';
+  var APP_VERSION = '1.15.2';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -1949,7 +1949,7 @@
         works.sort(function (a, b) { return (a.year || '9999').localeCompare(b.year || '9999') || a.title.localeCompare(b.title); });
       }
       flow.works = works;
-      flow.selected = flow.source === 'openlibrary' ? new Set() : new Set(works.map(function (w) { return w.id; }));
+      flow.selected = new Set();
       flow.step = 'works';
       if (!works.length) flow.error = 'Geen titels gevonden.';
     } catch (e) {
@@ -2130,7 +2130,7 @@
         if (flow.source === 'discogs') msg = flow.works.length + ' items gevonden in je Discogs-collectie.';
         else if (flow.source === 'openlibrary') msg = flow.works.length + (flow.note ? ' titels gevonden voor ' : ' Nederlandstalige titels gevonden voor ') + flow.candidateName + '.';
         else msg = flow.works.length + ' titels gevonden voor ' + flow.candidateName + '.';
-        sub.textContent = msg + (flow.source === 'openlibrary' ? ' Vink aan wat je wilt toevoegen.' : ' Vink uit wat je niet wilt toevoegen.');
+        sub.textContent = msg + (flow.source === 'discogs' ? ' Vink uit wat je niet wilt toevoegen.' : ' Vink aan wat je wilt toevoegen.');
         panel.appendChild(sub);
         if (flow.note) {
           var noteP = document.createElement('p'); noteP.className = 'import-msg'; noteP.textContent = flow.note;

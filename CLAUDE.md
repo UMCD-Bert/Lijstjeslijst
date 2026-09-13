@@ -238,6 +238,13 @@ toegang (geen aparte accounts per persoon).
   mankement; nu ook gefixt. Nieuw: een globale "Artiest toevoegen"-knop (net als bij Boeken de
   ISBN-knop) voor als er nog géén reeks voor die artiest bestaat — matcht of maakt zelf de reeks aan,
   zelfde patroon als de Discogs-bulkimport dat al deed per artiest.
+  **Fix (2026-09-13, v1.15.2): resultaten stonden bij MusicBrainz standaard allemaal aangevinkt** —
+  bij een nieuwe artiest (bv. Dolly Parton, 99 titels) moest je dan bijna alles weer uitvinken om
+  alleen de ene net gekochte plaat toe te voegen, exact hetzelfde probleem dat destijds bij Open
+  Library al werd opgelost (zie Boeken-sjabloon hierboven) maar toen niet was doorgevoerd naar
+  MusicBrainz. MusicBrainz-zoekresultaten starten nu ook standaard leeg ("vink aan wat je wilt
+  toevoegen") — alleen de Discogs-bulkimport (je hele bestaande collectie in één keer) blijft
+  bewust all-checked ("vink uit wat je niet wilt toevoegen"), want daar bezit je al bijna alles.
 - Cover van een item vergroot bekijken (2026-09-13): klik/tik op het kleine omslagfotootje in de
   tabel opent een lightbox (donkere overlay, sluiten via kruisje/Escape/ergens buiten de foto
   klikken) — losstaand van de normale rij-klik die het item in bewerk-modus zet
