@@ -370,7 +370,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.21.1';
+  var APP_VERSION = '1.22.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -1514,19 +1514,22 @@
         searchBtn.addEventListener('click', function () { openImportFlow(entry, reeks, secSource); });
         actionsWrap.appendChild(searchBtn);
       }
-      var rUpBtn = document.createElement('button');
-      rUpBtn.type = 'button'; rUpBtn.className = 'move-btn'; rUpBtn.innerHTML = '&#9650;';
-      rUpBtn.title = 'Verplaats reeks omhoog'; rUpBtn.setAttribute('aria-label', 'Verplaats reeks omhoog'); rUpBtn.disabled = ridx === 0;
-      rUpBtn.addEventListener('click', function () { moveReeks(reeksen, reeks, -1); });
-      var rDownBtn = document.createElement('button');
-      rDownBtn.type = 'button'; rDownBtn.className = 'move-btn'; rDownBtn.innerHTML = '&#9660;';
-      rDownBtn.title = 'Verplaats reeks omlaag'; rDownBtn.setAttribute('aria-label', 'Verplaats reeks omlaag'); rDownBtn.disabled = ridx === reeksen.length - 1;
-      rDownBtn.addEventListener('click', function () { moveReeks(reeksen, reeks, 1); });
+      if (state.sortBy[entry.id] !== 'reeks') {
+        var rUpBtn = document.createElement('button');
+        rUpBtn.type = 'button'; rUpBtn.className = 'move-btn'; rUpBtn.innerHTML = '&#9650;';
+        rUpBtn.title = 'Verplaats reeks omhoog'; rUpBtn.setAttribute('aria-label', 'Verplaats reeks omhoog'); rUpBtn.disabled = ridx === 0;
+        rUpBtn.addEventListener('click', function () { moveReeks(reeksen, reeks, -1); });
+        var rDownBtn = document.createElement('button');
+        rDownBtn.type = 'button'; rDownBtn.className = 'move-btn'; rDownBtn.innerHTML = '&#9660;';
+        rDownBtn.title = 'Verplaats reeks omlaag'; rDownBtn.setAttribute('aria-label', 'Verplaats reeks omlaag'); rDownBtn.disabled = ridx === reeksen.length - 1;
+        rDownBtn.addEventListener('click', function () { moveReeks(reeksen, reeks, 1); });
+        actionsWrap.appendChild(rUpBtn); actionsWrap.appendChild(rDownBtn);
+      }
       var rDelBtn = document.createElement('button');
       rDelBtn.type = 'button'; rDelBtn.className = 'icon-btn danger'; rDelBtn.innerHTML = '&#10005;';
       rDelBtn.title = 'Verwijder reeks'; rDelBtn.setAttribute('aria-label', 'Verwijder reeks ' + reeks.naam);
       rDelBtn.addEventListener('click', function () { deleteReeks(reeks); });
-      actionsWrap.appendChild(rUpBtn); actionsWrap.appendChild(rDownBtn); actionsWrap.appendChild(rDelBtn);
+      actionsWrap.appendChild(rDelBtn);
       headerWrap.appendChild(actionsWrap);
       headTd.appendChild(headerWrap);
       headRow.appendChild(headTd);
@@ -1534,7 +1537,11 @@
     }
 
     function renderNestedItems(filtered, fullItemsAll) {
+      var reeksSortActive = state.sortBy[entry.id] === 'reeks';
       var reeksen = reeksenFor(entry.id);
+      if (reeksSortActive) {
+        reeksen = reeksen.slice().sort(function (a, b) { return (a.naam || '').localeCompare(b.naam || '', 'nl', { sensitivity: 'base' }); });
+      }
 
       if (!reeksen.length) {
         var noReeksP = document.createElement('p'); noReeksP.className = 'items-empty';
@@ -1698,6 +1705,7 @@
     var select = document.createElement('select');
     select.className = 'sort-select';
     var options = [{ key: 'volgorde', label: 'Handmatig' }, { key: 'titel', label: 'Titel' }]
+      .concat(entry.genest ? [{ key: 'reeks', label: 'Artiest/auteur/reeks' }] : [])
       .concat((entry.extra_velden || []).map(function (f) { return { key: f.key, label: f.label }; }));
     var current = state.sortBy[entry.id] || 'volgorde';
     options.forEach(function (o) {

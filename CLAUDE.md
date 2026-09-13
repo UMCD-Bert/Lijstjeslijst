@@ -388,6 +388,14 @@ toegang (geen aparte accounts per persoon).
   vertrouwen op de native browser-clearknop van `type="search"` — die is inconsistent aanwezig
   tussen browsers/platforms (o.a. onopvallend/afwezig op iPhone), dus een eigen zichtbare knop
   is betrouwbaarder.
+  **Aanvulling (2026-09-13, v1.22.0): sorteren op "Artiest/auteur/reeks"** bij `genest` lijstjes
+  (Boeken/Muziek/Strips) — herordent de REEKSEN zelf alfabetisch (`localeCompare` met 'nl'-locale),
+  i.p.v. alleen de items binnen een reeks te sorteren (dat deed "Titel" al). Zonder deze optie
+  stonden reeksen altijd in handmatige/toevoegvolgorde, dus een net toegevoegde artiest (bv.
+  Creedence Clearwater Revival) belandde altijd onderaan i.p.v. bij de C's. Zelfde patroon als bij
+  item-sortering: bij een actieve alfabetische reeks-sortering verdwijnen de handmatige reeks-
+  verplaats-pijltjes (omhoog/omlaag) uit de reeks-kop, want handmatig verslepen heeft geen zin
+  zolang de volgorde toch alfabetisch herberekend wordt.
   **Herzien (2026-09-13, v1.19.0→v1.19.1): Bekijken/Toevoegen als aparte modus-tabs** i.p.v. zoeken
   + sorteren/filteren + toevoegen allemaal tegelijk boven de lijst. Expliciete aanleiding (letterlijke
   bewoording van de gebruiker): "je bent aan het zoeken, aan het bekijken (met filteren), of aan het
