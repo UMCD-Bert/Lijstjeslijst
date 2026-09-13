@@ -160,6 +160,12 @@
   .fields-editor-row input { flex: 1; border: 1px solid var(--border); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 16px; color: var(--ink); }
   .fields-editor-desc { width: 100%; box-sizing: border-box; border: 1px solid var(--border); background: var(--surface); border-radius: 7px; padding: 8px 10px; font-family: inherit; font-size: 16px; color: var(--ink); resize: vertical; }
 
+  .mode-tabs { display: flex; gap: 6px; margin: 0 0 14px; border-bottom: 1px solid var(--border); }
+  .mode-tab-btn {
+    border: none; background: none; padding: 8px 4px; margin-right: 14px; font-family: inherit; font-size: 0.9rem;
+    color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer;
+  }
+  .mode-tab-btn.active { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
   .search-sort-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 0 0 14px; }
   .search-input-wrap { position: relative; flex: 1; min-width: 140px; }
   .search-input {
@@ -359,7 +365,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.18.0';
+  var APP_VERSION = '1.19.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -386,7 +392,7 @@
   var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var state = {
     lijsten: [], items: [], reeksen: [], currentId: null, editingItem: null,
-    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, showAddGenestItem: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}, trackSearch: null
+    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}, trackSearch: null, viewMode: {}
   };
 
   var gridEl = document.getElementById('grid');
@@ -668,14 +674,6 @@
   function buildGenestAddForm(entry) {
     var wrap = document.createElement('div');
     wrap.className = 'genest-add-wrap';
-    if (!state.showAddGenestItem[entry.id]) {
-      var toggleBtn = document.createElement('button');
-      toggleBtn.type = 'button'; toggleBtn.className = 'btn-secondary'; toggleBtn.textContent = '+ Toevoegen';
-      toggleBtn.addEventListener('click', function () { state.showAddGenestItem[entry.id] = true; renderDetail(); });
-      wrap.appendChild(toggleBtn);
-      return wrap;
-    }
-
     var reeksen = reeksenFor(entry.id);
     var form = document.createElement('form'); form.className = 'genest-add-form';
 
@@ -707,7 +705,7 @@
     submitBtn.type = 'submit'; submitBtn.className = 'btn-primary'; submitBtn.textContent = 'Toevoegen';
     var cancelBtn = document.createElement('button');
     cancelBtn.type = 'button'; cancelBtn.className = 'btn-text'; cancelBtn.textContent = 'Annuleren';
-    cancelBtn.addEventListener('click', function () { state.showAddGenestItem[entry.id] = false; renderDetail(); });
+    cancelBtn.addEventListener('click', function () { setViewMode(entry, 'bekijken'); });
     actions.appendChild(submitBtn); actions.appendChild(cancelBtn);
     form.appendChild(actions);
 
@@ -726,7 +724,6 @@
       var result = await supabase.from('lijst_items').insert({
         lijst_id: entry.id, titel: titel, extra: extra, vinkjes: vinkjes, reeks_id: reeksRes.data.id, volgorde: Date.now()
       });
-      state.showAddGenestItem[entry.id] = false;
       refetchSoft(result);
     });
 
@@ -1046,7 +1043,7 @@
       var discogsBtn = document.createElement('button');
       discogsBtn.type = 'button'; discogsBtn.className = 'icon-btn'; discogsBtn.appendChild(downloadSvg());
       discogsBtn.title = 'Discogs-collectie importeren'; discogsBtn.setAttribute('aria-label', 'Discogs-collectie importeren');
-      discogsBtn.addEventListener('click', function () { openImportFlow(entry); });
+      discogsBtn.addEventListener('click', function () { setViewMode(entry, 'toevoegen'); openImportFlow(entry); });
       head.appendChild(discogsBtn);
     }
     dbody.appendChild(head);
@@ -1068,11 +1065,17 @@
 
     dbody.appendChild(document.createElement('hr')).className = 'div';
 
-    if (entry.auto_import && (!entry.genest || entry.auto_import === 'discogs' || entry.auto_import === 'musicbrainz')) dbody.appendChild(renderImportSection(entry));
-
-    dbody.appendChild(renderSearchSortRow(entry));
-    if ((entry.vink_velden || []).length && (!!state.showFilters[entry.id] || hasActiveFilter(entry))) {
-      dbody.appendChild(renderFilterRow(entry));
+    dbody.appendChild(renderModeTabs(entry));
+    var viewMode = state.viewMode[entry.id] || 'bekijken';
+    if (viewMode === 'zoeken') {
+      dbody.appendChild(renderSearchRow(entry));
+    } else if (viewMode === 'bekijken') {
+      dbody.appendChild(renderSortRow(entry));
+      if ((entry.vink_velden || []).length && (!!state.showFilters[entry.id] || hasActiveFilter(entry))) {
+        dbody.appendChild(renderFilterRow(entry));
+      }
+    } else if (viewMode === 'toevoegen') {
+      if (entry.auto_import && (!entry.genest || entry.auto_import === 'discogs' || entry.auto_import === 'musicbrainz')) dbody.appendChild(renderImportSection(entry));
     }
 
     var fullItems = itemsFor(entry.id);
@@ -1530,26 +1533,28 @@
     }
 
     if (entry.genest) {
-      var addRow = document.createElement('div'); addRow.className = 'genest-add-row';
-      addRow.appendChild(buildGenestAddForm(entry));
-      if (entry.auto_import === 'openlibrary') addRow.appendChild(buildIsbnAddForm(entry));
-      if (entry.auto_import === 'discogs') {
-        var mbFlowActive = state.importFlow && state.importFlow.listId === entry.id && state.importFlow.source === 'musicbrainz' && !state.importFlow.reeksId;
-        var mbWrap = document.createElement('div'); mbWrap.className = 'genest-add-wrap';
-        if (mbFlowActive) {
-          mbWrap.appendChild(buildImportPanel(entry));
-        } else if (!(state.importFlow && state.importFlow.listId === entry.id)) {
-          var mbBtn = document.createElement('button');
-          mbBtn.type = 'button'; mbBtn.className = 'btn-secondary'; mbBtn.textContent = IMPORT_LABELS.musicbrainz;
-          mbBtn.addEventListener('click', function () { openImportFlow(entry, null, 'musicbrainz'); });
-          mbWrap.appendChild(mbBtn);
+      if (viewMode === 'toevoegen') {
+        var addRow = document.createElement('div'); addRow.className = 'genest-add-row';
+        addRow.appendChild(buildGenestAddForm(entry));
+        if (entry.auto_import === 'openlibrary') addRow.appendChild(buildIsbnAddForm(entry));
+        if (entry.auto_import === 'discogs') {
+          var mbFlowActive = state.importFlow && state.importFlow.listId === entry.id && state.importFlow.source === 'musicbrainz' && !state.importFlow.reeksId;
+          var mbWrap = document.createElement('div'); mbWrap.className = 'genest-add-wrap';
+          if (mbFlowActive) {
+            mbWrap.appendChild(buildImportPanel(entry));
+          } else if (!(state.importFlow && state.importFlow.listId === entry.id)) {
+            var mbBtn = document.createElement('button');
+            mbBtn.type = 'button'; mbBtn.className = 'btn-secondary'; mbBtn.textContent = IMPORT_LABELS.musicbrainz;
+            mbBtn.addEventListener('click', function () { openImportFlow(entry, null, 'musicbrainz'); });
+            mbWrap.appendChild(mbBtn);
+          }
+          if (mbWrap.childNodes.length) addRow.appendChild(mbWrap);
         }
-        if (mbWrap.childNodes.length) addRow.appendChild(mbWrap);
+        dbody.appendChild(addRow);
       }
-      dbody.appendChild(addRow);
       renderNestedItems(items, fullItems);
     } else {
-      dbody.appendChild(buildAddItemForm(entry));
+      if (viewMode === 'toevoegen') dbody.appendChild(buildAddItemForm(entry));
       dbody.appendChild(buildItemsTable(items, fullItems, fullItems.length ? 'Geen items met dit filter.' : 'Nog geen items op dit lijstje.'));
     }
 
@@ -1562,8 +1567,41 @@
     }
   }
 
-  // ---------- Search & sort row ----------
-  function renderSearchSortRow(entry) {
+  // ---------- Modus-tabs: Zoeken / Bekijken / Toevoegen ----------
+  // Bewust gescheiden i.p.v. altijd alles tegelijk tonen: zoeken, filteren/sorteren en toevoegen
+  // zijn losse activiteiten die elkaar in de weg zitten als ze allemaal tegelijk in beeld staan
+  // (concrete klacht: "als ik zoek ben ik niet aan het toevoegen"). Wisselen kan altijd via de tabs.
+  function setViewMode(entry, mode) {
+    var prev = state.viewMode[entry.id] || 'bekijken';
+    if (prev === mode) return;
+    if (prev === 'zoeken') state.search[entry.id] = '';
+    if (prev === 'toevoegen') {
+      delete state.isbnLookup[entry.id];
+      if (state.importFlow && state.importFlow.listId === entry.id) state.importFlow = null;
+    }
+    state.viewMode[entry.id] = mode;
+    renderDetail();
+    if (mode === 'zoeken') {
+      var el = detailCardEl.querySelector('.search-input');
+      if (el) el.focus();
+    }
+  }
+
+  function renderModeTabs(entry) {
+    var wrap = document.createElement('div'); wrap.className = 'mode-tabs';
+    var current = state.viewMode[entry.id] || 'bekijken';
+    [['bekijken', 'Bekijken'], ['zoeken', 'Zoeken'], ['toevoegen', 'Toevoegen']].forEach(function (pair) {
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'mode-tab-btn' + (current === pair[0] ? ' active' : '');
+      btn.textContent = pair[1];
+      btn.addEventListener('click', function () { setViewMode(entry, pair[0]); });
+      wrap.appendChild(btn);
+    });
+    return wrap;
+  }
+
+  // ---------- Zoeken-modus ----------
+  function renderSearchRow(entry) {
     var row = document.createElement('div');
     row.className = 'search-sort-row';
 
@@ -1587,6 +1625,13 @@
       searchWrap.appendChild(clearBtn);
     }
     row.appendChild(searchWrap);
+    return row;
+  }
+
+  // ---------- Bekijken-modus: sorteren + filters ----------
+  function renderSortRow(entry) {
+    var row = document.createElement('div');
+    row.className = 'search-sort-row';
 
     var sortWrap = document.createElement('label');
     sortWrap.className = 'sort-wrap';
