@@ -221,15 +221,15 @@
   .cover-search-candidate small { font-size: 0.72rem; color: var(--muted); line-height: 1.2; }
   .import-msg.error { color: var(--danger); font-style: normal; }
 
-  .reeks-row td { padding: 16px 4px 6px; border-bottom: none; }
-  .reeks-header { display: flex; align-items: center; gap: 6px; }
+  .reeks-header { display: flex; align-items: center; gap: 6px; margin: 22px 0 8px; }
   .reeks-name-input { flex: 1; min-width: 60px; border: none; background: transparent; font-family: 'Fraunces', Georgia, serif;
     font-weight: 600; font-size: 1rem; color: var(--ink); padding: 3px 5px; border-radius: 6px; }
   .reeks-name-input:focus { outline: none; background: var(--surface-2); }
   .reeks-label-plain { flex: 1; font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1rem; color: var(--muted); padding: 3px 5px; }
   .reeks-actions { display: flex; gap: 2px; flex-shrink: 0; }
-  .reeks-add-row td { padding: 2px 4px 14px; border-bottom: 1px solid var(--border); }
-  .new-reeks-row td { padding: 14px 4px 4px; }
+  .new-reeks-box { border: 1.5px dashed var(--border); border-radius: 10px; padding: 12px 14px; margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+  .new-reeks-box form.add-item { border-top: none; padding-top: 0; }
+  .new-reeks-label { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600; }
 
   .items-scroll { overflow-x: auto; margin: 0 0 18px; -webkit-overflow-scrolling: touch; }
   .items-table { border-collapse: collapse; width: 100%; }
@@ -321,7 +321,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.4.1';
+  var APP_VERSION = '1.5.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -330,7 +330,7 @@
 
   var PRESETS = {
     simpel:      { label: 'Lijst',       desc: 'losse items, afvinkbaar',    type_label: 'Lijst',       extra_velden: [], vink_velden: [{ key: 'gedaan', label: 'Gedaan' }], auto_import: null, doorstrepen: true },
-    boeken:      { label: 'Boeken',      desc: 'auteur, formaat, gelezen',   type_label: 'Boeken',      extra_velden: [{ key: 'auteur', label: 'Auteur' }], vink_velden: [{ key: 'e_book', label: 'E-book' }, { key: 'fysiek', label: 'Fysiek boek' }, { key: 'gelezen_ellen', label: 'Gelezen door Ellen' }, { key: 'gelezen_bert', label: 'Gelezen door Bert' }], auto_import: 'openlibrary', doorstrepen: false },
+    boeken:      { label: 'Boeken',      desc: 'gegroepeerd per auteur/reeks', type_label: 'Boeken',      extra_velden: [], vink_velden: [{ key: 'e_book', label: 'E-book' }, { key: 'fysiek', label: 'Fysiek boek' }, { key: 'gelezen_ellen', label: 'Gelezen door Ellen' }, { key: 'gelezen_bert', label: 'Gelezen door Bert' }], auto_import: 'openlibrary', doorstrepen: false, genest: true },
     muziek:      { label: 'Muziek',      desc: 'titel + artiest',            type_label: 'Muziek',      extra_velden: [{ key: 'artiest', label: 'Artiest' }], vink_velden: [{ key: 'in_bezit', label: 'In bezit' }], auto_import: 'musicbrainz', doorstrepen: false },
     strips:      { label: 'Strips',      desc: 'reeksen met albums',         type_label: 'Strips',      extra_velden: [{ key: 'volgnummer', label: 'Volgnummer' }], vink_velden: [{ key: 'in_bezit', label: 'In bezit' }, { key: 'gelezen', label: 'Gelezen' }], auto_import: null, doorstrepen: false, genest: true },
     bordspellen: { label: 'Bordspellen', desc: 'auteur, uitgever, BGG-rank', type_label: 'Bordspellen', extra_velden: [{ key: 'auteur', label: 'Auteur/ontwerper' }, { key: 'uitgever', label: 'Uitgever' }, { key: 'bgg_rank', label: 'BGG-rank' }], vink_velden: [{ key: 'gespeeld', label: 'Gespeeld' }], auto_import: null, doorstrepen: false },
@@ -342,7 +342,7 @@
   var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var state = {
     lijsten: [], items: [], reeksen: [], currentId: null, editingItem: null,
-    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, importFlow: null, coverSearch: null
+    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, importFlow: null, coverSearch: null
   };
 
   var gridEl = document.getElementById('grid');
@@ -461,6 +461,10 @@
     return { total: items.length, yes: yes };
   }
   function sortedLists() { return state.lijsten.slice().sort(function (a, b) { return a.volgorde - b.volgorde; }); }
+  function hasActiveFilter(entry) {
+    var f = state.filters[entry.id] || {};
+    return (entry.vink_velden || []).some(function (vk) { return f[vk.key] && f[vk.key] !== 'alle'; });
+  }
   function initials(name) { return (name || '?').trim().charAt(0).toUpperCase() || '?'; }
   function extraSummary(entry, item) {
     return (entry.extra_velden || []).map(function (f) { return item.extra && item.extra[f.key]; })
@@ -506,8 +510,8 @@
     var fieldsWrap = document.createElement('div');
     fieldsWrap.className = 'add-fields';
     var titelInput = document.createElement('input');
-    titelInput.type = 'text'; titelInput.placeholder = reeks ? 'Nieuw album' : 'Titel'; titelInput.dataset.key = '__titel';
-    titelInput.setAttribute('aria-label', reeks ? 'Nieuw album in ' + reeks.naam : 'Titel');
+    titelInput.type = 'text'; titelInput.placeholder = reeks ? 'Nieuwe titel' : 'Titel'; titelInput.dataset.key = '__titel';
+    titelInput.setAttribute('aria-label', reeks ? 'Nieuwe titel in ' + reeks.naam : 'Titel');
     fieldsWrap.appendChild(titelInput);
     var extraInputs = (entry.extra_velden || []).map(function (f) {
       var inp = document.createElement('input');
@@ -518,7 +522,7 @@
     extraInputs.forEach(function (inp) { fieldsWrap.appendChild(inp); });
     var submitBtn = document.createElement('button');
     submitBtn.type = 'submit'; submitBtn.className = 'submit-btn'; submitBtn.innerHTML = '&#43;';
-    submitBtn.setAttribute('aria-label', reeks ? 'Album toevoegen aan ' + reeks.naam : 'Item toevoegen');
+    submitBtn.setAttribute('aria-label', reeks ? 'Titel toevoegen aan ' + reeks.naam : 'Item toevoegen');
     form.appendChild(fieldsWrap); form.appendChild(submitBtn);
     form.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -793,10 +797,21 @@
 
     dbody.appendChild(document.createElement('hr')).className = 'div';
 
-    if (entry.auto_import) dbody.appendChild(renderImportSection(entry));
+    if (entry.auto_import && !entry.genest) dbody.appendChild(renderImportSection(entry));
 
     dbody.appendChild(renderSearchSortRow(entry));
-    if ((entry.vink_velden || []).length) dbody.appendChild(renderFilterRow(entry));
+    if ((entry.vink_velden || []).length) {
+      var showFilters = !!state.showFilters[entry.id] || hasActiveFilter(entry);
+      var filterToggleRow = document.createElement('div');
+      filterToggleRow.className = 'fields-toggle-row';
+      var filterToggleBtn = document.createElement('button');
+      filterToggleBtn.type = 'button'; filterToggleBtn.className = 'btn-text';
+      filterToggleBtn.textContent = showFilters ? 'Filters verbergen' : 'Filters';
+      filterToggleBtn.addEventListener('click', function () { state.showFilters[entry.id] = !showFilters; renderDetail(); });
+      filterToggleRow.appendChild(filterToggleBtn);
+      dbody.appendChild(filterToggleRow);
+      if (showFilters) dbody.appendChild(renderFilterRow(entry));
+    }
 
     var fullItems = itemsFor(entry.id);
     var items = filteredItems(entry);
@@ -804,28 +819,45 @@
     var vinkVelden = entry.vink_velden || [];
     var colCount = 2 + vinkVelden.length;
 
-    var scrollWrap = document.createElement('div');
-    scrollWrap.className = 'items-scroll';
-    var table = document.createElement('table');
-    table.className = 'items-table';
-    table.style.minWidth = (180 + vinkVelden.length * 54 + 90) + 'px';
+    function buildItemsTable(rowItems, orderItems, emptyMsg) {
+      var scrollWrap = document.createElement('div');
+      scrollWrap.className = 'items-scroll';
+      var table = document.createElement('table');
+      table.className = 'items-table';
+      table.style.minWidth = (180 + vinkVelden.length * 54 + 90) + 'px';
 
-    if (vinkVelden.length) {
-      var thead = document.createElement('thead');
-      var headRow = document.createElement('tr');
-      var titleTh = document.createElement('th');
-      titleTh.className = 'col-title col-title-head';
-      headRow.appendChild(titleTh);
-      vinkVelden.forEach(function (vk) {
-        var th = document.createElement('th');
-        th.className = 'col-check'; th.textContent = vk.label;
-        headRow.appendChild(th);
-      });
-      var actionsTh = document.createElement('th');
-      actionsTh.className = 'col-actions col-actions-head';
-      headRow.appendChild(actionsTh);
-      thead.appendChild(headRow);
-      table.appendChild(thead);
+      if (vinkVelden.length) {
+        var thead = document.createElement('thead');
+        var headRow = document.createElement('tr');
+        var titleTh = document.createElement('th');
+        titleTh.className = 'col-title col-title-head';
+        headRow.appendChild(titleTh);
+        vinkVelden.forEach(function (vk) {
+          var th = document.createElement('th');
+          th.className = 'col-check'; th.textContent = vk.label;
+          headRow.appendChild(th);
+        });
+        var actionsTh = document.createElement('th');
+        actionsTh.className = 'col-actions col-actions-head';
+        headRow.appendChild(actionsTh);
+        thead.appendChild(headRow);
+        table.appendChild(thead);
+      }
+
+      var tbody = document.createElement('tbody');
+      if (!rowItems.length) {
+        var emptyRow = document.createElement('tr');
+        var emptyTd = document.createElement('td');
+        emptyTd.colSpan = colCount; emptyTd.className = 'items-empty';
+        emptyTd.textContent = emptyMsg;
+        emptyRow.appendChild(emptyTd);
+        tbody.appendChild(emptyRow);
+      } else {
+        rowItems.forEach(function (item) { tbody.appendChild(buildItemRow(item, orderItems)); });
+      }
+      table.appendChild(tbody);
+      scrollWrap.appendChild(table);
+      return scrollWrap;
     }
 
     function buildItemRow(item, orderItems) {
@@ -1017,24 +1049,21 @@
       return tr;
     }
 
-    function buildNestedTbody(filtered, fullItemsAll) {
-      var nbody = document.createElement('tbody');
+    var reeksImportSources = { openlibrary: true };
+
+    function renderNestedItems(filtered, fullItemsAll) {
       var reeksen = reeksenFor(entry.id);
 
       if (!reeksen.length) {
-        var noReeksRow = document.createElement('tr');
-        var noReeksTd = document.createElement('td');
-        noReeksTd.colSpan = colCount; noReeksTd.className = 'items-empty';
-        noReeksTd.textContent = 'Nog geen reeksen. Maak er hieronder een aan.';
-        noReeksRow.appendChild(noReeksTd); nbody.appendChild(noReeksRow);
+        var noReeksP = document.createElement('p'); noReeksP.className = 'items-empty';
+        noReeksP.textContent = 'Nog geen reeksen. Maak er hieronder een aan.';
+        dbody.appendChild(noReeksP);
       }
 
       reeksen.forEach(function (reeks, ridx) {
         var groupItems = filtered.filter(function (i) { return i.reeks_id === reeks.id; });
         var groupFull = fullItemsAll.filter(function (i) { return i.reeks_id === reeks.id; });
 
-        var headRow = document.createElement('tr'); headRow.className = 'reeks-row';
-        var headTd = document.createElement('td'); headTd.colSpan = colCount;
         var headerWrap = document.createElement('div'); headerWrap.className = 'reeks-header';
         var nameInput = document.createElement('input');
         nameInput.className = 'reeks-name-input'; nameInput.value = reeks.naam;
@@ -1046,6 +1075,13 @@
         });
         headerWrap.appendChild(nameInput);
         var actionsWrap = document.createElement('div'); actionsWrap.className = 'reeks-actions';
+        if (reeksImportSources[entry.auto_import]) {
+          var searchBtn = document.createElement('button');
+          searchBtn.type = 'button'; searchBtn.className = 'icon-btn'; searchBtn.appendChild(coverSearchSvg());
+          searchBtn.title = 'Titels zoeken op Open Library'; searchBtn.setAttribute('aria-label', 'Titels zoeken op Open Library voor ' + reeks.naam);
+          searchBtn.addEventListener('click', function () { openImportFlow(entry, reeks); });
+          actionsWrap.appendChild(searchBtn);
+        }
         var rUpBtn = document.createElement('button');
         rUpBtn.type = 'button'; rUpBtn.className = 'move-btn'; rUpBtn.innerHTML = '&#9650;';
         rUpBtn.title = 'Verplaats reeks omhoog'; rUpBtn.setAttribute('aria-label', 'Verplaats reeks omhoog'); rUpBtn.disabled = ridx === 0;
@@ -1060,66 +1096,39 @@
         rDelBtn.addEventListener('click', function () { deleteReeks(reeks); });
         actionsWrap.appendChild(rUpBtn); actionsWrap.appendChild(rDownBtn); actionsWrap.appendChild(rDelBtn);
         headerWrap.appendChild(actionsWrap);
-        headTd.appendChild(headerWrap);
-        headRow.appendChild(headTd);
-        nbody.appendChild(headRow);
+        dbody.appendChild(headerWrap);
 
-        if (!groupItems.length) {
-          var gEmptyRow = document.createElement('tr');
-          var gEmptyTd = document.createElement('td');
-          gEmptyTd.colSpan = colCount; gEmptyTd.className = 'items-empty';
-          gEmptyTd.textContent = groupFull.length ? 'Geen items met dit filter.' : 'Nog geen albums in deze reeks.';
-          gEmptyRow.appendChild(gEmptyTd); nbody.appendChild(gEmptyRow);
-        } else {
-          groupItems.forEach(function (item) { nbody.appendChild(buildItemRow(item, groupFull)); });
+        if (state.importFlow && state.importFlow.listId === entry.id && state.importFlow.reeksId === reeks.id) {
+          dbody.appendChild(buildImportPanel(entry));
         }
 
-        var addRow = document.createElement('tr'); addRow.className = 'reeks-add-row';
-        var addTd = document.createElement('td'); addTd.colSpan = colCount;
-        addTd.appendChild(buildAddItemForm(entry, reeks));
-        addRow.appendChild(addTd);
-        nbody.appendChild(addRow);
+        dbody.appendChild(buildItemsTable(groupItems, groupFull, groupFull.length ? 'Geen items met dit filter.' : 'Nog geen items in deze reeks.'));
+        dbody.appendChild(buildAddItemForm(entry, reeks));
       });
 
       var orphanItems = filtered.filter(function (i) { return !i.reeks_id; });
       if (orphanItems.length) {
         var orphanFull = fullItemsAll.filter(function (i) { return !i.reeks_id; });
-        var oHeadRow = document.createElement('tr'); oHeadRow.className = 'reeks-row';
-        var oHeadTd = document.createElement('td'); oHeadTd.colSpan = colCount;
+        var oHeaderWrap = document.createElement('div'); oHeaderWrap.className = 'reeks-header';
         var oLabel = document.createElement('span'); oLabel.className = 'reeks-label-plain'; oLabel.textContent = 'Zonder reeks';
-        oHeadTd.appendChild(oLabel); oHeadRow.appendChild(oHeadTd); nbody.appendChild(oHeadRow);
-        orphanItems.forEach(function (item) { nbody.appendChild(buildItemRow(item, orphanFull)); });
+        oHeaderWrap.appendChild(oLabel);
+        dbody.appendChild(oHeaderWrap);
+        dbody.appendChild(buildItemsTable(orphanItems, orphanFull, 'Geen items met dit filter.'));
       }
 
-      var newRow = document.createElement('tr'); newRow.className = 'new-reeks-row';
-      var newTd = document.createElement('td'); newTd.colSpan = colCount;
-      newTd.appendChild(buildNewReeksForm(entry));
-      newRow.appendChild(newTd); nbody.appendChild(newRow);
-
-      return nbody;
+      var newBox = document.createElement('div'); newBox.className = 'new-reeks-box';
+      var newLabel = document.createElement('span'); newLabel.className = 'new-reeks-label'; newLabel.textContent = 'Nieuwe reeks';
+      newBox.appendChild(newLabel);
+      newBox.appendChild(buildNewReeksForm(entry));
+      dbody.appendChild(newBox);
     }
 
-    var tbody;
     if (entry.genest) {
-      tbody = buildNestedTbody(items, fullItems);
+      renderNestedItems(items, fullItems);
     } else {
-      tbody = document.createElement('tbody');
-      if (!items.length) {
-        var emptyRow = document.createElement('tr');
-        var emptyTd = document.createElement('td');
-        emptyTd.colSpan = colCount; emptyTd.className = 'items-empty';
-        emptyTd.textContent = fullItems.length ? 'Geen items met dit filter.' : 'Nog geen items op dit lijstje.';
-        emptyRow.appendChild(emptyTd);
-        tbody.appendChild(emptyRow);
-      }
-      items.forEach(function (item) { tbody.appendChild(buildItemRow(item, fullItems)); });
+      dbody.appendChild(buildItemsTable(items, fullItems, fullItems.length ? 'Geen items met dit filter.' : 'Nog geen items op dit lijstje.'));
+      dbody.appendChild(buildAddItemForm(entry, null));
     }
-
-    table.appendChild(tbody);
-    scrollWrap.appendChild(table);
-    dbody.appendChild(scrollWrap);
-
-    if (!entry.genest) dbody.appendChild(buildAddItemForm(entry, null));
 
     var footer = document.createElement('div');
     footer.className = 'detail-footer';
@@ -1469,9 +1478,9 @@
   newListBtn.addEventListener('click', showNewListForm);
 
   // ---------- Auto-import (Open Library / MusicBrainz / Discogs) ----------
-  function openImportFlow(entry) {
+  function openImportFlow(entry, reeks) {
     state.importFlow = {
-      listId: entry.id, source: entry.auto_import, step: 'search', query: '',
+      listId: entry.id, reeksId: reeks ? reeks.id : null, source: entry.auto_import, step: 'search', query: reeks ? reeks.naam : '',
       candidates: [], candidateName: '', candidateId: '', works: [], selected: new Set(),
       loading: false, error: '', note: ''
     };
@@ -1479,8 +1488,12 @@
       state.importFlow.step = 'works';
       state.importFlow.loading = true;
       runDiscogsFetch(entry);
+      renderDetail();
+    } else if (reeks) {
+      importSearch(reeks.naam);
+    } else {
+      renderDetail();
     }
-    renderDetail();
   }
   function closeImportFlow() { state.importFlow = null; renderDetail(); }
 
@@ -1599,7 +1612,7 @@
         works.sort(function (a, b) { return (a.year || '9999').localeCompare(b.year || '9999') || a.title.localeCompare(b.title); });
       }
       flow.works = works;
-      flow.selected = new Set(works.map(function (w) { return w.id; }));
+      flow.selected = flow.source === 'openlibrary' ? new Set() : new Set(works.map(function (w) { return w.id; }));
       flow.step = 'works';
       if (!works.length) flow.error = 'Geen titels gevonden.';
     } catch (e) {
@@ -1623,7 +1636,9 @@
       var vinkjes = {};
       (entry.vink_velden || []).forEach(function (vk) { vinkjes[vk.key] = false; });
       if (flow.source === 'discogs' && vinkjes.hasOwnProperty('in_bezit')) vinkjes.in_bezit = true;
-      rows.push({ lijst_id: entry.id, titel: w.title, extra: extra, vinkjes: vinkjes, bron: flow.source, extern_id: w.id, omslag_url: w.coverUrl || null, volgorde: base + i });
+      var row = { lijst_id: entry.id, titel: w.title, extra: extra, vinkjes: vinkjes, bron: flow.source, extern_id: w.id, omslag_url: w.coverUrl || null, volgorde: base + i };
+      if (flow.reeksId) row.reeks_id = flow.reeksId;
+      rows.push(row);
     });
     closeImportFlow();
     if (!rows.length) return;
@@ -1649,10 +1664,16 @@
       wrap.appendChild(row);
       return wrap;
     }
+    wrap.appendChild(buildImportPanel(entry));
+    return wrap;
+  }
 
+  function buildImportPanel(entry) {
+    var flow = state.importFlow;
     var panel = document.createElement('div'); panel.className = 'import-panel';
     var header = document.createElement('div'); header.className = 'import-actions';
-    var titleSpan = document.createElement('strong'); titleSpan.textContent = IMPORT_LABELS[entry.auto_import] || 'Toevoegen';
+    var titleSpan = document.createElement('strong');
+    titleSpan.textContent = flow.reeksId ? 'Titels zoeken op Open Library' : (IMPORT_LABELS[entry.auto_import] || 'Toevoegen');
     var closeBtn = document.createElement('button');
     closeBtn.type = 'button'; closeBtn.className = 'btn-text'; closeBtn.textContent = 'Sluiten';
     closeBtn.addEventListener('click', closeImportFlow);
@@ -1700,11 +1721,18 @@
         if (flow.source === 'discogs') msg = flow.works.length + ' items gevonden in je Discogs-collectie.';
         else if (flow.source === 'openlibrary') msg = flow.works.length + (flow.note ? ' titels gevonden voor ' : ' Nederlandstalige titels gevonden voor ') + flow.candidateName + '.';
         else msg = flow.works.length + ' titels gevonden voor ' + flow.candidateName + '.';
-        sub.textContent = msg + ' Vink uit wat je niet wilt toevoegen.';
+        sub.textContent = msg + (flow.source === 'openlibrary' ? ' Vink aan wat je wilt toevoegen.' : ' Vink uit wat je niet wilt toevoegen.');
         panel.appendChild(sub);
         if (flow.note) {
           var noteP = document.createElement('p'); noteP.className = 'import-msg'; noteP.textContent = flow.note;
           panel.appendChild(noteP);
+        }
+        if (flow.source !== 'discogs' && flow.candidates.length > 1) {
+          var backToCandidates = document.createElement('button');
+          backToCandidates.type = 'button'; backToCandidates.className = 'btn-text';
+          backToCandidates.textContent = '← Andere kandidaat proberen';
+          backToCandidates.addEventListener('click', function () { flow.step = 'candidates'; flow.error = ''; flow.note = ''; renderDetail(); });
+          panel.appendChild(backToCandidates);
         }
         var worksList = document.createElement('div'); worksList.className = 'import-works';
         flow.works.forEach(function (w) {
@@ -1742,8 +1770,7 @@
       panel.appendChild(errP);
     }
 
-    wrap.appendChild(panel);
-    return wrap;
+    return panel;
   }
 
   // ---------- Data ----------

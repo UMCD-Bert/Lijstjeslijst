@@ -62,8 +62,8 @@ toegang (geen aparte accounts per persoon).
   Lijst/Aangepast), `auto_import` (`openlibrary`/`musicbrainz`/`discogs`/`bgg`/null — `bgg` nog niet
   gebouwd), `bgg_username` (alleen relevant zodra BGG-import gebouwd wordt), `discogs_username`
   (alleen relevant bij `auto_import: 'discogs'`), `genest` (boolean, default false — generieke
-  aan/uit-schakelaar voor een echte 1:n-structuur reeks→albums, zie hieronder; alleen de
-  Strips-preset zet 'm standaard aan, geen UI-toggle voor andere lijsttypes gebouwd want niet
+  aan/uit-schakelaar voor een echte 1:n-structuur reeks→albums, zie hieronder; Strips- én
+  Boeken-preset zetten 'm standaard aan, geen UI-toggle voor andere lijsttypes gebouwd want niet
   gevraagd).
 - `lijst_items`: lijst_id (FK, on delete cascade), titel, `extra` (jsonb, matcht keys uit
   `extra_velden`), `vinkjes` (jsonb, matcht keys uit `vink_velden`), `omslag_url` (foto per item,
@@ -71,17 +71,41 @@ toegang (geen aparte accounts per persoon).
   dubbele import), `reeks_id` (FK → `reeksen`, on delete cascade, alleen gebruikt bij `genest`
   lijstjes), volgorde.
 - `reeksen` (2026-09-13, voor `genest` lijstjes): eigen tabel i.p.v. een tekstveld — `lijst_id` (FK,
-  on delete cascade), `naam`, `omslag_url` (nog niet gebruikt in UI), `volgorde`. Een `genest`
-  lijstje toont items gegroepeerd per reeks (reeksnaam 1x als inklapbare kop met rename/verplaats/
-  verwijder, verwijderen cascadeert naar de albums erin) i.p.v. als platte tabel; elke reeks-groep
-  heeft een eigen mini "album toevoegen"-formulier, plus een "+ Nieuwe reeks"-formulier onderaan.
-  Zoeken matcht ook op reeksnaam. Items zonder `reeks_id` (zou niet via de UI moeten ontstaan)
-  worden alsnog getoond onder een niet-verwijderbare "Zonder reeks"-kop, als vangnet.
+  on delete cascade), `naam`, `omslag_url` (nog niet gebruikt in UI), `volgorde`. Puur generiek
+  concept: een reeks kan een auteur zijn, maar net zo goed een boekenserie (bv. reisgidsen) waar de
+  auteur juist niet relevant is — de gebruiker kiest zelf de naam, er zit geen vast "type" achter.
+  Een `genest` lijstje toont per reeks: een kop (rename/verplaats/verwijder — verwijderen cascadeert
+  naar de items erin) buiten de tabel, dan een eigen items-tabel (sticky kolommen, alleen die reeks),
+  dan een eigen mini "titel toevoegen"-formulier — elk reeks-blok dus zelfstandig, GEEN gedeelde
+  tabel over meerdere reeksen heen (dat gaf op iPhone een verwarrende, te smalle horizontaal-
+  scrollbare strook met de mini-formulieren erin geperst, nauwelijks te onderscheiden van het
+  "+ Nieuwe reeks"-formulier — zie hieronder). Dat laatste staat nu in een duidelijk apart, dashed-
+  border vak met het label "NIEUWE REEKS", zodat "titel aan bestaande reeks toevoegen" en "nieuwe
+  reeks aanmaken" niet meer door elkaar lopen. Zoeken matcht ook op reeksnaam. Items zonder
+  `reeks_id` (zou niet via de UI moeten ontstaan) worden alsnog getoond onder een niet-verwijderbare
+  "Zonder reeks"-kop, als vangnet.
+- Filters (per-vinkje Alles/Wel/Niet) staan net als "Velden bewerken" standaard ingeklapt achter een
+  "Filters"-knop (2026-09-13) — klapt vanzelf open als er al een actief filter staat. Vóór deze
+  wijziging stond dit altijd open, wat bij meerdere vinkjes (Boeken heeft er 4) een lange muur van
+  UI gaf vóórdat de eerste daadwerkelijke lijst-inhoud zichtbaar werd.
 - Snelkeuzes (Lijst/Boeken/Muziek/Strips/Bordspellen/Aangepast) vullen bij aanmaken alleen de
   velden hierboven vooraf in — daarna is alles per lijstje los aan te passen via "Velden bewerken".
   Nieuwe types toevoegen is meestal een kleine JS-wijziging (preset), geen migratie.
-- Boeken-sjabloon: 1 tekstveld (Auteur) + 4 vinkjes (E-book, Fysiek boek, Gelezen door Ellen,
+- Boeken-sjabloon (2026-09-13 herzien): `genest: true`, geen los "Auteur"-tekstveld meer — groeperen
+  gebeurt via `reeksen` (zie hierboven). Blijft: 4 vinkjes (E-book, Fysiek boek, Gelezen door Ellen,
   Gelezen door Bert) — geen generieke "In bezit" meer, want e-book/fysiek dekken bezit al specifieker.
+  Aanleiding voor de herziening: de Open Library-auteur-import (zie hieronder) was op zichzelf
+  onbruikbaar — één auteur levert vaak meerdere losse OL-auteursrecords op (verplicht steeds opnieuw
+  kiezen + naam retypen bij een misser, geen weg terug naar de kandidatenlijst), resultaten stonden
+  standaard allemaal aangevinkt (i.p.v. andersom), en de NL-dekking is te onvolledig om als enige
+  invoerpad te dienen (bv. maar 1 van de 5 in bezit zijnde James Norbury-boeken vindbaar). Open
+  Library-zoeken bestaat nu als *secundair* hulpmiddel binnen een al aangemaakte reeks (zoekicoon in
+  de reeks-kop) i.p.v. als enige invoerpad: opent direct met de reeksnaam als zoekterm (geen
+  hertypen), toont een "← Andere kandidaat proberen"-link (geen volledige reset meer bij een
+  verkeerde auteurstreffer), en toont resultaten standaard NIET aangevinkt (aanvinken = toevoegen,
+  i.p.v. moeten uitvinken uit tientallen ongewenste titels). Discogs/MusicBrainz-imports (Muziek)
+  blijven ongewijzigd all-checked, want die importeren een hele bestaande collectie i.p.v. een
+  "blader door het hele oeuvre"-lijst.
 - Boeken-import (Open Library) filtert op Nederlandstalige edities via
   `search.json?q=author_key:{id} AND language:dut&editions.language=dut&fields=key,title,cover_i,
   editions,editions.title,editions.cover_i` (i.p.v. de taal-agnostische `/authors/{id}/works.json`,
@@ -175,4 +199,13 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   `reeks`-tekstveld per item (elk album herhaalde de reeksnaam apart); nu een echte 1:n-relatie:
   nieuwe tabel `reeksen` + `lijst_items.reeks_id`, generieke `lijsten.genest`-schakelaar (zie
   Datamodel hierboven). Enige bestaande Strips-lijst ("Strips Bert", 1 item/reeks "Suske en
-  Wiske") gemigreerd. Muziek-label-vraag hieronder blijft nog los staan.
+  Wiske") gemigreerd.
+  ~~Vervolg (2026-09-13): iPhone-scrollbug + verwarrende "nieuw album"-knop~~ — ook opgelost, bij
+  dezelfde herbouw als de Boeken-herstructurering hieronder (elke reeks kreeg een eigen tabel +
+  los add-formulier i.p.v. alles samengeperst in één gedeelde tabel). Muziek-label-vraag hieronder
+  blijft nog los staan.
+- ~~Boeken: herstructurering rond auteur/reeks + Open Library-import~~ — gebouwd (2026-09-13, zie
+  Datamodel/Boeken-sjabloon hierboven voor het volledige waarom). Kern: `genest: true`, auteur (of
+  serienaam, bv. reisgidsen) is nu een reeks i.p.v. een tekstveld; Open Library-zoeken is secundair
+  hulpmiddel per reeks geworden i.p.v. het enige, onbetrouwbare invoerpad. Bestaande data
+  gemigreerd: reeksen "James Norbury" en "Charlie Mackesy" aangemaakt voor de 3 bestaande items.
