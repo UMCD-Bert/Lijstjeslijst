@@ -343,6 +343,23 @@ toegang (geen aparte accounts per persoon).
   als fallback voor het allereerste beeld vóór de JS-pass. Les: voor dit soort viewport-breedte-
   aannames is een gemeten waarde (element.clientWidth) betrouwbaarder dan een CSS-eenheid als
   `vw`, zeker zodra Safari in het spel is.
+  **Nóg een vervolg (2026-09-13, v1.23.0): zelfs met de gemeten breedte bleef het bewerkformulier op
+  de echte iPhone van de gebruiker soms nog buiten beeld** — vermoedelijke oorzaak: `position:sticky`
+  op een element BINNEN een `<td>` (i.p.v. op de `<td>` zelf) staat bekend om onbetrouwbaar gedrag
+  op WebKit/iOS (in tegenstelling tot de sticky titel-/actieskolom hierboven, die sticky rechtstreeks
+  op de `<td>` zelf zetten — dát werkt wel overal). Als de tabel al naar rechts gescrold was (bv. om
+  de LP/CD-vinkjes te bekijken) vóórdat je op een item klikte, en sticky daar niet aansloeg, bleef
+  het bewerkformulier op zijn "natuurlijke" positie in de brede tabel staan i.p.v. mee te schuiven
+  naar de zichtbare linkerrand — ook al was zijn eigen breedte wél correct beperkt. Fix: `.items-
+  scroll`'s scrollpositie expliciet terugzetten naar 0 (`resetItemsScroll()`) op het moment dat een
+  bewerkformulier/cover-zoekpaneel/tracklist-zoekpaneel wordt GEOPEND (niet bij elke render) — zo
+  hangt zichtbaarheid niet af van of `position:sticky` het in die specifieke situatie wel of niet
+  doet. Dit issue was op de standaardbreedte van de Claude Browser-testtool hier niet te reproduceren
+  (bevestigd via `getBoundingClientRect()`-metingen: daar klopte alles al) — pas na herhaalde
+  screenshots van de gebruiker zelf, met de tabel al gescrold, kwam de werkelijke oorzaak boven
+  water. Les: bij hardnekkige "valt buiten beeld"-meldingen die niet reproduceren, vraag naar (of
+  test zelf) de exacte voorafgaande staat (was er al gescrold?) i.p.v. alleen de eindsituatie te
+  meten.
   **Aanvulling (2026-09-13, v1.20.0): vinkjes ook in het toevoeg- en bewerkformulier** — de
   vinkjes-kolommen zelf zijn nog steeds niet sticky (bewuste keuze, zie hierboven: alleen titel-/
   actieskolom zijn sticky, de vinkjeskolommen mogen gewoon meescrollen), maar bleken daardoor op
@@ -396,6 +413,20 @@ toegang (geen aparte accounts per persoon).
   item-sortering: bij een actieve alfabetische reeks-sortering verdwijnen de handmatige reeks-
   verplaats-pijltjes (omhoog/omlaag) uit de reeks-kop, want handmatig verslepen heeft geen zin
   zolang de volgorde toch alfabetisch herberekend wordt.
+  **Herzien (2026-09-13, v1.23.0): alfabetisch op reeks is nu de DEFAULT** bij elk genest lijstje
+  (`defaultSortKey(entry)`: 'reeks' als `entry.genest`, anders 'volgorde') — expliciet gevraagd:
+  "doe de alfabetische sortering als default, bij alle lijstjes". `state.sortBy` is per-sessie
+  (niet persistent), dus dit is puur een gewijzigde fallback-waarde als de gebruiker zelf nog niets
+  koos; "Handmatig" blijft gewoon een keuze in de Sorteer-select voor wie alsnog handmatig wil
+  verslepen. **Strips-specifieke uitzondering**: staat er een "Volgnummer"-tekstveld op de lijst
+  (`hasVolgnummerField(entry)`, generiek op veldnaam i.p.v. hardcoded op lijsttype — zelfde
+  velden-systeem-filosofie als de rest van de app), dan worden items BINNEN elke reeks altíjd op
+  dat veld gesorteerd (`sortByVolgnummer()`, natuurlijke/numerieke vergelijking zodat "2" vóór "10"
+  komt), ongeacht welke Sorteer-optie er verder gekozen is — expliciet gevraagd: "bij strips geldt
+  daarbinnen altijd: op nummer, indien aanwezig". Dit gebeurt op het platte, al gefilterde/gesorteerde
+  array in `filteredItems()` (ná de gewone titel/veld-sortering, vóór het per-reeks groeperen in
+  `renderNestedItems`), dus de leesvolgorde binnen een reeks (bv. Suske en Wiske 67, 68, 69…) blijft
+  altijd kloppen ook al staat de Sorteer-select op iets anders zoals "Titel".
   **Herzien (2026-09-13, v1.19.0→v1.19.1): Bekijken/Toevoegen als aparte modus-tabs** i.p.v. zoeken
   + sorteren/filteren + toevoegen allemaal tegelijk boven de lijst. Expliciete aanleiding (letterlijke
   bewoording van de gebruiker): "je bent aan het zoeken, aan het bekijken (met filteren), of aan het

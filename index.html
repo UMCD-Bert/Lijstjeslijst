@@ -370,7 +370,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.22.0';
+  var APP_VERSION = '1.23.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -577,8 +577,8 @@
       }
       return true;
     });
-    var sortKey = state.sortBy[entry.id];
-    if (sortKey && sortKey !== 'volgorde') {
+    var sortKey = currentSortKey(entry);
+    if (sortKey && sortKey !== 'volgorde' && sortKey !== 'reeks') {
       items = items.slice().sort(function (a, b) {
         var av = sortKey === 'titel' ? (a.titel || '') : ((a.extra && a.extra[sortKey]) || '');
         var bv = sortKey === 'titel' ? (b.titel || '') : ((b.extra && b.extra[sortKey]) || '');
@@ -587,6 +587,7 @@
         return av.localeCompare(bv, 'nl', { sensitivity: 'base' });
       });
     }
+    if (entry.genest && hasVolgnummerField(entry)) items = sortByVolgnummer(items);
     return items;
   }
   function vinkCounts(listId, vinkKey) {
@@ -598,6 +599,21 @@
   function hasActiveFilter(entry) {
     var f = state.filters[entry.id] || {};
     return (entry.vink_velden || []).some(function (vk) { return f[vk.key] && f[vk.key] !== 'alle'; });
+  }
+  // Standaard alfabetisch op reeks (artiest/auteur/serie) bij genest lijstjes i.p.v. handmatig —
+  // een net toegevoegde reeks bleef anders altijd onderaan staan i.p.v. op zijn alfabetische plek.
+  function defaultSortKey(entry) { return entry.genest ? 'reeks' : 'volgorde'; }
+  function currentSortKey(entry) { return state.sortBy[entry.id] || defaultSortKey(entry); }
+  function hasVolgnummerField(entry) { return (entry.extra_velden || []).some(function (f) { return f.key === 'volgnummer'; }); }
+  function sortByVolgnummer(items) {
+    return items.slice().sort(function (a, b) {
+      var av = (a.extra && a.extra.volgnummer) || '';
+      var bv = (b.extra && b.extra.volgnummer) || '';
+      if (!av && bv) return 1;
+      if (av && !bv) return -1;
+      if (!av && !bv) return 0;
+      return av.localeCompare(bv, 'nl', { numeric: true, sensitivity: 'base' });
+    });
   }
   function initials(name) { return (name || '?').trim().charAt(0).toUpperCase() || '?'; }
 
@@ -1136,7 +1152,7 @@
 
     var fullItems = itemsFor(entry.id);
     var items = filteredItems(entry);
-    var manualOrder = (state.sortBy[entry.id] || 'volgorde') === 'volgorde';
+    var manualOrder = currentSortKey(entry) === 'volgorde';
     var vinkVelden = entry.vink_velden || [];
     var colCount = 2 + vinkVelden.length;
 
@@ -1388,7 +1404,7 @@
       }
       var main = document.createElement('div');
       main.className = 'item-main';
-      main.addEventListener('click', function () { state.editingItem = item.id; renderDetail(); });
+      main.addEventListener('click', function () { state.editingItem = item.id; renderDetail(); resetItemsScroll(); });
       var pEl = document.createElement('span');
       pEl.className = 'item-primary'; pEl.textContent = item.titel || '(geen titel)';
       main.appendChild(pEl);
@@ -1460,7 +1476,7 @@
       var editBtn = document.createElement('button');
       editBtn.type = 'button'; editBtn.className = 'icon-btn'; editBtn.innerHTML = '&#9998;';
       editBtn.title = 'Bewerk item'; editBtn.setAttribute('aria-label', 'Bewerk item');
-      editBtn.addEventListener('click', function () { state.editingItem = item.id; renderDetail(); });
+      editBtn.addEventListener('click', function () { state.editingItem = item.id; renderDetail(); resetItemsScroll(); });
       var removeBtn = document.createElement('button');
       removeBtn.type = 'button'; removeBtn.className = 'icon-btn danger'; removeBtn.innerHTML = '&#10005;';
       removeBtn.title = 'Verwijder item'; removeBtn.setAttribute('aria-label', 'Verwijder item');
@@ -1514,7 +1530,7 @@
         searchBtn.addEventListener('click', function () { openImportFlow(entry, reeks, secSource); });
         actionsWrap.appendChild(searchBtn);
       }
-      if (state.sortBy[entry.id] !== 'reeks') {
+      if (currentSortKey(entry) !== 'reeks') {
         var rUpBtn = document.createElement('button');
         rUpBtn.type = 'button'; rUpBtn.className = 'move-btn'; rUpBtn.innerHTML = '&#9650;';
         rUpBtn.title = 'Verplaats reeks omhoog'; rUpBtn.setAttribute('aria-label', 'Verplaats reeks omhoog'); rUpBtn.disabled = ridx === 0;
@@ -1537,7 +1553,7 @@
     }
 
     function renderNestedItems(filtered, fullItemsAll) {
-      var reeksSortActive = state.sortBy[entry.id] === 'reeks';
+      var reeksSortActive = currentSortKey(entry) === 'reeks';
       var reeksen = reeksenFor(entry.id);
       if (reeksSortActive) {
         reeksen = reeksen.slice().sort(function (a, b) { return (a.naam || '').localeCompare(b.naam || '', 'nl', { sensitivity: 'base' }); });
@@ -1644,6 +1660,16 @@
     var w = scrollWrap.clientWidth + 'px';
     detailCardEl.querySelectorAll('.wide-row-content').forEach(function (el) { el.style.maxWidth = w; });
   }
+  // `position:sticky` op een element BINNEN een `<td>` (i.p.v. op de `<td>` zelf) staat bekend om
+  // wisselend gedrag op WebKit/iOS — als die sticky-positionering daar niet aanslaat, blijft een
+  // colSpan-rij (bewerkform, cover-/tracklist-zoekpaneel) toch op zijn "natuurlijke" plek in de
+  // brede tabel staan i.p.v. mee te schuiven naar de zichtbare linkerrand. Reset daarom de
+  // scrollpositie van de tabel expliciet bij het OPENEN van zo'n rij (niet bij elke render) —
+  // zo hangt zichtbaarheid niet af van of sticky het daar wel/niet doet.
+  function resetItemsScroll() {
+    var scrollWrap = detailCardEl.querySelector('.items-scroll');
+    if (scrollWrap) scrollWrap.scrollLeft = 0;
+  }
 
   // ---------- Modus-tabs: Zoeken / Bekijken / Toevoegen ----------
   // Bewust gescheiden i.p.v. altijd alles tegelijk tonen: zoeken, filteren/sorteren en toevoegen
@@ -1707,7 +1733,7 @@
     var options = [{ key: 'volgorde', label: 'Handmatig' }, { key: 'titel', label: 'Titel' }]
       .concat(entry.genest ? [{ key: 'reeks', label: 'Artiest/auteur/reeks' }] : [])
       .concat((entry.extra_velden || []).map(function (f) { return { key: f.key, label: f.label }; }));
-    var current = state.sortBy[entry.id] || 'volgorde';
+    var current = currentSortKey(entry);
     options.forEach(function (o) {
       var opt = document.createElement('option'); opt.value = o.key; opt.textContent = o.label;
       if (current === o.key) opt.selected = true;
@@ -1999,6 +2025,7 @@
     state.editingItem = null;
     state.coverSearch = { itemId: item.id, loading: true, error: '', results: [] };
     renderDetail();
+    resetItemsScroll();
     runCoverSearch(item, entry);
   }
   function closeCoverSearch() { state.coverSearch = null; renderDetail(); }
@@ -2220,6 +2247,7 @@
   function openTrackSearch(item) {
     state.trackSearch = { itemId: item.id, step: 'candidates', loading: true, error: '', candidates: [], picked: null };
     renderDetail();
+    resetItemsScroll();
     runTrackSearch(item);
   }
   function closeTrackSearch() { state.trackSearch = null; renderDetail(); }
