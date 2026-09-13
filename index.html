@@ -370,7 +370,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.23.0';
+  var APP_VERSION = '1.24.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -380,17 +380,16 @@
   var PRESETS = {
     simpel:      { label: 'Lijst',       desc: 'losse items, afvinkbaar',    type_label: 'Lijst',       extra_velden: [], vink_velden: [{ key: 'gedaan', label: 'Gedaan' }], auto_import: null, doorstrepen: true },
     boeken:      { label: 'Boeken',      desc: 'gegroepeerd per auteur/reeks', type_label: 'Boeken',      extra_velden: [{ key: 'jaar', label: 'Jaar van uitgave' }], vink_velden: [{ key: 'e_book', label: 'E-book' }, { key: 'fysiek', label: 'Fysiek boek' }, { key: 'gelezen_ellen', label: 'Gelezen door Ellen' }, { key: 'gelezen_bert', label: 'Gelezen door Bert' }], auto_import: 'openlibrary', doorstrepen: false, genest: true },
-    muziek:      { label: 'Muziek',      desc: 'gegroepeerd per artiest',    type_label: 'Muziek',      extra_velden: [{ key: 'jaar', label: 'Jaar van uitgave' }], vink_velden: [{ key: 'in_bezit', label: 'In bezit' }, { key: 'lp', label: 'LP' }, { key: 'cd', label: 'CD' }], auto_import: 'musicbrainz', doorstrepen: false, genest: true },
+    muziek:      { label: 'Muziek',      desc: 'gegroepeerd per artiest',    type_label: 'Muziek',      extra_velden: [{ key: 'jaar', label: 'Jaar van uitgave' }], vink_velden: [{ key: 'in_bezit', label: 'In bezit' }, { key: 'lp', label: 'LP' }, { key: 'cd', label: 'CD' }], auto_import: 'discogs', doorstrepen: false, genest: true },
     strips:      { label: 'Strips',      desc: 'reeksen met albums',         type_label: 'Strips',      extra_velden: [{ key: 'volgnummer', label: 'Volgnummer' }, { key: 'jaar', label: 'Jaar van uitgave' }], vink_velden: [{ key: 'fysiek', label: 'Fysiek' }, { key: 'digitaal', label: 'Digitaal' }, { key: 'gelezen', label: 'Gelezen' }], auto_import: null, doorstrepen: false, genest: true },
     bordspellen: { label: 'Bordspellen', desc: 'auteur, uitgever, BGG-rank', type_label: 'Bordspellen', extra_velden: [{ key: 'auteur', label: 'Auteur/ontwerper' }, { key: 'uitgever', label: 'Uitgever' }, { key: 'bgg_rank', label: 'BGG-rank' }], vink_velden: [{ key: 'gespeeld', label: 'Gespeeld' }], auto_import: null, doorstrepen: false },
     aangepast:   { label: 'Aangepast',   desc: 'zelf velden kiezen',         type_label: null,          extra_velden: [], vink_velden: [{ key: 'gedaan', label: 'Gedaan' }], auto_import: null, doorstrepen: true }
   };
   var PRESET_ORDER = ['simpel', 'boeken', 'muziek', 'strips', 'bordspellen', 'aangepast'];
-  var IMPORT_LABELS = { openlibrary: 'Auteur toevoegen', musicbrainz: 'Artiest toevoegen', discogs: 'Discogs-collectie importeren' };
-  var REEKS_SEARCH_LABELS = { openlibrary: 'Open Library', musicbrainz: 'MusicBrainz' };
+  var IMPORT_LABELS = { openlibrary: 'Auteur toevoegen', discogs: 'Discogs-collectie importeren' };
+  var REEKS_SEARCH_LABELS = { openlibrary: 'Open Library' };
   function secondarySearchSource(entry) {
     if (entry.auto_import === 'openlibrary') return 'openlibrary';
-    if (entry.auto_import === 'musicbrainz' || entry.auto_import === 'discogs') return 'musicbrainz';
     return null;
   }
 
@@ -1147,7 +1146,7 @@
         dbody.appendChild(renderFilterRow(entry));
       }
     } else if (viewMode === 'toevoegen') {
-      if (entry.auto_import && (!entry.genest || entry.auto_import === 'discogs' || entry.auto_import === 'musicbrainz')) dbody.appendChild(renderImportSection(entry));
+      if (entry.auto_import && (!entry.genest || entry.auto_import === 'discogs')) dbody.appendChild(renderImportSection(entry));
     }
 
     var fullItems = itemsFor(entry.id);
@@ -1243,7 +1242,7 @@
           form.appendChild(reeksSelect);
         }
         var tracklistInput = null;
-        if (entry.auto_import === 'musicbrainz' || entry.auto_import === 'discogs') {
+        if (entry.auto_import === 'discogs') {
           tracklistInput = document.createElement('textarea');
           tracklistInput.value = item.tracklist || ''; tracklistInput.placeholder = 'Tracklist (één track per regel)';
           tracklistInput.className = 'field-row-textarea';
@@ -1466,7 +1465,7 @@
         tracklistBtn.setAttribute('aria-label', tracklistBtn.title);
         tracklistBtn.addEventListener('click', function () { state.expandedTracklist[item.id] = !state.expandedTracklist[item.id]; renderDetail(); });
         itemActions.appendChild(tracklistBtn);
-      } else if (entry.auto_import === 'musicbrainz' || entry.auto_import === 'discogs') {
+      } else if (entry.auto_import === 'discogs') {
         var trackSearchBtn = document.createElement('button');
         trackSearchBtn.type = 'button'; trackSearchBtn.className = 'icon-btn'; trackSearchBtn.appendChild(coverSearchSvg());
         trackSearchBtn.title = 'Tracklist ophalen (Discogs)'; trackSearchBtn.setAttribute('aria-label', 'Tracklist ophalen via Discogs');
@@ -1619,19 +1618,6 @@
         var addRow = document.createElement('div'); addRow.className = 'genest-add-row';
         addRow.appendChild(buildGenestAddForm(entry));
         if (entry.auto_import === 'openlibrary') addRow.appendChild(buildIsbnAddForm(entry));
-        if (entry.auto_import === 'discogs') {
-          var mbFlowActive = state.importFlow && state.importFlow.listId === entry.id && state.importFlow.source === 'musicbrainz' && !state.importFlow.reeksId;
-          var mbWrap = document.createElement('div'); mbWrap.className = 'genest-add-wrap';
-          if (mbFlowActive) {
-            mbWrap.appendChild(buildImportPanel(entry));
-          } else if (!(state.importFlow && state.importFlow.listId === entry.id)) {
-            var mbBtn = document.createElement('button');
-            mbBtn.type = 'button'; mbBtn.className = 'btn-secondary'; mbBtn.textContent = IMPORT_LABELS.musicbrainz;
-            mbBtn.addEventListener('click', function () { openImportFlow(entry, null, 'musicbrainz'); });
-            mbWrap.appendChild(mbBtn);
-          }
-          if (mbWrap.childNodes.length) addRow.appendChild(mbWrap);
-        }
         dbody.appendChild(addRow);
       }
       renderNestedItems(items, fullItems);
@@ -1836,33 +1822,21 @@
       return group;
     }
 
-    if (entry.auto_import === 'musicbrainz' || entry.auto_import === 'discogs') {
+    if (entry.auto_import === 'discogs') {
       var sourceGroup = document.createElement('div'); sourceGroup.className = 'fields-editor-group';
-      var sh4 = document.createElement('h4'); sh4.textContent = 'Muziekbron';
+      var sh4 = document.createElement('h4'); sh4.textContent = 'Discogs';
       sourceGroup.appendChild(sh4);
-      var sourceRow = document.createElement('div'); sourceRow.className = 'field-row';
-      var sourceSelect = document.createElement('select'); sourceSelect.className = 'sort-select';
-      [['musicbrainz', 'MusicBrainz — zoek per artiest'], ['discogs', 'Discogs — importeer eigen collectie']].forEach(function (opt) {
-        var o = document.createElement('option'); o.value = opt[0]; o.textContent = opt[1];
-        if (entry.auto_import === opt[0]) o.selected = true;
-        sourceSelect.appendChild(o);
+      var userRow = document.createElement('div'); userRow.className = 'field-row';
+      var userLabel = document.createElement('label'); userLabel.textContent = 'Discogs-gebruikersnaam';
+      var userInput = document.createElement('input');
+      userInput.value = entry.discogs_username || ''; userInput.placeholder = 'Bijv. bertellen';
+      userInput.addEventListener('blur', function () {
+        var v = userInput.value.trim();
+        if (v === (entry.discogs_username || '')) return;
+        persist({ discogs_username: v || null });
       });
-      sourceSelect.addEventListener('change', function () { persist({ auto_import: sourceSelect.value }); });
-      sourceRow.appendChild(sourceSelect);
-      sourceGroup.appendChild(sourceRow);
-      if (entry.auto_import === 'discogs') {
-        var userRow = document.createElement('div'); userRow.className = 'field-row';
-        var userLabel = document.createElement('label'); userLabel.textContent = 'Discogs-gebruikersnaam';
-        var userInput = document.createElement('input');
-        userInput.value = entry.discogs_username || ''; userInput.placeholder = 'Bijv. bertellen';
-        userInput.addEventListener('blur', function () {
-          var v = userInput.value.trim();
-          if (v === (entry.discogs_username || '')) return;
-          persist({ discogs_username: v || null });
-        });
-        userRow.appendChild(userLabel); userRow.appendChild(userInput);
-        sourceGroup.appendChild(userRow);
-      }
+      userRow.appendChild(userLabel); userRow.appendChild(userInput);
+      sourceGroup.appendChild(userRow);
       box.appendChild(sourceGroup);
     }
 
@@ -2070,7 +2044,7 @@
 
   newListBtn.addEventListener('click', showNewListForm);
 
-  // ---------- Auto-import (Open Library / MusicBrainz / Discogs) ----------
+  // ---------- Auto-import (Open Library / Discogs) ----------
   function openImportFlow(entry, reeks, sourceOverride) {
     var source = sourceOverride || entry.auto_import;
     state.importFlow = {
@@ -2133,20 +2107,11 @@
     var flow = state.importFlow;
     flow.query = query; flow.loading = true; flow.error = ''; renderDetail();
     try {
-      if (flow.source === 'openlibrary') {
-        var res = await fetch('https://openlibrary.org/search/authors.json?q=' + encodeURIComponent(query));
-        var data = await res.json();
-        flow.candidates = (data.docs || []).slice(0, 8).map(function (d) {
-          return { id: d.key, name: d.name, meta: [d.birth_date, d.work_count ? (d.work_count + ' werken') : null].filter(Boolean).join(' · ') };
-        });
-      } else {
-        var res2 = await fetch('https://musicbrainz.org/ws/2/artist/?query=' + encodeURIComponent(query) + '&fmt=json&limit=8');
-        var data2 = await res2.json();
-        if (data2.error) throw new Error(data2.error);
-        flow.candidates = (data2.artists || []).map(function (a) {
-          return { id: a.id, name: a.name, meta: [a.disambiguation, a['life-span'] && a['life-span'].begin].filter(Boolean).join(' · ') };
-        });
-      }
+      var res = await fetch('https://openlibrary.org/search/authors.json?q=' + encodeURIComponent(query));
+      var data = await res.json();
+      flow.candidates = (data.docs || []).slice(0, 8).map(function (d) {
+        return { id: d.key, name: d.name, meta: [d.birth_date, d.work_count ? (d.work_count + ' werken') : null].filter(Boolean).join(' · ') };
+      });
       flow.step = 'candidates';
       if (!flow.candidates.length) flow.error = 'Geen resultaten voor "' + query + '".';
     } catch (e) {
@@ -2163,49 +2128,35 @@
     flow.loading = true; flow.error = ''; flow.note = ''; renderDetail();
     try {
       var works = [];
-      if (flow.source === 'openlibrary') {
-        var q = 'author_key:' + cand.id + ' AND language:dut';
-        var res = await fetch('https://openlibrary.org/search.json?q=' + encodeURIComponent(q)
-          + '&editions.language=dut&limit=300&fields=key,title,cover_i,first_publish_year,editions,editions.title,editions.cover_i');
-        var data = await res.json();
-        var seen = {};
-        (data.docs || []).forEach(function (w) {
-          var ed = w.editions && w.editions.docs && w.editions.docs[0];
-          var title = (ed && ed.title) || w.title;
-          var coverId = (ed && ed.cover_i) || w.cover_i;
-          var norm = (title || '').trim().toLowerCase();
+      var q = 'author_key:' + cand.id + ' AND language:dut';
+      var res = await fetch('https://openlibrary.org/search.json?q=' + encodeURIComponent(q)
+        + '&editions.language=dut&limit=300&fields=key,title,cover_i,first_publish_year,editions,editions.title,editions.cover_i');
+      var data = await res.json();
+      var seen = {};
+      (data.docs || []).forEach(function (w) {
+        var ed = w.editions && w.editions.docs && w.editions.docs[0];
+        var title = (ed && ed.title) || w.title;
+        var coverId = (ed && ed.cover_i) || w.cover_i;
+        var norm = (title || '').trim().toLowerCase();
+        if (!norm || seen[norm]) return;
+        seen[norm] = true;
+        works.push({ id: w.key, title: title, coverUrl: coverId ? ('https://covers.openlibrary.org/b/id/' + coverId + '-M.jpg') : null, year: w.first_publish_year || null });
+      });
+      if (!works.length) {
+        // Sommige titels missen taalmetadata in Open Library, ook als het werk zelf al een
+        // Nederlandse (vertaal)titel heeft (vaak bij recentere/kinderboeken) — val dan terug
+        // op alle werken van de auteur i.p.v. niets te tonen.
+        var res3 = await fetch('https://openlibrary.org/search.json?author_key=' + encodeURIComponent(cand.id) + '&limit=300&fields=key,title,cover_i,first_publish_year');
+        var data3 = await res3.json();
+        (data3.docs || []).forEach(function (w) {
+          var norm = (w.title || '').trim().toLowerCase();
           if (!norm || seen[norm]) return;
           seen[norm] = true;
-          works.push({ id: w.key, title: title, coverUrl: coverId ? ('https://covers.openlibrary.org/b/id/' + coverId + '-M.jpg') : null, year: w.first_publish_year || null });
+          works.push({ id: w.key, title: w.title, coverUrl: w.cover_i ? ('https://covers.openlibrary.org/b/id/' + w.cover_i + '-M.jpg') : null, year: w.first_publish_year || null });
         });
-        if (!works.length) {
-          // Sommige titels missen taalmetadata in Open Library, ook als het werk zelf al een
-          // Nederlandse (vertaal)titel heeft (vaak bij recentere/kinderboeken) — val dan terug
-          // op alle werken van de auteur i.p.v. niets te tonen.
-          var res3 = await fetch('https://openlibrary.org/search.json?author_key=' + encodeURIComponent(cand.id) + '&limit=300&fields=key,title,cover_i,first_publish_year');
-          var data3 = await res3.json();
-          (data3.docs || []).forEach(function (w) {
-            var norm = (w.title || '').trim().toLowerCase();
-            if (!norm || seen[norm]) return;
-            seen[norm] = true;
-            works.push({ id: w.key, title: w.title, coverUrl: w.cover_i ? ('https://covers.openlibrary.org/b/id/' + w.cover_i + '-M.jpg') : null, year: w.first_publish_year || null });
-          });
-          if (works.length) flow.note = 'Geen titels met Nederlandse taalmarkering gevonden bij Open Library — onderstaande titels zijn mogelijk niet in het Nederlands.';
-        }
-        works.sort(function (a, b) { return a.title.localeCompare(b.title); });
-      } else {
-        var res2 = await fetch('https://musicbrainz.org/ws/2/release-group?artist=' + cand.id + '&type=album&fmt=json&limit=100');
-        var data2 = await res2.json();
-        if (data2.error) throw new Error(data2.error);
-        var seen2 = {};
-        (data2['release-groups'] || []).forEach(function (rg) {
-          var norm = (rg.title || '').trim().toLowerCase();
-          if (!norm || seen2[norm]) return;
-          seen2[norm] = true;
-          works.push({ id: rg.id, title: rg.title, year: (rg['first-release-date'] || '').slice(0, 4), coverUrl: 'https://coverartarchive.org/release-group/' + rg.id + '/front' });
-        });
-        works.sort(function (a, b) { return (a.year || '9999').localeCompare(b.year || '9999') || a.title.localeCompare(b.title); });
+        if (works.length) flow.note = 'Geen titels met Nederlandse taalmarkering gevonden bij Open Library — onderstaande titels zijn mogelijk niet in het Nederlands.';
       }
+      works.sort(function (a, b) { return a.title.localeCompare(b.title); });
       flow.works = works;
       flow.selected = new Set();
       flow.step = 'works';
@@ -2405,7 +2356,7 @@
 
   function buildImportPanel(entry) {
     var flow = state.importFlow;
-    var panel = document.createElement('div'); panel.className = 'import-panel';
+    var panel = document.createElement('div'); panel.className = 'import-panel wide-row-content';
     var header = document.createElement('div'); header.className = 'import-actions';
     var titleSpan = document.createElement('strong');
     titleSpan.textContent = flow.reeksId ? ('Titels zoeken op ' + (REEKS_SEARCH_LABELS[flow.source] || flow.source)) : (IMPORT_LABELS[flow.source] || 'Toevoegen');

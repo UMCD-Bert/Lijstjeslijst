@@ -32,7 +32,7 @@ toegang (geen aparte accounts per persoon).
    (`APP_VERSION` in `index.html`, zichtbaar onderaan de pagina), service-worker `CACHE_VERSION`
    ook opgehoogd bij elke inhoudelijke wijziging, zelf-check tegen deze werkafspraken.
 5. Kleine backlogpunten mogen automatisch mee in de eerstvolgende bouwronde.
-6. Wees terughoudend met live tests tegen externe API's (Open Library/MusicBrainz/BGG/Discogs)
+6. Wees terughoudend met live tests tegen externe API's (Open Library/BGG/Discogs)
    vanuit deze dev-omgeving — herhaalde aanroepen triggerden al Cloudflare-blokkades/rate-limits.
    Eén gerichte verificatie is genoeg; niet blijven herhalen.
 7. **Geen enkel interactief element mag alleen bereikbaar zijn via `:hover`/`:focus-within`** (bv.
@@ -67,8 +67,9 @@ toegang (geen aparte accounts per persoon).
   array van `{key,label}`, max 5 — checkboxvelden per item), `doorstrepen` (boolean, default true —
   bepaalt of het aanvinken van het EERSTE vinkje het item doorstreept; staat op `false` bij
   Boeken/Muziek/Strips/Bordspellen omdat een verzameling geen mancolijst is, op `true` bij
-  Lijst/Aangepast), `auto_import` (`openlibrary`/`musicbrainz`/`discogs`/`bgg`/null — `bgg` nog niet
-  gebouwd), `bgg_username` (alleen relevant zodra BGG-import gebouwd wordt), `discogs_username`
+  Lijst/Aangepast), `auto_import` (`openlibrary`/`discogs`/`bgg`/null — `bgg` nog niet gebouwd;
+  `musicbrainz` bestond ook, maar is 2026-09-13 volledig verwijderd, zie Muziek-sjabloon hieronder),
+  `bgg_username` (alleen relevant zodra BGG-import gebouwd wordt), `discogs_username`
   (alleen relevant bij `auto_import: 'discogs'`), `genest` (boolean, default false — generieke
   aan/uit-schakelaar voor een echte 1:n-structuur reeks→albums, zie hieronder; Strips-, Boeken- én
   Muziek-preset zetten 'm standaard aan, geen UI-toggle voor andere lijsttypes gebouwd want niet
@@ -90,8 +91,9 @@ toegang (geen aparte accounts per persoon).
   Een `genest` lijstje toont ÉÉN gedeelde tabel (kolomkoppen dus maar 1x, niet per reeks herhaald —
   eerdere aanpak met een aparte tabel per reeks werd hierop afgekeurd: "kolomnamen per auteur kost
   veel te veel ruimte"), met per reeks een kop-rij (in-/uitklap-driehoekje, rename, itemaantal, evt.
-  Open Library-/MusicBrainz-zoekicoon, afhankelijk van `auto_import` — zie reeksImportSources in de
-  code, verplaats/verwijder — verwijderen cascadeert naar de items erin) gevolgd
+  evt. Open Library-zoekicoon (`secondarySearchSource(entry)`, sinds 2026-09-13 alleen nog Open
+  Library — zie Muziek-sjabloon hieronder voor waarom MusicBrainz hier is verdwenen), verplaats/
+  verwijder — verwijderen cascadeert naar de items erin) gevolgd
   door (als niet ingeklapt) de items van die reeks. De eerdere "aparte tabel per reeks"-opzet loste
   toen wel een ander probleem op (mini-formulieren per reeks die op iPhone een te smalle
   horizontaal-scrollbare strook gaven) — dat probleem keert niet terug omdat toevoegen inmiddels via
@@ -111,9 +113,9 @@ toegang (geen aparte accounts per persoon).
   `normalizeReeksNaam()`: lowercase, diacritics eruit, `&` ~ `en`, interpunctie genormaliseerd naar
   spaties) — "Suske en Wiske" en "Suske & Wiske" zijn zo dezelfde reeks, geen dubbele reeks per
   tikfoutje/spellingvariant. Dezelfde matcher wordt overal gebruikt waar een reeks/auteur/artiest
-  automatisch gekoppeld wordt: de ISBN-import (auteursnaam), de MusicBrainz-"Artiest toevoegen"-flow
-  (artiestnaam) en de Discogs-bulkimport (artiestgroepering) — niet alleen de handmatige "+
-  Toevoegen"-form. Zoeken matcht ook op reeksnaam. Items zonder `reeks_id` (zou niet via de UI moeten
+  automatisch gekoppeld wordt: de ISBN-import (auteursnaam) en de Discogs-bulkimport
+  (artiestgroepering) — niet alleen de handmatige "+ Toevoegen"-form. Zoeken matcht ook op
+  reeksnaam. Items zonder `reeks_id` (zou niet via de UI moeten
   ontstaan) worden alsnog getoond
   onder een niet-verwijderbare "Zonder reeks"-kop, als vangnet. **Fix (2026-09-13): reeksen zonder
   match onder een actieve zoekopdracht/filter worden nu volledig verborgen** i.p.v. getoond met een
@@ -147,8 +149,8 @@ toegang (geen aparte accounts per persoon).
   de reeks-kop) i.p.v. als enige invoerpad: opent direct met de reeksnaam als zoekterm (geen
   hertypen), toont een "← Andere kandidaat proberen"-link (geen volledige reset meer bij een
   verkeerde auteurstreffer), en toont resultaten standaard NIET aangevinkt (aanvinken = toevoegen,
-  i.p.v. moeten uitvinken uit tientallen ongewenste titels). Discogs/MusicBrainz-imports (Muziek)
-  blijven ongewijzigd all-checked, want die importeren een hele bestaande collectie i.p.v. een
+  i.p.v. moeten uitvinken uit tientallen ongewenste titels). De Discogs-bulkimport (Muziek) blijft
+  ongewijzigd all-checked, want die importeert een hele bestaande collectie i.p.v. een
   "blader door het hele oeuvre"-lijst.
 - Boeken-import (Open Library) filtert op Nederlandstalige edities via
   `search.json?q=author_key:{id} AND language:dut&editions.language=dut&fields=key,title,cover_i,
@@ -179,12 +181,13 @@ toegang (geen aparte accounts per persoon).
   item teruggehaald uit de live Discogs-collectie en ingevuld. De Discogs-bulkimport (importeert in
   één keer de hele collectie, geen per-reeks handeling) matcht of maakt voortaan zelf een reeks per
   artiestnaam en zet LP/CD automatisch op basis van het Discogs-formaat — geen handwerk bij een
-  nieuwe import. De MusicBrainz-zoekicoon in de reeks-kop (voor wishlist-items die je nog niet in
-  bezit hebt) werkt nu net als bij Boeken/Strips: zoekt direct op de artiestnaam van die reeks.
+  nieuwe import. ~~De MusicBrainz-zoekicoon in de reeks-kop (voor wishlist-items die je nog niet in
+  bezit hebt) werkte net als bij Boeken/Strips: zoekt direct op de artiestnaam van die reeks.~~
+  **Verwijderd (2026-09-13, v1.24.0)**, zie onderaan deze sectie.
 - "Jaar van uitgave" (2026-09-13): extra tekstveld toegevoegd bij Boeken, Muziek én Strips (bij
   Strips naast het bestaande Volgnummer). Wordt automatisch ingevuld waar de bron het al meegeeft:
-  Discogs-bulkimport (`basic_information.year`), MusicBrainz-zoeken (`first-release-date`), Open
-  Library-auteurzoeken (`first_publish_year`, nu ook in de fields-lijst) en de ISBN-lookup
+  Discogs-bulkimport (`basic_information.year`), Open Library-auteurzoeken (`first_publish_year`,
+  nu ook in de fields-lijst) en de ISBN-lookup
   (`publish_date`, jaartal eruit geregexed). Bij handmatig toevoegen of via een externe bron zoals
   een Wikipedia-screenshot (zie hieronder) vult de gebruiker het zelf in. Backfill bij invoering:
   Muziek's 162 bestaande items kregen hun jaar via een herhaalde Discogs-collectie-call (146/162
@@ -243,27 +246,21 @@ toegang (geen aparte accounts per persoon).
   CSS-grid met kaarten omgezet naar een simpele verticale lijst (`display:flex; flex-direction:
   column`) — een aparte multi-kolom-indeling op desktop bleek geen meerwaarde te hebben t.o.v. één
   consistente compacte lijst op elke breedte.
-- MusicBrainz-artiest+titel-zoeken werkt nu ook als Muziekbron op Discogs staat (2026-09-13): eerder
-  was de MusicBrainz-zoekfunctie (reeks-scoped icoon én de nieuwe globale "Artiest toevoegen"-knop,
-  zie hieronder) alleen actief als `auto_import` letterlijk `'musicbrainz'` was — dus onbruikbaar
-  zodra Discogs de gekozen Muziekbron was, ook al is dat een complementaire functie (los toevoegen
-  op naam) t.o.v. Discogs' bulk-collectie-sync. Losgekoppeld via `secondarySearchSource(entry)`: een
-  losstaand concept van "met welke bron zoek je één titel op", onafhankelijk van welke bron de
-  bulk-import gebruikt. `openImportFlow` accepteert nu een optionele source-override zodat een
-  MusicBrainz-flow gestart kan worden ook al is `entry.auto_import` op dat moment `'discogs'`.
-  Covers komen automatisch mee via de Cover Art Archive (`coverartarchive.org/release-group/<mbid>/
-  front`, gratis, open CORS, geen aparte aanroep nodig — het MBID van de release-group die
-  MusicBrainz al teruggeeft volstaat). Reeks-scoped (icoon in reeks-kop) werkte al, maar had ditzelfde
-  mankement; nu ook gefixt. Nieuw: een globale "Artiest toevoegen"-knop (net als bij Boeken de
-  ISBN-knop) voor als er nog géén reeks voor die artiest bestaat — matcht of maakt zelf de reeks aan,
-  zelfde patroon als de Discogs-bulkimport dat al deed per artiest.
-  **Fix (2026-09-13, v1.15.2): resultaten stonden bij MusicBrainz standaard allemaal aangevinkt** —
-  bij een nieuwe artiest (bv. Dolly Parton, 99 titels) moest je dan bijna alles weer uitvinken om
-  alleen de ene net gekochte plaat toe te voegen, exact hetzelfde probleem dat destijds bij Open
-  Library al werd opgelost (zie Boeken-sjabloon hierboven) maar toen niet was doorgevoerd naar
-  MusicBrainz. MusicBrainz-zoekresultaten starten nu ook standaard leeg ("vink aan wat je wilt
-  toevoegen") — alleen de Discogs-bulkimport (je hele bestaande collectie in één keer) blijft
-  bewust all-checked ("vink uit wat je niet wilt toevoegen"), want daar bezit je al bijna alles.
+- ~~MusicBrainz-artiest+titel-zoeken (reeks-scoped icoon + globale "Artiest toevoegen"-knop,
+  cover via Cover Art Archive) werd op 2026-09-13 nog losgekoppeld van de Discogs-Muziekbron via
+  `secondarySearchSource(entry)`, en de "alles standaard aangevinkt"-bug (v1.15.2) werd nog gefixt
+  (zelfde patroon als bij Open Library: resultaten standaard leeg, aanvinken = toevoegen).~~
+  **Volledig verwijderd (2026-09-13, v1.24.0)** — expliciet verzoek: "Die hele Musicbrainz connectie
+  mag eruit. Heeft nooit resultaat en is alleen verwarrend naast de discogs connectie, die wel goed
+  werkt." Bevestigd met een screenshot van een mislukte zoekopdracht op eigen telefoon. Verwijderd:
+  de globale "Artiest toevoegen"-knop, de reeks-scoped MusicBrainz-zoekicoon (Muziek-reeksen hebben
+  nu geen `secondarySearchSource` meer — `secondarySearchSource(entry)` geeft alleen nog
+  `'openlibrary'` terug, nooit meer `'musicbrainz'`), de "Muziekbron"-keuze in "Velden bewerken"
+  (was MusicBrainz vs. Discogs — nu altijd Discogs, geen select meer nodig, direct de
+  gebruikersnaam-invoer), de MusicBrainz-fetch-branches in `importSearch()`/`importPickCandidate()`
+  (die functies doen nu alleen nog Open Library), en de Cover Art Archive-koppeling. Muziek-preset
+  default `auto_import` gewijzigd van `'musicbrainz'` naar `'discogs'`. Bestaande Muziek-items/
+  tracklist-data (allemaal al via Discogs gevuld) ondervinden geen impact.
 - Cover van een item vergroot bekijken (2026-09-13): klik/tik op het kleine omslagfotootje in de
   tabel opent een lightbox (donkere overlay, sluiten via kruisje/Escape/ergens buiten de foto
   klikken) — losstaand van de normale rij-klik die het item in bewerk-modus zet
@@ -283,11 +280,11 @@ toegang (geen aparte accounts per persoon).
   25/min onbevestigd, zie eerdere notitie). Bestaande 162 items met terugwerkende kracht gevuld via
   een rustig getempode achtergrond-script (zelfde aanpak als de stripcovers-backfill). In de tabel
   een in-/uitklap-icoontje (alleen zichtbaar als er een tracklist is) dat een extra rij toont; in de
-  bewerk-modus van een item een eigen tekstvak (alleen bij Muziek-lijstjes, `auto_import` musicbrainz
-  of discogs) om 'm handmatig te zetten/aan te passen.
+  bewerk-modus van een item een eigen tekstvak (alleen bij Muziek-lijstjes, `auto_import` discogs)
+  om 'm handmatig te zetten/aan te passen.
   **Aanvulling (2026-09-13, v1.17.0): los "Tracklist ophalen (Discogs)"-knopje** bij een item zonder
-  tracklist (dus ook bij items die via MusicBrainz zijn toegevoegd, waar nooit automatisch een
-  tracklist bijkomt) — zoekt op Discogs' `database/search`-endpoint (bevestigd: geen auth nodig,
+  tracklist (dus ook bij handmatig toegevoegde items, die nooit automatisch een tracklist bijkrijgen)
+  — zoekt op Discogs' `database/search`-endpoint (bevestigd: geen auth nodig,
   wel `artist`+`release_title` als aparte parameters i.p.v. alles in één `q=` proppen, dat geeft
   veel minder ruis) op reeksnaam (artiest) + itemtitel, optioneel versmald op vorm (`format=Vinyl`/
   `CD`) als het item al eenduidig als LP XOF CD is aangevinkt. Toont een kandidatenlijst met
@@ -300,12 +297,12 @@ toegang (geen aparte accounts per persoon).
   "Toevoegen" klikt. Aanleiding: "best of"-compilatiealbums bestaan vaak in 5-10+ Discogs-edities
   (verschillende jaren/vormen) met soms afwijkende tracklists — silent auto-matchen op titel alleen
   zou zomaar de verkeerde tracklist kunnen opleveren, dus een expliciete kandidatenkeuze (zelfde
-  patroon als de MusicBrainz-artiestkandidaten) is hier bewust gehandhaafd i.p.v. automatisch te
-  raden. **Fix (2026-09-13, v1.21.1): icoon van deze knop hergebruikte per ongeluk `tracklistSvg()`**
-  — hetzelfde icoon als de in-/uitklap-toggle voor een tracklist die al bestaat, dus zonder label
-  niet te onderscheiden (concreet gemeld: "welk knopje is dat dan? Dat is nu niet duidelijk").
-  Icoon nu `coverSearchSvg()` (vergrootglas), dezelfde die al gebruikt wordt voor de reeks-scoped
-  MusicBrainz-/Open Library-zoekknoppen — consistent "vergrootglas = extern opzoeken"-icoontaal.
+  patroon als de Open Library-auteurskandidaten bij Boeken) is hier bewust gehandhaafd i.p.v.
+  automatisch te raden. **Fix (2026-09-13, v1.21.1): icoon van deze knop hergebruikte per ongeluk
+  `tracklistSvg()`** — hetzelfde icoon als de in-/uitklap-toggle voor een tracklist die al bestaat,
+  dus zonder label niet te onderscheiden (concreet gemeld: "welk knopje is dat dan? Dat is nu niet
+  duidelijk"). Icoon nu `coverSearchSvg()` (vergrootglas), dezelfde die al gebruikt wordt voor de
+  reeks-scoped Open Library-zoekknop — consistent "vergrootglas = extern opzoeken"-icoontaal.
 - Strips-sjabloon (2026-09-13 herzien): generieke "In bezit" vervangen door "Fysiek"/"Digitaal",
   zelfde reden als bij Boeken (e-book/fysiek) — veel strips heeft de gebruiker in digitale vorm
   (CBR/CBZ, gelezen via een externe comicreader-app, zie hieronder), dus één generiek "in bezit"
@@ -438,12 +435,13 @@ toegang (geen aparte accounts per persoon).
   aparte actie") — dus in v1.19.1 teruggebracht naar TWEE tabs: `state.viewMode[lijstId]`
   ('bekijken', default, of 'toevoegen') bepaalt nu welk controle-blok boven de itemlijst staat.
   Bekijken toont zoekveld + Sorteer + Filters-knop samen (zoals het al was, vóór dit hele
-  hoofdstuk), Toevoegen toont het toevoegformulier/ISBN-knop/Artiest-toevoegen/Discogs-collectie-
-  import. De itemlijst zelf blijft in beide tabs gewoon zichtbaar (alleen de besturing erboven
-  wisselt) — reeks-scoped zoekicoontjes in de tabel (Open Library/MusicBrainz per reeks) zijn
-  bewust NIET aan de tabs gekoppeld, want die zijn al lokaal aan hun reeks-rij gebonden, geen
-  onderdeel van de globale besturingsbalk waar de klacht over ging. Verlaten van Toevoegen ruimt
-  een evt. openstaande ISBN-/MusicBrainz-flow expliciet op. De losse "+ Toevoegen"-toggle binnen de
+  hoofdstuk), Toevoegen toont het toevoegformulier/ISBN-knop/Discogs-collectie-import (de "Artiest-
+  toevoegen"-knop hoorde hier ook bij, maar is inmiddels verwijderd — zie MusicBrainz-verwijdering
+  hieronder). De itemlijst zelf blijft in beide tabs gewoon zichtbaar (alleen de besturing erboven
+  wisselt) — reeks-scoped zoekicoontjes in de tabel (Open Library per reeks) zijn bewust NIET aan
+  de tabs gekoppeld, want die zijn al lokaal aan hun reeks-rij gebonden, geen onderdeel van de
+  globale besturingsbalk waar de klacht over ging. Verlaten van Toevoegen ruimt een evt. openstaande
+  ISBN-flow expliciet op. De losse "+ Toevoegen"-toggle binnen de
   genest-add-form is vervallen (het formulier staat nu meteen open zodra je op de Toevoegen-tab
   klikt, dat IS al de bewuste keuze) — na een succesvolle toevoeging leegt het formulier zichzelf
   voor de volgende (blijft in Toevoegen-modus voor snel achter elkaar meerdere items invoeren).
@@ -498,9 +496,9 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   noemt dat zelf een aanvaard risico, vergelijkbaar met de storage-orphan-trade-off hierboven) en
   pas dan de import bouwen. Async-gedrag (BGG kan 202 teruggeven terwijl de export wordt
   voorbereid) vraagt om een retry-met-backoff bij het ophalen.
-- MusicBrainz-auto-import (Muziek) kon vanuit deze dev-omgeving niet betrouwbaar getest worden
-  ("server is busy"-responses, waarschijnlijk rate-limiting op het dev-IP) — nog niet bevestigd dat
-  dit vanaf een telefoon/thuisnetwerk wél werkt.
+- ~~MusicBrainz-auto-import (Muziek) kon vanuit deze dev-omgeving niet betrouwbaar getest worden
+  ("server is busy"-responses)~~ — bleek ook vanaf de telefoon van de gebruiker onbetrouwbaar/zonder
+  resultaat, en is daarom 2026-09-13 (v1.24.0) volledig verwijderd i.p.v. verder uitgezocht.
 - ~~Cover-afbeelding automatisch ophalen bij Boeken-import~~ — gebouwd (v1.2.1): `search.json` geeft
   `cover_i` gewoon mee in dezelfde aanroep als de taalfilter, geen aparte aanroep per boek nodig.
 - Muziek: check of de labels (filter "Niet", kaart-samenvatting) voor Muziek specifiek "Wishlist"
@@ -514,9 +512,10 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   (in tegenstelling tot wat eerder aangenomen werd), rate limit 25 req/min onbevestigd — ruimschoots
   genoeg. `cover_image` zit al in de collection-respons, geen aparte aanroep nodig. Gebruikersnaam:
   "bertellen" — collectie stond eerst op privé (401), inmiddels op publiek gezet. Nieuwe
-  DB-kolom `lijsten.discogs_username` toegevoegd. `auto_import: 'discogs'` is een los te kiezen
-  Muziekbron naast `musicbrainz` (schakelaar in "Velden bewerken"), niet de nieuwe preset-default —
-  MusicBrainz-zoeken blijft nuttig voor wishlist-items die nog niet in bezit zijn.
+  DB-kolom `lijsten.discogs_username` toegevoegd. Was aanvankelijk een los te kiezen Muziekbron
+  naast `musicbrainz` (schakelaar in "Velden bewerken"); sinds de MusicBrainz-verwijdering
+  (2026-09-13, v1.24.0) is `auto_import: 'discogs'` gewoon de vaste/enige Muziekbron en de
+  preset-default.
 - Barcode/ISBN-scan via de camera (2026-09-12, wens voor later — geen GO): het handmatige
   ISBN-invoerpad voor Boeken is inmiddels gebouwd (zie hieronder, 2026-09-13) — dit restpunt gaat
   nu alleen nog over het automatisch ÍNLEZEN van die code via de camera (en, voor platen, barcode
