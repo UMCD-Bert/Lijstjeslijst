@@ -330,7 +330,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.15.2';
+  var APP_VERSION = '1.16.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -557,8 +557,29 @@
   }
 
   // ---------- Reeksen (genest datamodel) ----------
+  function normalizeReeksNaam(naam) {
+    return (naam || '')
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .replace(/&/g, ' en ')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim().replace(/\s+/g, ' ');
+  }
+  function findReeksByNaam(entry, naam) {
+    var norm = normalizeReeksNaam(naam);
+    if (!norm) return null;
+    return reeksenFor(entry.id).find(function (r) { return normalizeReeksNaam(r.naam) === norm; }) || null;
+  }
   function addReeks(entry, naam) {
     return supabase.from('reeksen').insert({ lijst_id: entry.id, naam: naam, volgorde: Date.now() }).select().single();
+  }
+  // Vindt een bestaande reeks op een genormaliseerde naam (spatie/hoofdletter-/&-vs-en-ongevoelig,
+  // bv. "Suske en Wiske" == "Suske & Wiske") of maakt er stilzwijgend een nieuwe van — voorkomt dat
+  // de gebruiker expliciet moet kiezen/weten of een auteur/artiest/reeks al bestaat.
+  async function findOrCreateReeks(entry, naam) {
+    var existing = findReeksByNaam(entry, naam);
+    if (existing) return { data: existing, error: null };
+    return addReeks(entry, naam);
   }
   function renameReeks(reeks, naam) {
     if (!naam || naam === reeks.naam) return;
@@ -640,26 +661,17 @@
     });
     extraInputs.forEach(function (inp) { form.appendChild(inp); });
 
-    var reeksSelect = document.createElement('select');
-    reeksSelect.className = 'sort-select'; reeksSelect.setAttribute('aria-label', 'Reeks');
+    var reeksListId = 'reeks-datalist-' + entry.id;
+    var reeksInput = document.createElement('input');
+    reeksInput.type = 'text'; reeksInput.placeholder = 'Reeks (auteur/artiest)'; reeksInput.setAttribute('aria-label', 'Reeks');
+    reeksInput.setAttribute('list', reeksListId);
+    form.appendChild(reeksInput);
+    var reeksDatalist = document.createElement('datalist'); reeksDatalist.id = reeksListId;
     reeksen.forEach(function (r) {
-      var opt = document.createElement('option'); opt.value = r.id; opt.textContent = r.naam;
-      reeksSelect.appendChild(opt);
+      var opt = document.createElement('option'); opt.value = r.naam;
+      reeksDatalist.appendChild(opt);
     });
-    var newOpt = document.createElement('option'); newOpt.value = '__new__'; newOpt.textContent = '+ Nieuwe reeks…';
-    reeksSelect.appendChild(newOpt);
-    if (!reeksen.length) newOpt.selected = true;
-    form.appendChild(reeksSelect);
-
-    var newReeksInput = document.createElement('input');
-    newReeksInput.type = 'text'; newReeksInput.placeholder = 'Naam van nieuwe reeks';
-    newReeksInput.setAttribute('aria-label', 'Naam van nieuwe reeks');
-    newReeksInput.hidden = reeksSelect.value !== '__new__';
-    form.appendChild(newReeksInput);
-    reeksSelect.addEventListener('change', function () {
-      newReeksInput.hidden = reeksSelect.value !== '__new__';
-      if (!newReeksInput.hidden) newReeksInput.focus();
-    });
+    form.appendChild(reeksDatalist);
 
     var actions = document.createElement('div'); actions.className = 'edit-form-actions';
     var submitBtn = document.createElement('button');
@@ -674,20 +686,16 @@
       e.preventDefault();
       var titel = titelInput.value.trim();
       if (!titel) return;
-      var reeksId = reeksSelect.value;
-      if (reeksId === '__new__') {
-        var naam = newReeksInput.value.trim();
-        if (!naam) { newReeksInput.focus(); return; }
-        var reeksRes = await addReeks(entry, naam);
-        if (reeksRes.error || !reeksRes.data) { console.error(reeksRes.error); window.alert('Er ging iets mis bij het opslaan.'); return; }
-        reeksId = reeksRes.data.id;
-      }
+      var reeksNaam = reeksInput.value.trim();
+      if (!reeksNaam) { reeksInput.focus(); return; }
+      var reeksRes = await findOrCreateReeks(entry, reeksNaam);
+      if (reeksRes.error || !reeksRes.data) { console.error(reeksRes.error); window.alert('Er ging iets mis bij het opslaan.'); return; }
       var extra = {};
       (entry.extra_velden || []).forEach(function (f, i) { extra[f.key] = extraInputs[i].value.trim() || null; });
       var vinkjes = {};
       (entry.vink_velden || []).forEach(function (vk) { vinkjes[vk.key] = false; });
       var result = await supabase.from('lijst_items').insert({
-        lijst_id: entry.id, titel: titel, extra: extra, vinkjes: vinkjes, reeks_id: reeksId, volgorde: Date.now()
+        lijst_id: entry.id, titel: titel, extra: extra, vinkjes: vinkjes, reeks_id: reeksRes.data.id, volgorde: Date.now()
       });
       state.showAddGenestItem[entry.id] = false;
       refetchSoft(result);
@@ -715,7 +723,7 @@
       var rec = data['ISBN:' + isbn];
       if (!rec) { lk.error = 'Geen boek gevonden voor dit ISBN.'; return; }
       var author = (rec.authors && rec.authors[0] && rec.authors[0].name) || '';
-      var matched = author ? reeksenFor(entry.id).find(function (r) { return r.naam.toLowerCase() === author.toLowerCase(); }) : null;
+      var matched = author ? findReeksByNaam(entry, author) : null;
       var yearMatch = (rec.publish_date || '').match(/\d{4}/);
       lk.book = {
         isbn: isbn, title: rec.title || '(onbekende titel)', author: author,
@@ -1993,27 +2001,23 @@
     var reeksByName = {};
     var singleReeksId = null;
     if (entry.genest && !flow.reeksId && flow.source === 'discogs') {
-      reeksenFor(entry.id).forEach(function (r) { reeksByName[r.naam.toLowerCase()] = r; });
+      reeksenFor(entry.id).forEach(function (r) { reeksByName[normalizeReeksNaam(r.naam)] = r; });
       var neededNames = {};
       selectedWorks.forEach(function (w) {
         var n = (w.artist || '').trim();
-        if (n && !reeksByName[n.toLowerCase()]) neededNames[n] = true;
+        var norm = normalizeReeksNaam(n);
+        if (n && norm && !reeksByName[norm] && !neededNames[norm]) neededNames[norm] = n;
       });
-      var toCreate = Object.keys(neededNames);
+      var toCreate = Object.keys(neededNames).map(function (k) { return neededNames[k]; });
       if (toCreate.length) {
         var newReeksRows = toCreate.map(function (naam, i) { return { lijst_id: entry.id, naam: naam, volgorde: base + i }; });
         var reeksInsertRes = await supabase.from('reeksen').insert(newReeksRows).select();
-        (reeksInsertRes.data || []).forEach(function (r) { reeksByName[r.naam.toLowerCase()] = r; });
+        (reeksInsertRes.data || []).forEach(function (r) { reeksByName[normalizeReeksNaam(r.naam)] = r; });
       }
     } else if (entry.genest && !flow.reeksId && flow.candidateName) {
-      var existingReeks = reeksenFor(entry.id).find(function (r) { return r.naam.toLowerCase() === flow.candidateName.toLowerCase(); });
-      if (existingReeks) {
-        singleReeksId = existingReeks.id;
-      } else {
-        var reeksRes2 = await addReeks(entry, flow.candidateName);
-        if (reeksRes2.error || !reeksRes2.data) { console.error(reeksRes2.error); window.alert('Er ging iets mis bij het opslaan.'); return; }
-        singleReeksId = reeksRes2.data.id;
-      }
+      var reeksRes2 = await findOrCreateReeks(entry, flow.candidateName);
+      if (reeksRes2.error || !reeksRes2.data) { console.error(reeksRes2.error); window.alert('Er ging iets mis bij het opslaan.'); return; }
+      singleReeksId = reeksRes2.data.id;
     }
 
     var jaarKey = (entry.extra_velden || []).some(function (f) { return f.key === 'jaar'; }) ? 'jaar' : null;
@@ -2041,7 +2045,7 @@
       if (flow.reeksId) row.reeks_id = flow.reeksId;
       else if (entry.genest && flow.source === 'discogs') {
         var n = (w.artist || '').trim();
-        var rk = n ? reeksByName[n.toLowerCase()] : null;
+        var rk = n ? reeksByName[normalizeReeksNaam(n)] : null;
         if (rk) row.reeks_id = rk.id;
       } else if (entry.genest && singleReeksId) {
         row.reeks_id = singleReeksId;

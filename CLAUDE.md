@@ -91,11 +91,22 @@ toegang (geen aparte accounts per persoon).
   tabel. In-/uitklappen is puur UI-state (`state.collapsedReeks`, niet in de DB) en wordt genegeerd
   zodra er een actieve zoekopdracht of filter is (anders zou een ingeklapte reeks zoekresultaten
   verbergen). Toevoegen gaat via ÉÉN
-  gedeelde "+ Toevoegen"-knop onderaan de hele lijst (niet per reeks) — opent een klein formulier
-  met titel + een reeks-`<select>` (bestaande reeksen + een "+ Nieuwe reeks…"-optie die een naamveld
-  toont); dit verving eerdere losse mini-formulieren per reeks plus een apart "+ Nieuwe reeks"-vak,
-  wat samen te veel altijd-zichtbare UI was voor een handeling die zelden gebeurt. Zoeken matcht ook
-  op reeksnaam. Items zonder `reeks_id` (zou niet via de UI moeten ontstaan) worden alsnog getoond
+  gedeelde "+ Toevoegen"-knop boven de itemlijst (niet per reeks) — opent een klein formulier
+  met titel + een vrij tekstveld voor de reeks (auteur/artiest/serie), met bestaande reeksnamen als
+  autocomplete-suggestie (`<datalist>`); dit verving eerdere losse mini-formulieren per reeks plus
+  een apart "+ Nieuwe reeks"-vak, wat samen te veel altijd-zichtbare UI was voor een handeling die
+  zelden gebeurt. **Herzien (2026-09-13, v1.16.0): geen expliciete keuze meer tussen "bestaande reeks
+  kiezen" en "+ Nieuwe reeks…"** — de gebruiker hoeft niet meer bewust na te denken of een auteur/
+  artiest al bestaat (expliciete aanleiding: bij "Artiest toevoegen" voor Dolly Parton moest eerst
+  een aparte reeks worden aangemaakt vóór je één los album kon toevoegen, wat onintuïtief aanvoelde).
+  De getypte naam matcht zelf, stil op de achtergrond, via `findOrCreateReeks()` (in
+  `normalizeReeksNaam()`: lowercase, diacritics eruit, `&` ~ `en`, interpunctie genormaliseerd naar
+  spaties) — "Suske en Wiske" en "Suske & Wiske" zijn zo dezelfde reeks, geen dubbele reeks per
+  tikfoutje/spellingvariant. Dezelfde matcher wordt overal gebruikt waar een reeks/auteur/artiest
+  automatisch gekoppeld wordt: de ISBN-import (auteursnaam), de MusicBrainz-"Artiest toevoegen"-flow
+  (artiestnaam) en de Discogs-bulkimport (artiestgroepering) — niet alleen de handmatige "+
+  Toevoegen"-form. Zoeken matcht ook op reeksnaam. Items zonder `reeks_id` (zou niet via de UI moeten
+  ontstaan) worden alsnog getoond
   onder een niet-verwijderbare "Zonder reeks"-kop, als vangnet. **Fix (2026-09-13): reeksen zonder
   match onder een actieve zoekopdracht/filter worden nu volledig verborgen** i.p.v. getoond met een
   "Geen items met dit filter"-placeholder — bij bv. zoeken op "queen" bleven voorheen ALLE reeksen
