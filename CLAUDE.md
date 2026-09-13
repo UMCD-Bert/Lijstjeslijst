@@ -157,6 +157,27 @@ toegang (geen aparte accounts per persoon).
   artiestnaam en zet LP/CD automatisch op basis van het Discogs-formaat — geen handwerk bij een
   nieuwe import. De MusicBrainz-zoekicoon in de reeks-kop (voor wishlist-items die je nog niet in
   bezit hebt) werkt nu net als bij Boeken/Strips: zoekt direct op de artiestnaam van die reeks.
+- "Jaar van uitgave" (2026-09-13): extra tekstveld toegevoegd bij Boeken, Muziek én Strips (bij
+  Strips naast het bestaande Volgnummer). Wordt automatisch ingevuld waar de bron het al meegeeft:
+  Discogs-bulkimport (`basic_information.year`), MusicBrainz-zoeken (`first-release-date`), Open
+  Library-auteurzoeken (`first_publish_year`, nu ook in de fields-lijst) en de ISBN-lookup
+  (`publish_date`, jaartal eruit geregexed). Bij handmatig toevoegen of via een externe bron zoals
+  een Wikipedia-screenshot (zie hieronder) vult de gebruiker het zelf in. Backfill bij invoering:
+  Muziek's 162 bestaande items kregen hun jaar via een herhaalde Discogs-collectie-call (146/162
+  hadden een jaar; de rest ontbreekt simpelweg in Discogs' eigen data).
+- Discogs-collectie importeren (2026-09-13, schermeconomie): de knop staat niet meer als aparte
+  altijd-zichtbare rij onder de lijstnaam, maar als icoon in de detail-header naast tandwiel/camera
+  (net als bij Boeken/Strips is de globale import-rij bewust weg voor een handeling die zelden
+  gebeurt) — alleen zichtbaar als er een Discogs-gebruikersnaam is ingevuld; zonder gebruikersnaam
+  staat de hint ("vul je gebruikersnaam in...") gewoon op de oude plek in de lijst zelf.
+- Stripreeksen vullen op basis van Wikipedia-lijsten (2026-09-13): geen geautomatiseerde
+  in-app-scraper gebouwd (Wikipedia-pagina's zijn losse, wisselend opgemaakte tabellen — geen
+  stabiele API zoals Open Library/Discogs, en zelf de juiste pagina laten raden bij een reeksnaam is
+  foutgevoelig, zie ook de afgewezen AskUserQuestion hierover). In plaats daarvan: de gebruiker stuurt
+  screenshots van (een deel van) zo'n Wikipedia-lijst in de chat, Claude leest de tabel visueel uit
+  (nr/titel/datum) en stelt een SQL-insert voor ter goedkeuring — zelfde werkwijze als elke andere
+  migratie. Op deze manier is de volledige Suske en Wiske-reeks (VK-nummering 67 t/m 385, incl.
+  jaartal per album) in één keer gevuld.
 - Items worden getoond als een tabel (`.items-table` in `.items-scroll`, `overflow-x:auto`):
   titelkolom sticky links, vinkjes-koppen (E-book/Auteur/etc.) ÉÉN keer bovenaan i.p.v. per rij
   herhaald, actieskolom (foto/bewerk/verwijder) sticky rechts. Tabelbreedte wordt expliciet in JS
