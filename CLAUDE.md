@@ -60,6 +60,18 @@ toegang (geen aparte accounts per persoon).
    nieuwe/gewijzigde colSpan-inhoud ook smal testen, of geef 'm de `.wide-row-content`-klasse
    (sticky links + max-width op viewportbreedte) als 'ie flex-wrap-baar is. (Aanleiding: v1.17.1,
    gemeld door de gebruiker met een iPhone-screenshot — "Jaar van uitgave" en de kolomkop vielen af.)
+10. **Twee sticky kolommen (bv. titel links + acties rechts) kunnen samen een smal scherm helemaal
+    opvullen — dan zit alles ERTUSSEN (niet-sticky kolommen zoals vinkjes) permanent verstopt onder
+    een van beide, hoe ver je ook scrolt.** Dit is een ANDER soort bug dan punt 9 hierboven (dat gaat
+    over content die buiten beeld VALT/overflowt; dit gaat over content die op zijn scrollpositie
+    exact onder een ondoorzichtige sticky kolom terechtkomt — optisch niet te onderscheiden van
+    "leeg", dus ook op een correct geteste smalle viewport niet zichtbaar als bug tenzij je het
+    checkt). Reken bij twee sticky kolommen expliciet uit of hun gecombineerde breedte de kleinste
+    ondersteunde viewport nog ruimte laat, of meet het met `getBoundingClientRect()`/`clientWidth` in
+    plaats van er alleen naar te kijken. (Aanleiding: v1.25.0, gevonden bij een grondige UX-review —
+    sticky titelkolom + sticky actiekolom lieten op 375px nog maar 3px vrij, dus de vinkjeskolommen
+    van Boeken/Muziek/Strips waren op een iPhone al sinds hun invoering volledig onbereikbaar zonder
+    dat iemand dit als zodanig had gemeld of getest.)
 
 ## Datamodel (kern) — generiek velden-systeem
 - `lijsten`: naam, omschrijving, omslag_url, volgorde, `type_label` (vrije tekst, getoond als pill),
@@ -192,11 +204,19 @@ toegang (geen aparte accounts per persoon).
   een Wikipedia-screenshot (zie hieronder) vult de gebruiker het zelf in. Backfill bij invoering:
   Muziek's 162 bestaande items kregen hun jaar via een herhaalde Discogs-collectie-call (146/162
   hadden een jaar; de rest ontbreekt simpelweg in Discogs' eigen data).
-- Discogs-collectie importeren (2026-09-13, schermeconomie): de knop staat niet meer als aparte
+- ~~Discogs-collectie importeren (2026-09-13, schermeconomie): de knop staat niet meer als aparte
   altijd-zichtbare rij onder de lijstnaam, maar als icoon in de detail-header naast tandwiel/camera
   (net als bij Boeken/Strips is de globale import-rij bewust weg voor een handeling die zelden
   gebeurt) — alleen zichtbaar als er een Discogs-gebruikersnaam is ingevuld; zonder gebruikersnaam
-  staat de hint ("vul je gebruikersnaam in...") gewoon op de oude plek in de lijst zelf.
+  staat de hint ("vul je gebruikersnaam in...") gewoon op de oude plek in de lijst zelf.~~
+  **Herzien (2026-09-13, v1.25.0):** het download-icoontje in de compacte header stond los van het
+  "Toevoegen"-tabblad (zie de mode-tabs verderop) — precies het tabblad dat bedoeld is om alle
+  manieren om iets toe te voegen bij elkaar te tonen. Wie naar "Toevoegen" ging voor Muziek zag
+  alleen het handmatige formulier en moest daarnaast nog weten dat een klein icoontje bovenin de
+  hele collectie importeert. Gevonden bij een grondige UX-review, niet expliciet gemeld. Nu net als
+  bij Boeken (Open Library) gewoon een knop ("Discogs-collectie importeren") binnen het
+  "Toevoegen"-tabblad zelf (`renderImportSection`, geen aparte discogs-specifieke uitzondering meer);
+  het losse icoon in de header is vervallen.
 - Stripreeksen vullen op basis van Wikipedia-lijsten (2026-09-13): geen geautomatiseerde
   in-app-scraper gebouwd (Wikipedia-pagina's zijn losse, wisselend opgemaakte tabellen — geen
   stabiele API zoals Open Library/Discogs, en zelf de juiste pagina laten raden bij een reeksnaam is
@@ -357,6 +377,12 @@ toegang (geen aparte accounts per persoon).
   water. Les: bij hardnekkige "valt buiten beeld"-meldingen die niet reproduceren, vraag naar (of
   test zelf) de exacte voorafgaande staat (was er al gescrold?) i.p.v. alleen de eindsituatie te
   meten.
+  **Gat gedicht (2026-09-13, v1.25.0):** `resetItemsScroll()` werd bij de invoering hierboven op 4
+  plekken aangeroepen, maar niet in `openImportFlow()` (het reeks-scoped Open Library-zoekpaneel en
+  de Discogs-collectie-import — óók een wide-row-content-rij). Gevonden bij een grondige UX-review
+  (niet zelf reproduceerbaar in de Claude Browser-testtool, waar `scrollLeft` bij een nieuw gerenderd
+  element altijd al op 0 staat) maar wel een structurele inconsistentie t.o.v. het hierboven
+  vastgelegde patroon — nu ook daar toegevoegd, voor de zekerheid.
   **Aanvulling (2026-09-13, v1.20.0): vinkjes ook in het toevoeg- en bewerkformulier** — de
   vinkjes-kolommen zelf zijn nog steeds niet sticky (bewuste keuze, zie hierboven: alleen titel-/
   actieskolom zijn sticky, de vinkjeskolommen mogen gewoon meescrollen), maar bleken daardoor op
@@ -368,20 +394,37 @@ toegang (geen aparte accounts per persoon).
   medium gelijk aan te geven?") én het item-bewerkformulier (bestaand item aanpassen zonder de
   tabel te hoeven scrollen). Generiek op basis van `vink_velden`, dus geldt voor elk lijsttype
   (Boeken: E-book/Fysiek/Gelezen, Strips: Fysiek/Digitaal/Gelezen, niet alleen Muziek LP/CD).
-  **Aanvulling (2026-09-13, v1.21.0): "zachte landing" na toevoegen** — na een succesvolle
-  toevoeging via het toevoegformulier (genest én niet-genest) scrollt de nieuwe rij automatisch in
-  beeld (`scrollIntoView({block:'center'})`) en licht 'm kort op (`.item-flash`-animatie op de
-  `<td>`'s, want de sticky titel-/actieskolom hebben zelf al een expliciete achtergrondkleur die een
-  animatie op de `<tr>` zelf zou overschilderen). Aanleiding: concreet gemeld bij het toevoegen van
-  "Chronicle" (Creedence Clearwater Revival) — "ik merk nog niets van een zachte landing... ik zie
-  hem niet". Een nieuwe reeks/item krijgt `volgorde: Date.now()` en belandt dus altijd onderaan een
-  mogelijk lange lijst, buiten beeld, zonder deze fix. Technisch: de insert-call vraagt nu de nieuwe
-  rij terug op (`.select().single()`) om het id te kennen, en een eventueel ingeklapte doelreeks
-  wordt vóór het herladen alvast uitgeklapt (`delete state.collapsedReeks[reeksId]`) zodat de rij
-  ook echt in de DOM staat om naartoe te scrollen. **Let op**: de losse "Tracklist ophalen
-  (Discogs)"-knop (zie hierboven) is bewust een aparte, expliciete actie — het toevoegformulier zelf
-  doet GEEN automatische Discogs-aanroep; wie na een handmatige toevoeging ook cover/tracklist wil,
-  moet dat knopje zelf gebruiken.
+  **Achterliggende bug pas nu écht gevonden en gefixt (2026-09-13, v1.25.0): de vinkjeskolommen in de
+  tabel zélf waren op iPhone-breedte volledig onbereikbaar, hoe ver je ook scrolde.** De bovenstaande
+  toevoeging aan het toevoeg-/bewerkformulier was destijds een (nuttige, maar gedeeltelijke) omweg —
+  het achterliggende probleem in de tabel zelf bleef onopgemerkt tot een grondige UX-review met
+  metingen in devtools. Oorzaak: de sticky titelkolom (~160px) en de sticky actiekolom (~90-122px,
+  groeit mee met het aantal icoontjes) zijn SAMEN al bijna of helemaal net zo breed als een
+  telefoonscherm — gemeten op 375px: 160+122=282px sticky, nog maar 3px "vrij" op 285px binnenwerk.
+  De vinkjeskolommen (niet sticky, bedoeld om te scrollen) zaten daardoor bij elke scrollpositie
+  volledig verstopt ÓNDER een van beide sticky kolommen (ondoorzichtige achtergrond, hogere
+  z-index) — optisch niet te onderscheiden van "gewoon leeg", dus nooit eerder als bug herkend.
+  Bevestigd met `getBoundingClientRect()`-metingen en een tijdelijke debug-outline vóór de fix. Fix:
+  op smalle schermen (`@media (max-width: 480px)`) is de actiekolom niet meer sticky (`position:
+  static`) — daardoor is er nog maar ÉÉN sticky kolom (titel) en werkt scrollen weer normaal om de
+  vinkjes te bereiken; bewerken blijft zonder scrollen mogelijk via een tik op de titel zelf (dat
+  deed al hetzelfde als het potlood-icoontje). Op desktop-breedte ongewijzigd (daar was al genoeg
+  ruimte, geen media-query nodig).
+  **Herzien (2026-09-13, v1.25.0): "zachte landing" verving `scrollIntoView` door een bevestiging
+  ter plekke.** ~~Na een succesvolle toevoeging via het toevoegformulier (genest én niet-genest)
+  scrollt de nieuwe rij automatisch in beeld (`scrollIntoView({block:'center'})`)~~ — dit botste met
+  achter elkaar meerdere items toevoegen (concreet gemeld: bij het toevoegen van 2 lp's moest je na
+  elke toevoeging weer helemaal terugscrollen naar het formulier bovenaan om de volgende in te
+  voeren). Nu blijft de scrollpositie gewoon bij het formulier: een korte, vanzelf verdwijnende
+  bevestigingstekst (`showAddConfirmation()`, bv. `"Sheet Music" toegevoegd bij 10cc.`) verschijnt
+  vlak onder het formulier (state-gedreven met een `setTimeout`, want de hele form wordt bij elke
+  render opnieuw opgebouwd — een direct in de DOM geplakt regeltje zou meteen weer verdwijnen), en
+  het Titel-veld krijgt weer focus voor de volgende invoer. De rij zelf licht nog steeds kort op
+  (`flashItemRow()`, hernoemd van `scrollToAndHighlightItem`) als 'm toevallig al in beeld is, maar
+  zonder de pagina te verslepen. **Let op**: de losse "Tracklist ophalen (Discogs)"-knop (zie
+  hierboven) is bewust een aparte, expliciete actie — het toevoegformulier zelf doet GEEN
+  automatische Discogs-aanroep; wie na een handmatige toevoeging ook cover/tracklist wil, moet dat
+  knopje zelf gebruiken.
 - **Lijstje verwijderen alleen nog op de hoofdpagina (2026-09-13, v1.18.0)**: het rode "Verwijder
   lijstje"-linkje onderaan de detailweergave is verwijderd — de hoofdpagina heeft per lijstje al
   een ✕-knop met dezelfde bevestigingsvraag (`deleteList()`, "kan niet ongedaan gemaakt worden"),
@@ -445,6 +488,14 @@ toegang (geen aparte accounts per persoon).
   genest-add-form is vervallen (het formulier staat nu meteen open zodra je op de Toevoegen-tab
   klikt, dat IS al de bewuste keuze) — na een succesvolle toevoeging leegt het formulier zichzelf
   voor de volgende (blijft in Toevoegen-modus voor snel achter elkaar meerdere items invoeren).
+  **Fix (2026-09-13, v1.25.0): lege-lijst-tekst in "Bekijken" verwees naar een knop die daar niet
+  stond.** Een nieuwe, lege geneste lijst toonde altijd "Nog niets toegevoegd. Gebruik de knop
+  hieronder om te beginnen" — maar het toevoegformulier staat alleen boven de tabel als je al op het
+  tabblad "Toevoegen" staat; in "Bekijken" bestond zo'n knop niet. Gevonden bij een grondige
+  UX-review (bevestigd door een leeg testlijstje aan te maken). Tekst is nu afhankelijk van het
+  actieve tabblad: in "Bekijken" wijst 'm naar het tabblad "Toevoegen" hierboven, in "Toevoegen"
+  verwijst 'm naar het formulier dat er al staat. Zelfde aanpassing bij niet-geneste lijstjes
+  (Lijst/Bordspellen/Aangepast).
 - Volgorde wordt bijgehouden als timestamp (nieuw item/lijst = `Date.now()`); verplaatsen wisselt de
   `volgorde`-waarde van twee buren om (last-writer-wins, geen transacties nodig op deze schaal).
 

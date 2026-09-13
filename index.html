@@ -255,6 +255,8 @@
   .genest-add-form input { flex: 1; min-width: 120px; border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px;
     padding: 9px 12px; font-family: inherit; font-size: 16px; color: var(--ink); }
   .genest-add-form select.sort-select { flex: 1; min-width: 140px; }
+  .add-confirm { flex: 1 1 100%; margin: 0; font-size: 0.86rem; color: var(--accent); animation: add-confirm-fade 2.2s ease forwards; }
+  @keyframes add-confirm-fade { 0% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
   .isbn-preview { display: flex; gap: 12px; align-items: center; width: 100%; }
   .isbn-preview img { width: 48px; height: 68px; object-fit: cover; border-radius: 4px; background: var(--surface-2); flex-shrink: 0; }
   .isbn-preview-text { flex: 1; min-width: 100px; }
@@ -277,6 +279,18 @@
   .col-title-head { z-index: 3; }
   .col-actions { position: sticky; right: 0; background: var(--surface); z-index: 2; white-space: nowrap; width: 1%; }
   .col-actions-head { z-index: 3; }
+  /* Op telefoonbreedte samen sticky titelkolom (~160px) + sticky actiekolom (~90-120px, groeit met
+     het aantal icoontjes) al bijna of helemaal de volledige schermbreedte op — er blijft dan geen
+     (of een paar pixels) scrollruimte over waarin de vinkjeskolommen ertussenin ooit zichtbaar
+     kunnen worden, hoe ver je ook scrolt (ze zitten permanent "onder" een van beide sticky kolommen
+     verstopt). Gemeten op 375px: titel 160px + acties 122px = 282px, dus nog maar 3px vrij op een
+     scherm van 285px binnenwerk — vinkjes (LP/CD/In bezit e.d.) dus nooit bereikbaar. Fix: op smalle
+     schermen de actiekolom niet sticky maken (gewoon laten meescrollen als laatste kolom) — dan is
+     er nog maar ÉÉN sticky kolom (titel), en scrollen werkt weer normaal om de vinkjes te bereiken.
+     Bewerken blijft zonder scrollen mogelijk via een tik op de titel zelf. */
+  @media (max-width: 480px) {
+    .col-actions { position: static; }
+  }
   .col-check { text-align: center; width: 54px; min-width: 54px; }
   .title-cell-inner { display: flex; align-items: center; gap: 8px; }
   .move-col { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
@@ -370,7 +384,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.24.0';
+  var APP_VERSION = '1.25.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -396,7 +410,7 @@
   var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var state = {
     lijsten: [], items: [], reeksen: [], currentId: null, editingItem: null,
-    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}, trackSearch: null, viewMode: {}
+    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}, trackSearch: null, viewMode: {}, addConfirm: {}
   };
 
   var gridEl = document.getElementById('grid');
@@ -502,22 +516,6 @@
     handle.setAttribute('d', 'M9.8 9.8L13.5 13.5');
     handle.setAttribute('stroke', 'currentColor'); handle.setAttribute('stroke-width', '1.3'); handle.setAttribute('stroke-linecap', 'round');
     svg.appendChild(circle); svg.appendChild(handle);
-    return svg;
-  }
-
-  function downloadSvg() {
-    var ns = 'http://www.w3.org/2000/svg';
-    var svg = document.createElementNS(ns, 'svg');
-    svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('width', '14'); svg.setAttribute('height', '14');
-    var arrow = document.createElementNS(ns, 'path');
-    arrow.setAttribute('d', 'M8 2.5V10M8 10L5 7M8 10L11 7');
-    arrow.setAttribute('fill', 'none'); arrow.setAttribute('stroke', 'currentColor'); arrow.setAttribute('stroke-width', '1.3');
-    arrow.setAttribute('stroke-linecap', 'round'); arrow.setAttribute('stroke-linejoin', 'round');
-    var tray = document.createElementNS(ns, 'path');
-    tray.setAttribute('d', 'M3 11.5V13H13V11.5');
-    tray.setAttribute('fill', 'none'); tray.setAttribute('stroke', 'currentColor'); tray.setAttribute('stroke-width', '1.3');
-    tray.setAttribute('stroke-linecap', 'round'); tray.setAttribute('stroke-linejoin', 'round');
-    svg.appendChild(arrow); svg.appendChild(tray);
     return svg;
   }
 
@@ -639,17 +637,29 @@
     document.addEventListener('keydown', lightboxKeyHandler);
     document.body.appendChild(overlay);
   }
-  // Scrollt een net toegevoegd item in beeld en laat de rij kort even oplichten — anders "verdwijnt"
-  // een nieuw item onzichtbaar onderaan een lange reeks/lijst (nieuwe reeksen/items sorteren op
-  // `volgorde: Date.now()`, dus altijd helemaal onderaan), zonder enige bevestiging dat het gelukt is.
-  function scrollToAndHighlightItem(itemId) {
+  // Laat een net toegevoegd item kort oplichten (géén scrollIntoView meer — zie showAddConfirmation
+  // hieronder voor waarom) zodat je, als de rij toevallig al in beeld is, ziet welke het is.
+  function flashItemRow(itemId) {
     var el = detailCardEl.querySelector('tr[data-item-id="' + itemId + '"]');
     if (!el) return;
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     el.classList.remove('item-flash');
     void el.offsetWidth;
     el.classList.add('item-flash');
     setTimeout(function () { el.classList.remove('item-flash'); }, 1800);
+  }
+  // Bevestiging vlak onder het toevoegformulier zelf i.p.v. de pagina naar het nieuwe item te
+  // scrollen — bij het achter elkaar toevoegen van meerdere items (bv. "2 lp's" van dezelfde
+  // artiest) moest je anders na elke toevoeging weer helemaal terug naar boven scrollen om opnieuw
+  // bij het formulier te komen. Nu blijft de scrollpositie gewoon bij het formulier staan, met een
+  // korte, vanzelf verdwijnende bevestigingstekst (state.addConfirm, want de hele form wordt bij
+  // elke render opnieuw opgebouwd — een direct in de DOM geplakt bevestigingsregeltje zou meteen
+  // weer verdwijnen).
+  function showAddConfirmation(entry, text) {
+    state.addConfirm[entry.id] = text;
+    renderDetail();
+    setTimeout(function () {
+      if (state.addConfirm[entry.id] === text) { delete state.addConfirm[entry.id]; renderDetail(); }
+    }, 2200);
   }
   function extraSummary(entry, item) {
     return (entry.extra_velden || []).map(function (f) { return item.extra && item.extra[f.key]; })
@@ -700,6 +710,7 @@
     ]).then(refetchSoft);
   }
   function buildAddItemForm(entry) {
+    var outer = document.createElement('div');
     var form = document.createElement('form');
     form.className = 'add-item';
     var fieldsWrap = document.createElement('div');
@@ -733,9 +744,17 @@
       if (result.error || !result.data) { console.error(result.error); window.alert('Er ging iets mis bij het opslaan.'); return; }
       var newItemId = result.data.id;
       await refetchAll();
-      scrollToAndHighlightItem(newItemId);
+      flashItemRow(newItemId);
+      showAddConfirmation(entry, '"' + titel + '" toegevoegd.');
+      var freshTitel = detailCardEl.querySelector('form.add-item input[data-key="__titel"]');
+      if (freshTitel) freshTitel.focus();
     });
-    return form;
+    outer.appendChild(form);
+    if (state.addConfirm[entry.id]) {
+      var confirmP = document.createElement('p'); confirmP.className = 'add-confirm'; confirmP.textContent = state.addConfirm[entry.id];
+      outer.appendChild(confirmP);
+    }
+    return outer;
   }
 
   function buildGenestAddForm(entry) {
@@ -797,10 +816,17 @@
       delete state.collapsedReeks[reeksRes.data.id];
       var newItemId = result.data.id;
       await refetchAll();
-      scrollToAndHighlightItem(newItemId);
+      flashItemRow(newItemId);
+      showAddConfirmation(entry, '"' + titel + '" toegevoegd bij ' + reeksRes.data.naam + '.');
+      var freshTitel = detailCardEl.querySelector('.genest-add-form input[placeholder="Titel"]');
+      if (freshTitel) freshTitel.focus();
     });
 
     wrap.appendChild(form);
+    if (state.addConfirm[entry.id]) {
+      var confirmP = document.createElement('p'); confirmP.className = 'add-confirm'; confirmP.textContent = state.addConfirm[entry.id];
+      wrap.appendChild(confirmP);
+    }
     return wrap;
   }
 
@@ -1111,13 +1137,6 @@
       });
       addCoverBtn.addEventListener('click', function () { fileInput.click(); });
       head.appendChild(addCoverBtn); head.appendChild(fileInput);
-    }
-    if (entry.auto_import === 'discogs' && entry.discogs_username && !(state.importFlow && state.importFlow.listId === entry.id)) {
-      var discogsBtn = document.createElement('button');
-      discogsBtn.type = 'button'; discogsBtn.className = 'icon-btn'; discogsBtn.appendChild(downloadSvg());
-      discogsBtn.title = 'Discogs-collectie importeren'; discogsBtn.setAttribute('aria-label', 'Discogs-collectie importeren');
-      discogsBtn.addEventListener('click', function () { setViewMode(entry, 'toevoegen'); openImportFlow(entry); });
-      head.appendChild(discogsBtn);
     }
     dbody.appendChild(head);
 
@@ -1560,7 +1579,12 @@
 
       if (!reeksen.length) {
         var noReeksP = document.createElement('p'); noReeksP.className = 'items-empty';
-        noReeksP.textContent = 'Nog niets toegevoegd. Gebruik de knop hieronder om te beginnen.';
+        // Tekst hangt af van het actieve tabblad — het toevoegformulier staat alleen boven de tabel
+        // als je al op "Toevoegen" staat; in "Bekijken" bestaat er geen "knop hieronder" en was de
+        // oude, vaste tekst dus misleidend.
+        noReeksP.textContent = viewMode === 'toevoegen'
+          ? 'Nog niets toegevoegd. Gebruik het formulier hierboven om te beginnen.'
+          : 'Nog niets toegevoegd. Ga naar het tabblad "Toevoegen" hierboven om te beginnen.';
         dbody.appendChild(noReeksP);
         return;
       }
@@ -1623,7 +1647,10 @@
       renderNestedItems(items, fullItems);
     } else {
       if (viewMode === 'toevoegen') dbody.appendChild(buildAddItemForm(entry));
-      dbody.appendChild(buildItemsTable(items, fullItems, fullItems.length ? 'Geen items met dit filter.' : 'Nog geen items op dit lijstje.'));
+      var emptyMsg = fullItems.length ? 'Geen items met dit filter.' : (viewMode === 'toevoegen'
+        ? 'Nog geen items op dit lijstje. Gebruik het formulier hierboven.'
+        : 'Nog geen items op dit lijstje. Ga naar het tabblad "Toevoegen" hierboven om te beginnen.');
+      dbody.appendChild(buildItemsTable(items, fullItems, emptyMsg));
     }
 
 
@@ -2062,6 +2089,10 @@
     } else {
       renderDetail();
     }
+    // Zelfde iOS-scroll-reset als bij het openen van een bewerkformulier/cover-/tracklist-zoeken —
+    // dit paneel is ook een wide-row-content-rij en hoort dezelfde bescherming te krijgen (was
+    // eerder gemist; ontdekt bij het toevoegen van de wide-row-content-klasse aan buildImportPanel).
+    resetItemsScroll();
   }
   function closeImportFlow() { state.importFlow = null; renderDetail(); }
 
@@ -2334,19 +2365,23 @@
     var flow = state.importFlow;
     if (flow && flow.listId === entry.id && flow.source !== entry.auto_import) return wrap;
     if (!flow || flow.listId !== entry.id) {
-      if (entry.auto_import !== 'discogs') {
+      // Discogs' bulk-collectie-import stond eerder als los download-icoontje in de compacte
+      // koprij (naast tandwiel/camera) — inconsistent met de rest van het "Toevoegen"-tabblad, waar
+      // juist alle manieren om iets toe te voegen bij elkaar horen te staan. Nu net als Open Library
+      // gewoon een knop hier, mits er al een Discogs-gebruikersnaam is ingevuld.
+      if (entry.auto_import === 'discogs' && !entry.discogs_username) {
+        var row2 = document.createElement('div'); row2.className = 'import-toggle-row';
+        var hint = document.createElement('p'); hint.className = 'import-msg';
+        hint.textContent = 'Vul je Discogs-gebruikersnaam in bij "Velden bewerken" om te kunnen importeren.';
+        row2.appendChild(hint);
+        wrap.appendChild(row2);
+      } else {
         var row = document.createElement('div'); row.className = 'import-toggle-row';
         var btn = document.createElement('button');
         btn.type = 'button'; btn.className = 'btn-secondary'; btn.textContent = IMPORT_LABELS[entry.auto_import] || 'Toevoegen';
         btn.addEventListener('click', function () { openImportFlow(entry); });
         row.appendChild(btn);
         wrap.appendChild(row);
-      } else if (!entry.discogs_username) {
-        var row2 = document.createElement('div'); row2.className = 'import-toggle-row';
-        var hint = document.createElement('p'); hint.className = 'import-msg';
-        hint.textContent = 'Vul je Discogs-gebruikersnaam in bij "Velden bewerken" om te kunnen importeren.';
-        row2.appendChild(hint);
-        wrap.appendChild(row2);
       }
       return wrap;
     }
