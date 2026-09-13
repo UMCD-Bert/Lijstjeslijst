@@ -91,7 +91,12 @@ toegang (geen aparte accounts per persoon).
   toont); dit verving eerdere losse mini-formulieren per reeks plus een apart "+ Nieuwe reeks"-vak,
   wat samen te veel altijd-zichtbare UI was voor een handeling die zelden gebeurt. Zoeken matcht ook
   op reeksnaam. Items zonder `reeks_id` (zou niet via de UI moeten ontstaan) worden alsnog getoond
-  onder een niet-verwijderbare "Zonder reeks"-kop, als vangnet.
+  onder een niet-verwijderbare "Zonder reeks"-kop, als vangnet. **Fix (2026-09-13): reeksen zonder
+  match onder een actieve zoekopdracht/filter worden nu volledig verborgen** i.p.v. getoond met een
+  "Geen items met dit filter"-placeholder — bij bv. zoeken op "queen" bleven voorheen ALLE reeksen
+  (ook artiesten zonder enige treffer) als lege kop-rij zichtbaar, wat het geen bruikbaar filter
+  maakte. Alleen als een reeks zelf 0 treffers heeft ÉN er geen actieve query is (het "leeg"-label
+  voor lege reeksen tijdens gewoon beheer) blijft-ie zichtbaar.
 - Detailweergave-header (2026-09-13 herzien voor schermeconomie): terug-pijl, titel, "Velden
   bewerken" (tandwiel-icoon) en omslagfoto-toevoegen (camera-icoon, alleen zonder cover) staan alle
   vier op ÉÉN compacte regel i.p.v. losse rijen erboven/eronder. Omschrijving is verplaatst ván de
@@ -217,12 +222,20 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   DB-kolom `lijsten.discogs_username` toegevoegd. `auto_import: 'discogs'` is een los te kiezen
   Muziekbron naast `musicbrainz` (schakelaar in "Velden bewerken"), niet de nieuwe preset-default —
   MusicBrainz-zoeken blijft nuttig voor wishlist-items die nog niet in bezit zijn.
-- Barcode/ISBN-scan via de camera (2026-09-12, wens voor later — geen GO): LP's scannen op
-  barcode en boeken op ISBN/barcode, metadata automatisch ophalen (vergelijkbaar met de
-  auteur-imports). Nog te ontwerpen: welke barcode-scanbibliotheek (bv. browser-native
-  `BarcodeDetector` API vs. een JS-library als ZXing, i.v.m. browserondersteuning op iPhone
-  Safari), en welke databron per type (boeken: Open Library heeft ISBN-lookup; platen: Discogs
-  heeft ook barcode-zoekfunctie op releases).
+- Barcode/ISBN-scan via de camera (2026-09-12, wens voor later — geen GO): het handmatige
+  ISBN-invoerpad voor Boeken is inmiddels gebouwd (zie hieronder, 2026-09-13) — dit restpunt gaat
+  nu alleen nog over het automatisch ÍNLEZEN van die code via de camera (en, voor platen, barcode
+  i.p.v. ISBN — Discogs heeft ook een barcode-zoekfunctie op releases). Nog te ontwerpen: welke
+  barcode-scanbibliotheek (bv. browser-native `BarcodeDetector` API vs. een JS-library als ZXing,
+  i.v.m. browserondersteuning op iPhone Safari).
+- ~~Boeken: toevoegen op ISBN~~ — gebouwd (2026-09-13). Los "+ Boek via ISBN"-knopje naast
+  "+ Toevoegen", alleen bij `auto_import: 'openlibrary'` (dus vooralsnog specifiek Boeken). Gebruikt
+  Open Library's `api/books?bibkeys=ISBN:...&jscmd=data` (één call geeft titel, auteur ÉN cover
+  direct terug, i.p.v. losse author-lookup zoals bij de reeks-import). Toont een preview (cover,
+  titel, auteur) met een voorgestelde reeks — matcht automatisch op een bestaande reeks als de
+  gevonden auteursnaam overeenkomt, anders "+ Nieuwe reeks…" voorgevuld met die auteursnaam, allebei
+  door de gebruiker nog aan te passen vóór bevestigen. Dedupe op `extern_id` (het ISBN): een al
+  toegevoegd ISBN geeft direct een duidelijke melding i.p.v. een dubbel item.
 - ~~Strips: geneste reeks→albums-structuur~~ — gebouwd (2026-09-13). Was eerst een plat
   `reeks`-tekstveld per item (elk album herhaalde de reeksnaam apart); nu een echte 1:n-relatie:
   nieuwe tabel `reeksen` + `lijst_items.reeks_id`, generieke `lijsten.genest`-schakelaar (zie

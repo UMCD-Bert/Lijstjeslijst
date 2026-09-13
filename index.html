@@ -223,11 +223,19 @@
   .reeks-name-input:focus { outline: none; background: var(--surface-2); }
   .reeks-label-plain { flex: 1; font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1rem; color: var(--muted); padding: 3px 5px; }
   .reeks-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-  .genest-add-wrap { margin-top: 18px; }
+  .genest-add-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; margin-top: 18px; }
+  .genest-add-wrap { flex: 1 1 220px; }
   .genest-add-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; border: 1.5px dashed var(--border); border-radius: 10px; padding: 14px; }
   .genest-add-form input { flex: 1; min-width: 120px; border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px;
     padding: 9px 12px; font-family: inherit; font-size: 16px; color: var(--ink); }
   .genest-add-form select.sort-select { flex: 1; min-width: 140px; }
+  .isbn-preview { display: flex; gap: 12px; align-items: center; width: 100%; }
+  .isbn-preview img { width: 48px; height: 68px; object-fit: cover; border-radius: 4px; background: var(--surface-2); flex-shrink: 0; }
+  .isbn-preview-text { flex: 1; min-width: 100px; }
+  .isbn-preview-text strong { display: block; }
+  .isbn-preview-text span { color: var(--muted); font-size: 0.85rem; }
+  .isbn-msg { width: 100%; color: var(--muted); font-size: 0.84rem; font-style: italic; margin: 0; }
+  .isbn-msg.error { color: var(--danger); font-style: normal; }
 
   .items-scroll { overflow-x: auto; margin: 0 0 18px; -webkit-overflow-scrolling: touch; }
   .items-table { border-collapse: collapse; width: 100%; }
@@ -319,7 +327,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.7.0';
+  var APP_VERSION = '1.8.1';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -340,7 +348,7 @@
   var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var state = {
     lijsten: [], items: [], reeksen: [], currentId: null, editingItem: null,
-    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, showAddGenestItem: {}, collapsedReeks: {}, importFlow: null, coverSearch: null
+    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, showAddGenestItem: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}
   };
 
   var gridEl = document.getElementById('grid');
@@ -629,6 +637,154 @@
       state.showAddGenestItem[entry.id] = false;
       refetchSoft(result);
     });
+
+    wrap.appendChild(form);
+    return wrap;
+  }
+
+  // ---------- Boek toevoegen op ISBN (Open Library) ----------
+  function newIsbnLookupState() {
+    return { step: 'input', isbn: '', loading: false, error: '', book: null, reeksId: '', newReeksNaam: '' };
+  }
+
+  async function isbnSearch(entry) {
+    var lk = state.isbnLookup[entry.id];
+    var isbn = (lk.isbn || '').replace(/[^0-9Xx]/g, '');
+    if (!isbn) { lk.error = 'Vul een ISBN in.'; renderDetail(); return; }
+    var existing = itemsFor(entry.id).find(function (i) { return i.extern_id === isbn; });
+    if (existing) { lk.error = 'Dit ISBN staat al in de lijst ("' + existing.titel + '").'; renderDetail(); return; }
+    lk.loading = true; lk.error = ''; renderDetail();
+    try {
+      var res = await fetch('https://openlibrary.org/api/books?bibkeys=ISBN:' + encodeURIComponent(isbn) + '&jscmd=data&format=json');
+      var data = await res.json();
+      var rec = data['ISBN:' + isbn];
+      if (!rec) { lk.error = 'Geen boek gevonden voor dit ISBN.'; return; }
+      var author = (rec.authors && rec.authors[0] && rec.authors[0].name) || '';
+      var matched = author ? reeksenFor(entry.id).find(function (r) { return r.naam.toLowerCase() === author.toLowerCase(); }) : null;
+      lk.book = {
+        isbn: isbn, title: rec.title || '(onbekende titel)', author: author,
+        cover: (rec.cover && (rec.cover.medium || rec.cover.large || rec.cover.small)) || null
+      };
+      lk.reeksId = matched ? String(matched.id) : '__new__';
+      lk.newReeksNaam = author;
+      lk.step = 'result';
+    } catch (e) {
+      console.error('isbn lookup failed', e);
+      lk.error = 'Opzoeken is niet gelukt. Probeer het later opnieuw.';
+    } finally {
+      lk.loading = false; renderDetail();
+    }
+  }
+
+  async function isbnCommit(entry) {
+    var lk = state.isbnLookup[entry.id];
+    var book = lk.book;
+    var reeksId = lk.reeksId;
+    if (reeksId === '__new__') {
+      var naam = (lk.newReeksNaam || '').trim();
+      if (!naam) return;
+      var reeksRes = await addReeks(entry, naam);
+      if (reeksRes.error || !reeksRes.data) { console.error(reeksRes.error); window.alert('Er ging iets mis bij het opslaan.'); return; }
+      reeksId = reeksRes.data.id;
+    }
+    var vinkjes = {};
+    (entry.vink_velden || []).forEach(function (vk) { vinkjes[vk.key] = false; });
+    var result = await supabase.from('lijst_items').insert({
+      lijst_id: entry.id, titel: book.title, extra: {}, vinkjes: vinkjes, reeks_id: reeksId,
+      bron: 'openlibrary', extern_id: book.isbn, omslag_url: book.cover || null, volgorde: Date.now()
+    });
+    delete state.isbnLookup[entry.id];
+    refetchSoft(result);
+  }
+
+  function buildIsbnAddForm(entry) {
+    var wrap = document.createElement('div'); wrap.className = 'genest-add-wrap';
+    var lk = state.isbnLookup[entry.id];
+    if (!lk) {
+      var toggleBtn = document.createElement('button');
+      toggleBtn.type = 'button'; toggleBtn.className = 'btn-secondary'; toggleBtn.textContent = '+ Boek via ISBN';
+      toggleBtn.addEventListener('click', function () { state.isbnLookup[entry.id] = newIsbnLookupState(); renderDetail(); });
+      wrap.appendChild(toggleBtn);
+      return wrap;
+    }
+
+    var form = document.createElement('form'); form.className = 'genest-add-form';
+
+    if (lk.step === 'input') {
+      var isbnInput = document.createElement('input');
+      isbnInput.type = 'text'; isbnInput.inputMode = 'numeric'; isbnInput.placeholder = 'ISBN (10 of 13 cijfers)';
+      isbnInput.setAttribute('aria-label', 'ISBN'); isbnInput.value = lk.isbn;
+      isbnInput.addEventListener('input', function () { lk.isbn = isbnInput.value; });
+      form.appendChild(isbnInput);
+
+      if (lk.error) {
+        var errP = document.createElement('p'); errP.className = 'isbn-msg error'; errP.textContent = lk.error;
+        form.appendChild(errP);
+      }
+
+      var actions = document.createElement('div'); actions.className = 'edit-form-actions';
+      var searchBtn = document.createElement('button');
+      searchBtn.type = 'submit'; searchBtn.className = 'btn-primary'; searchBtn.textContent = lk.loading ? 'Bezig…' : 'Opzoeken';
+      searchBtn.disabled = lk.loading;
+      var cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button'; cancelBtn.className = 'btn-text'; cancelBtn.textContent = 'Annuleren';
+      cancelBtn.addEventListener('click', function () { delete state.isbnLookup[entry.id]; renderDetail(); });
+      actions.appendChild(searchBtn); actions.appendChild(cancelBtn);
+      form.appendChild(actions);
+
+      form.addEventListener('submit', function (e) { e.preventDefault(); isbnSearch(entry); });
+    } else {
+      var preview = document.createElement('div'); preview.className = 'isbn-preview';
+      if (lk.book.cover) {
+        var img = document.createElement('img'); img.src = lk.book.cover; img.alt = '';
+        preview.appendChild(img);
+      }
+      var textWrap = document.createElement('div'); textWrap.className = 'isbn-preview-text';
+      var strong = document.createElement('strong'); strong.textContent = lk.book.title;
+      textWrap.appendChild(strong);
+      if (lk.book.author) {
+        var span = document.createElement('span'); span.textContent = lk.book.author;
+        textWrap.appendChild(span);
+      }
+      preview.appendChild(textWrap);
+      form.appendChild(preview);
+
+      var reeksen = reeksenFor(entry.id);
+      var reeksSelect = document.createElement('select');
+      reeksSelect.className = 'sort-select'; reeksSelect.setAttribute('aria-label', 'Reeks');
+      reeksen.forEach(function (r) {
+        var opt = document.createElement('option'); opt.value = r.id; opt.textContent = r.naam;
+        if (String(r.id) === String(lk.reeksId)) opt.selected = true;
+        reeksSelect.appendChild(opt);
+      });
+      var newOpt = document.createElement('option'); newOpt.value = '__new__'; newOpt.textContent = '+ Nieuwe reeks…';
+      if (lk.reeksId === '__new__') newOpt.selected = true;
+      reeksSelect.appendChild(newOpt);
+      reeksSelect.addEventListener('change', function () { lk.reeksId = reeksSelect.value; renderDetail(); });
+      form.appendChild(reeksSelect);
+
+      if (lk.reeksId === '__new__') {
+        var newReeksInput = document.createElement('input');
+        newReeksInput.type = 'text'; newReeksInput.placeholder = 'Naam van nieuwe reeks';
+        newReeksInput.setAttribute('aria-label', 'Naam van nieuwe reeks'); newReeksInput.value = lk.newReeksNaam || '';
+        newReeksInput.addEventListener('input', function () { lk.newReeksNaam = newReeksInput.value; });
+        form.appendChild(newReeksInput);
+      }
+
+      var actions2 = document.createElement('div'); actions2.className = 'edit-form-actions';
+      var confirmBtn = document.createElement('button');
+      confirmBtn.type = 'submit'; confirmBtn.className = 'btn-primary'; confirmBtn.textContent = 'Toevoegen';
+      var backBtn = document.createElement('button');
+      backBtn.type = 'button'; backBtn.className = 'btn-text'; backBtn.textContent = '← Andere ISBN';
+      backBtn.addEventListener('click', function () { state.isbnLookup[entry.id] = newIsbnLookupState(); renderDetail(); });
+      var cancelBtn2 = document.createElement('button');
+      cancelBtn2.type = 'button'; cancelBtn2.className = 'btn-text'; cancelBtn2.textContent = 'Annuleren';
+      cancelBtn2.addEventListener('click', function () { delete state.isbnLookup[entry.id]; renderDetail(); });
+      actions2.appendChild(confirmBtn); actions2.appendChild(backBtn); actions2.appendChild(cancelBtn2);
+      form.appendChild(actions2);
+
+      form.addEventListener('submit', function (e) { e.preventDefault(); isbnCommit(entry); });
+    }
 
     wrap.appendChild(form);
     return wrap;
@@ -1169,6 +1325,7 @@
 
       reeksen.forEach(function (reeks, ridx) {
         var groupItems = filtered.filter(function (i) { return i.reeks_id === reeks.id; });
+        if (hasActiveQuery && !groupItems.length) return;
         var groupFull = fullItemsAll.filter(function (i) { return i.reeks_id === reeks.id; });
         var collapsed = !!state.collapsedReeks[reeks.id] && !hasActiveQuery;
 
@@ -1212,7 +1369,10 @@
 
     if (entry.genest) {
       renderNestedItems(items, fullItems);
-      dbody.appendChild(buildGenestAddForm(entry));
+      var addRow = document.createElement('div'); addRow.className = 'genest-add-row';
+      addRow.appendChild(buildGenestAddForm(entry));
+      if (entry.auto_import === 'openlibrary') addRow.appendChild(buildIsbnAddForm(entry));
+      dbody.appendChild(addRow);
     } else {
       dbody.appendChild(buildItemsTable(items, fullItems, fullItems.length ? 'Geen items met dit filter.' : 'Nog geen items op dit lijstje.'));
       dbody.appendChild(buildAddItemForm(entry));
