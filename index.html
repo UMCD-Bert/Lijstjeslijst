@@ -214,7 +214,7 @@
   .reeks-name-input:focus { outline: none; background: var(--surface-2); }
   .reeks-label-plain { flex: 1; font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1rem; color: var(--muted); padding: 3px 5px; }
   .reeks-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-  .genest-add-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; margin-top: 18px; }
+  .genest-add-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 18px; }
   .genest-add-wrap { flex: 1 1 220px; }
   .genest-add-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; border: 1.5px dashed var(--border); border-radius: 10px; padding: 14px; }
   .genest-add-form input { flex: 1; min-width: 120px; border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px;
@@ -281,7 +281,7 @@
   .edit-form .field-row-textarea { border: 1px solid var(--accent); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 16px; color: var(--ink); flex: 1 1 100%; min-height: 70px; resize: vertical; }
   .edit-form-actions { display: flex; gap: 4px; }
 
-  form.add-item { display: flex; gap: 10px; align-items: center; border-top: 1.5px dashed var(--border); padding-top: 16px; flex-wrap: wrap; }
+  form.add-item { display: flex; gap: 10px; align-items: center; border-bottom: 1.5px dashed var(--border); padding-bottom: 16px; margin-bottom: 16px; flex-wrap: wrap; }
   form.add-item .add-fields { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
   form.add-item input {
     flex: 1; min-width: 120px; border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px;
@@ -330,7 +330,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.14.0';
+  var APP_VERSION = '1.15.1';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -1418,7 +1418,6 @@
     }
 
     if (entry.genest) {
-      renderNestedItems(items, fullItems);
       var addRow = document.createElement('div'); addRow.className = 'genest-add-row';
       addRow.appendChild(buildGenestAddForm(entry));
       if (entry.auto_import === 'openlibrary') addRow.appendChild(buildIsbnAddForm(entry));
@@ -1436,9 +1435,10 @@
         if (mbWrap.childNodes.length) addRow.appendChild(mbWrap);
       }
       dbody.appendChild(addRow);
+      renderNestedItems(items, fullItems);
     } else {
-      dbody.appendChild(buildItemsTable(items, fullItems, fullItems.length ? 'Geen items met dit filter.' : 'Nog geen items op dit lijstje.'));
       dbody.appendChild(buildAddItemForm(entry));
+      dbody.appendChild(buildItemsTable(items, fullItems, fullItems.length ? 'Geen items met dit filter.' : 'Nog geen items op dit lijstje.'));
     }
 
     var footer = document.createElement('div');
@@ -2225,7 +2225,19 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('./service-worker.js').catch(function (e) { console.error('SW registratie mislukt', e); });
+      navigator.serviceWorker.register('./service-worker.js').then(function (reg) {
+        reg.update();
+        setInterval(function () { reg.update(); }, 60 * 60 * 1000);
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'visible') reg.update();
+        });
+      }).catch(function (e) { console.error('SW registratie mislukt', e); });
+      var refreshedAfterUpdate = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (refreshedAfterUpdate) return;
+        refreshedAfterUpdate = true;
+        window.location.reload();
+      });
     });
   }
 

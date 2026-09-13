@@ -287,6 +287,17 @@ toegang (geen aparte accounts per persoon).
 - Service worker (`service-worker.js`) cachet alleen de app-shell (HTML/manifest/icons/supabase-js),
   read-only fallback bij geen verbinding — geen queue/sync-logica voor schrijfacties zoals bij Gezin.
   Schrijven zonder verbinding faalt gewoon met een alert; dat is bewust simpel gehouden.
+- **Versie blijft hangen op iPhone (2026-09-13, gefixt v1.15.1)**: de HTML zelf wordt altijd vers
+  van het netwerk gehaald (`fetch(request, {cache:'no-store'})` in de SW), maar de service worker
+  zélf checkte nergens actief op updates — de browser-eigen updatecheck gebeurt volgens spec
+  hooguit eens per zoveel tijd, en in een iOS-standalone-PWA (zelden echt afgesloten, geen tab-
+  reload) duurt dat soms erg lang. Fix: expliciete `registration.update()` bij laden, elk uur, en
+  bij terugkeer naar het scherm (`visibilitychange`), plus een `controllerchange`-listener die de
+  pagina automatisch herlaadt zodra een nieuwe SW het overneemt. Omdat de HTML zelf al vers wordt
+  opgehaald (zie boven), draait deze nieuwe check-logica ook al binnen een oude/vastzittende SW —
+  geen kip-ei-probleem. Bij een al vastzittend toestel: één keer de PWA volledig sluiten (via de
+  appswitcher, niet alleen naar de achtergrond) en heropenen met een actieve verbinding is genoeg
+  om zichzelf te herstellen.
 
 ## Platform
 PWA via `manifest.json` + `apple-touch-icon.png` + service worker — "Zet op beginscherm" op iPhone
