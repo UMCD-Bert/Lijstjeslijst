@@ -301,7 +301,11 @@ toegang (geen aparte accounts per persoon).
   (verschillende jaren/vormen) met soms afwijkende tracklists — silent auto-matchen op titel alleen
   zou zomaar de verkeerde tracklist kunnen opleveren, dus een expliciete kandidatenkeuze (zelfde
   patroon als de MusicBrainz-artiestkandidaten) is hier bewust gehandhaafd i.p.v. automatisch te
-  raden.
+  raden. **Fix (2026-09-13, v1.21.1): icoon van deze knop hergebruikte per ongeluk `tracklistSvg()`**
+  — hetzelfde icoon als de in-/uitklap-toggle voor een tracklist die al bestaat, dus zonder label
+  niet te onderscheiden (concreet gemeld: "welk knopje is dat dan? Dat is nu niet duidelijk").
+  Icoon nu `coverSearchSvg()` (vergrootglas), dezelfde die al gebruikt wordt voor de reeks-scoped
+  MusicBrainz-/Open Library-zoekknoppen — consistent "vergrootglas = extern opzoeken"-icoontaal.
 - Strips-sjabloon (2026-09-13 herzien): generieke "In bezit" vervangen door "Fysiek"/"Digitaal",
   zelfde reden als bij Boeken (e-book/fysiek) — veel strips heeft de gebruiker in digitale vorm
   (CBR/CBZ, gelezen via een externe comicreader-app, zie hieronder), dus één generiek "in bezit"
@@ -327,6 +331,18 @@ toegang (geen aparte accounts per persoon).
   nieuwe regel omslaan i.p.v. buiten beeld doorlopen. Dit soort bug valt niet op in de Claude
   Browser-testtool op standaardbreedte — moet je expliciet op een smalle viewport (bv. 375px)
   testen, of zoals hier: een screenshot van de gebruiker zelf.
+  **Vervolg (2026-09-13, v1.21.1): `calc(100vw - 88px)` bleek op de eigenlijke iPhone van de
+  gebruiker toch nog net te breed** (opnieuw gemeld met een screenshot: "Jaar van uitgave" viel
+  nog steeds gedeeltelijk af) — `100vw` wordt op iOS Safari niet altijd gelijk berekend aan de
+  échte zichtbare breedte (bekende platform-quirk, reproduceert niet in de Chromium-gebaseerde
+  Claude Browser-testtool hier, wat het extra lastig te vinden maakte). Robuustere fix: na elke
+  render (`applyWideRowContentWidths()`, aangeroepen direct na `detailCardEl.appendChild(dbody)`)
+  de daadwerkelijk gemeten `clientWidth` van `.items-scroll` als inline `max-width` op elk
+  `.wide-row-content`-element zetten — een echt gemeten breedte in JS is immuun voor dit soort
+  CSS-eenheid-verschillen tussen browsers, de `calc(100vw - …)`-regel in CSS blijft alleen staan
+  als fallback voor het allereerste beeld vóór de JS-pass. Les: voor dit soort viewport-breedte-
+  aannames is een gemeten waarde (element.clientWidth) betrouwbaarder dan een CSS-eenheid als
+  `vw`, zeker zodra Safari in het spel is.
   **Aanvulling (2026-09-13, v1.20.0): vinkjes ook in het toevoeg- en bewerkformulier** — de
   vinkjes-kolommen zelf zijn nog steeds niet sticky (bewuste keuze, zie hierboven: alleen titel-/
   actieskolom zijn sticky, de vinkjeskolommen mogen gewoon meescrollen), maar bleken daardoor op

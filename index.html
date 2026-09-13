@@ -370,7 +370,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.21.0';
+  var APP_VERSION = '1.21.1';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -1452,7 +1452,7 @@
         itemActions.appendChild(tracklistBtn);
       } else if (entry.auto_import === 'musicbrainz' || entry.auto_import === 'discogs') {
         var trackSearchBtn = document.createElement('button');
-        trackSearchBtn.type = 'button'; trackSearchBtn.className = 'icon-btn'; trackSearchBtn.appendChild(tracklistSvg());
+        trackSearchBtn.type = 'button'; trackSearchBtn.className = 'icon-btn'; trackSearchBtn.appendChild(coverSearchSvg());
         trackSearchBtn.title = 'Tracklist ophalen (Discogs)'; trackSearchBtn.setAttribute('aria-label', 'Tracklist ophalen via Discogs');
         trackSearchBtn.addEventListener('click', function () { openTrackSearch(item); });
         itemActions.appendChild(trackSearchBtn);
@@ -1619,11 +1619,23 @@
 
 
     detailCardEl.appendChild(dbody);
+    applyWideRowContentWidths();
 
     if (restoreSearchFocus !== null) {
       var searchInputEl = detailCardEl.querySelector('.search-input');
       if (searchInputEl) { searchInputEl.focus(); searchInputEl.setSelectionRange(restoreSearchFocus, restoreSearchFocus); }
     }
+  }
+
+  // `calc(100vw - Npx)` in de `.wide-row-content`-CSS is een redelijke schatting, maar iOS Safari
+  // berekent `100vw` niet altijd gelijk aan de echte zichtbare breedte (bekende platform-quirk) —
+  // vandaar dit na elke render overschrijven met een gemeten waarde (de scroll-container kent zijn
+  // eigen breedte altijd correct, ongeacht dat soort viewport-verschillen).
+  function applyWideRowContentWidths() {
+    var scrollWrap = detailCardEl.querySelector('.items-scroll');
+    if (!scrollWrap || !scrollWrap.clientWidth) return;
+    var w = scrollWrap.clientWidth + 'px';
+    detailCardEl.querySelectorAll('.wide-row-content').forEach(function (el) { el.style.maxWidth = w; });
   }
 
   // ---------- Modus-tabs: Zoeken / Bekijken / Toevoegen ----------
