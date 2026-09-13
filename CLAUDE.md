@@ -277,6 +277,23 @@ toegang (geen aparte accounts per persoon).
   een in-/uitklap-icoontje (alleen zichtbaar als er een tracklist is) dat een extra rij toont; in de
   bewerk-modus van een item een eigen tekstvak (alleen bij Muziek-lijstjes, `auto_import` musicbrainz
   of discogs) om 'm handmatig te zetten/aan te passen.
+  **Aanvulling (2026-09-13, v1.17.0): los "Tracklist ophalen (Discogs)"-knopje** bij een item zonder
+  tracklist (dus ook bij items die via MusicBrainz zijn toegevoegd, waar nooit automatisch een
+  tracklist bijkomt) — zoekt op Discogs' `database/search`-endpoint (bevestigd: geen auth nodig,
+  wel `artist`+`release_title` als aparte parameters i.p.v. alles in één `q=` proppen, dat geeft
+  veel minder ruis) op reeksnaam (artiest) + itemtitel, optioneel versmald op vorm (`format=Vinyl`/
+  `CD`) als het item al eenduidig als LP XOF CD is aangevinkt. Toont een kandidatenlijst met
+  titel + jaar + vorm (bv. "1981 · Vinyl, LP, Compilation") — bewust GEEN coverthumbnail in deze
+  lijst, want Discogs' zoek-endpoint geeft (i.t.t. de collectie- en release-detail-endpoints) geen
+  omslagfoto's mee, en per kandidaat apart een release-detail ophalen voor alleen een thumbnail is
+  bij tientallen resultaten niet reëel. Pas ná het kiezen van één kandidaat wordt de volledige
+  release opgehaald (`GET /releases/{id}`, dezelfde aanroep als de bulkimport al gebruikt) —
+  toont dan alsnog de cover ter bevestiging, samen met de volledige tracklist, vóór je op
+  "Toevoegen" klikt. Aanleiding: "best of"-compilatiealbums bestaan vaak in 5-10+ Discogs-edities
+  (verschillende jaren/vormen) met soms afwijkende tracklists — silent auto-matchen op titel alleen
+  zou zomaar de verkeerde tracklist kunnen opleveren, dus een expliciete kandidatenkeuze (zelfde
+  patroon als de MusicBrainz-artiestkandidaten) is hier bewust gehandhaafd i.p.v. automatisch te
+  raden.
 - Strips-sjabloon (2026-09-13 herzien): generieke "In bezit" vervangen door "Fysiek"/"Digitaal",
   zelfde reden als bij Boeken (e-book/fysiek) — veel strips heeft de gebruiker in digitale vorm
   (CBR/CBZ, gelezen via een externe comicreader-app, zie hieronder), dus één generiek "in bezit"

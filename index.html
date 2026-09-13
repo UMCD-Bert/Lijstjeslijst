@@ -209,6 +209,18 @@
   .cover-search-candidate img { width: 100%; height: 84px; object-fit: cover; border-radius: 4px; }
   .cover-search-candidate small { font-size: 0.72rem; color: var(--muted); line-height: 1.2; }
   .import-msg.error { color: var(--danger); font-style: normal; }
+  .track-search-row { display: flex; flex-direction: column; gap: 10px; padding: 10px 0; }
+  .track-candidates { display: flex; flex-direction: column; gap: 2px; max-height: 280px; overflow-y: auto; border-top: 1px solid var(--border); padding-top: 8px; }
+  .track-candidate-btn {
+    display: flex; justify-content: space-between; gap: 10px; align-items: baseline; width: 100%;
+    text-align: left; border: none; background: none; padding: 7px 4px; border-radius: 6px;
+    font-size: 0.86rem; font-family: inherit; color: var(--ink); cursor: pointer;
+  }
+  .track-candidate-btn:hover { background: var(--accent-soft); }
+  .track-candidate-btn .tc-meta { color: var(--muted); font-size: 0.78rem; flex-shrink: 0; white-space: nowrap; }
+  .track-confirm-preview { display: flex; gap: 12px; align-items: flex-start; }
+  .track-confirm-preview img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; background: var(--surface-2); flex-shrink: 0; }
+  .track-confirm-tracklist { white-space: pre-wrap; font-size: 0.82rem; color: var(--ink); max-height: 220px; overflow-y: auto; flex: 1; margin: 0; }
 
   .reeks-row td { padding: 16px 4px 8px; border-bottom: none; }
   .reeks-row:first-child td { padding-top: 4px; }
@@ -337,7 +349,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.16.1';
+  var APP_VERSION = '1.17.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -364,7 +376,7 @@
   var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var state = {
     lijsten: [], items: [], reeksen: [], currentId: null, editingItem: null,
-    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, showAddGenestItem: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}
+    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, showAddGenestItem: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}, trackSearch: null
   };
 
   var gridEl = document.getElementById('grid');
@@ -937,7 +949,7 @@
 
   // ---------- Detail ----------
   function openDetail(id) {
-    state.currentId = id; state.editingItem = null; state.showFieldsEditor = false; state.importFlow = null; state.coverSearch = null;
+    state.currentId = id; state.editingItem = null; state.showFieldsEditor = false; state.importFlow = null; state.coverSearch = null; state.trackSearch = null;
     detailEl.hidden = false; gridEl.hidden = true; emptyStateEl.hidden = true; newListBtn.hidden = true;
     appHeaderEl.hidden = true;
     renderDetail();
@@ -1208,6 +1220,69 @@
         return tr;
       }
 
+      if (state.trackSearch && state.trackSearch.itemId === item.id) {
+        var ts = state.trackSearch;
+        var tsTd = document.createElement('td');
+        tsTd.colSpan = colCount; tsTd.className = 'edit-row-cell';
+        var tsWrap = document.createElement('div'); tsWrap.className = 'track-search-row';
+        var tsHeader = document.createElement('div'); tsHeader.className = 'import-actions';
+        var tsTitle = document.createElement('strong'); tsTitle.textContent = 'Tracklist zoeken (Discogs): ' + (item.titel || '');
+        var tsClose = document.createElement('button');
+        tsClose.type = 'button'; tsClose.className = 'btn-text'; tsClose.textContent = 'Sluiten';
+        tsClose.addEventListener('click', closeTrackSearch);
+        tsHeader.appendChild(tsTitle); tsHeader.appendChild(tsClose);
+        tsWrap.appendChild(tsHeader);
+        if (ts.loading) {
+          var tsLoading = document.createElement('p'); tsLoading.className = 'import-msg'; tsLoading.textContent = 'Bezig…';
+          tsWrap.appendChild(tsLoading);
+        } else if (ts.step === 'confirm' && ts.picked) {
+          var pk = ts.picked;
+          var preview = document.createElement('div'); preview.className = 'track-confirm-preview';
+          if (pk.coverUrl) {
+            var pkImg = document.createElement('img'); pkImg.src = pk.coverUrl; pkImg.alt = '';
+            preview.appendChild(pkImg);
+          }
+          var pkPre = document.createElement('pre'); pkPre.className = 'track-confirm-tracklist'; pkPre.textContent = pk.tracklist;
+          preview.appendChild(pkPre);
+          tsWrap.appendChild(preview);
+          if (ts.error) {
+            var tsErr2 = document.createElement('p'); tsErr2.className = 'import-msg error'; tsErr2.textContent = ts.error;
+            tsWrap.appendChild(tsErr2);
+          }
+          var tsConfirmActions = document.createElement('div'); tsConfirmActions.className = 'import-actions';
+          var tsConfirmBtn = document.createElement('button');
+          tsConfirmBtn.type = 'button'; tsConfirmBtn.className = 'btn-primary'; tsConfirmBtn.textContent = 'Toevoegen';
+          tsConfirmBtn.addEventListener('click', function () { confirmTrackPick(item); });
+          var tsBackBtn = document.createElement('button');
+          tsBackBtn.type = 'button'; tsBackBtn.className = 'btn-text'; tsBackBtn.textContent = '← Andere kandidaat';
+          tsBackBtn.addEventListener('click', function () { ts.step = 'candidates'; ts.picked = null; ts.error = ''; renderDetail(); });
+          tsConfirmActions.appendChild(tsConfirmBtn); tsConfirmActions.appendChild(tsBackBtn);
+          tsWrap.appendChild(tsConfirmActions);
+        } else {
+          if (ts.error) {
+            var tsErr = document.createElement('p'); tsErr.className = 'import-msg error'; tsErr.textContent = ts.error;
+            tsWrap.appendChild(tsErr);
+          }
+          if (ts.candidates.length) {
+            var tsList = document.createElement('div'); tsList.className = 'track-candidates';
+            ts.candidates.forEach(function (cand) {
+              var candBtn = document.createElement('button');
+              candBtn.type = 'button'; candBtn.className = 'track-candidate-btn';
+              var candLabel = document.createElement('span'); candLabel.textContent = cand.title;
+              var candMeta = document.createElement('span'); candMeta.className = 'tc-meta';
+              candMeta.textContent = [cand.year, (cand.formats || []).join(', ')].filter(Boolean).join(' · ');
+              candBtn.appendChild(candLabel); candBtn.appendChild(candMeta);
+              candBtn.addEventListener('click', function () { pickTrackCandidate(cand); });
+              tsList.appendChild(candBtn);
+            });
+            tsWrap.appendChild(tsList);
+          }
+        }
+        tsTd.appendChild(tsWrap);
+        tr.appendChild(tsTd);
+        return tr;
+      }
+
       var titleTd = document.createElement('td');
       titleTd.className = 'col-title';
       var titleCellInner = document.createElement('div');
@@ -1297,6 +1372,12 @@
         tracklistBtn.setAttribute('aria-label', tracklistBtn.title);
         tracklistBtn.addEventListener('click', function () { state.expandedTracklist[item.id] = !state.expandedTracklist[item.id]; renderDetail(); });
         itemActions.appendChild(tracklistBtn);
+      } else if (entry.auto_import === 'musicbrainz' || entry.auto_import === 'discogs') {
+        var trackSearchBtn = document.createElement('button');
+        trackSearchBtn.type = 'button'; trackSearchBtn.className = 'icon-btn'; trackSearchBtn.appendChild(tracklistSvg());
+        trackSearchBtn.title = 'Tracklist ophalen (Discogs)'; trackSearchBtn.setAttribute('aria-label', 'Tracklist ophalen via Discogs');
+        trackSearchBtn.addEventListener('click', function () { openTrackSearch(item); });
+        itemActions.appendChild(trackSearchBtn);
       }
       var editBtn = document.createElement('button');
       editBtn.type = 'button'; editBtn.className = 'icon-btn'; editBtn.innerHTML = '&#9998;';
@@ -1991,22 +2072,93 @@
 
   function sleep(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
 
-  async function fetchDiscogsTracklist(releaseId) {
+  async function fetchDiscogsReleaseDetail(releaseId) {
     try {
       var res = await fetch('https://api.discogs.com/releases/' + encodeURIComponent(releaseId));
       if (!res.ok) return null;
       var data = await res.json();
       var list = data.tracklist || [];
-      if (!list.length) return null;
-      return list.map(function (t) {
+      var tracklist = list.length ? list.map(function (t) {
         var pos = t.position ? t.position + '. ' : '';
         var dur = t.duration ? ' (' + t.duration + ')' : '';
         return (pos + (t.title || '') + dur).trim();
-      }).filter(Boolean).join('\n');
+      }).filter(Boolean).join('\n') : null;
+      var img = data.images && data.images.length ? (data.images[0].uri || data.images[0].resource_url) : null;
+      return { tracklist: tracklist, coverUrl: img || null };
     } catch (e) {
-      console.error('discogs tracklist fetch failed', e);
+      console.error('discogs release detail fetch failed', e);
       return null;
     }
+  }
+  async function fetchDiscogsTracklist(releaseId) {
+    var detail = await fetchDiscogsReleaseDetail(releaseId);
+    return detail ? detail.tracklist : null;
+  }
+
+  // ---------- Tracklist ophalen via Discogs (los, per item zonder tracklist) ----------
+  function openTrackSearch(item) {
+    state.trackSearch = { itemId: item.id, step: 'candidates', loading: true, error: '', candidates: [], picked: null };
+    renderDetail();
+    runTrackSearch(item);
+  }
+  function closeTrackSearch() { state.trackSearch = null; renderDetail(); }
+
+  async function runTrackSearch(item) {
+    var ts = state.trackSearch;
+    try {
+      var rk = item.reeks_id ? state.reeksen.find(function (r) { return r.id === item.reeks_id; }) : null;
+      var artist = rk ? rk.naam : '';
+      var lp = !!(item.vinkjes && item.vinkjes.lp), cd = !!(item.vinkjes && item.vinkjes.cd);
+      var formatParam = (lp && !cd) ? 'Vinyl' : ((cd && !lp) ? 'CD' : '');
+      var url = 'https://api.discogs.com/database/search?type=release'
+        + '&artist=' + encodeURIComponent(artist)
+        + '&release_title=' + encodeURIComponent(item.titel || '')
+        + (formatParam ? '&format=' + encodeURIComponent(formatParam) : '')
+        + '&per_page=20';
+      var res = await fetch(url);
+      var data = await res.json();
+      if (data.message) throw new Error(data.message);
+      ts.candidates = (data.results || []).map(function (r) {
+        return { id: r.id, title: r.title || '', year: r.year || null, formats: r.format || [] };
+      });
+      if (!ts.candidates.length) ts.error = 'Geen releases gevonden op Discogs voor "' + (item.titel || '') + '".';
+    } catch (e) {
+      console.error('discogs track search failed', e);
+      ts.error = 'Zoeken is niet gelukt. Probeer het later opnieuw.';
+    } finally {
+      ts.loading = false; renderDetail();
+    }
+  }
+
+  async function pickTrackCandidate(cand) {
+    var ts = state.trackSearch;
+    ts.loading = true; ts.error = ''; renderDetail();
+    try {
+      var detail = await fetchDiscogsReleaseDetail(cand.id);
+      if (!detail || !detail.tracklist) {
+        ts.error = 'Geen tracklist gevonden voor deze release. Probeer een andere.';
+        ts.loading = false; renderDetail();
+        return;
+      }
+      ts.picked = { id: cand.id, title: cand.title, year: cand.year, tracklist: detail.tracklist, coverUrl: detail.coverUrl };
+      ts.step = 'confirm';
+    } catch (e) {
+      console.error('discogs release detail failed', e);
+      ts.error = 'Ophalen is niet gelukt. Probeer het later opnieuw.';
+    } finally {
+      ts.loading = false; renderDetail();
+    }
+  }
+
+  async function confirmTrackPick(item) {
+    var ts = state.trackSearch;
+    var picked = ts.picked;
+    if (!picked) return;
+    var patch = { tracklist: picked.tracklist };
+    if (!item.omslag_url && picked.coverUrl) patch.omslag_url = picked.coverUrl;
+    state.trackSearch = null;
+    var result = await supabase.from('lijst_items').update(patch).eq('id', item.id);
+    refetchSoft(result);
   }
 
   async function importCommit(entry) {
