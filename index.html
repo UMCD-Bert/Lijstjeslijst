@@ -275,6 +275,7 @@
   .title-cell-inner { display: flex; align-items: center; gap: 8px; }
   .move-col { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
   .item-thumb { width: 30px; height: 42px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--surface-2); cursor: zoom-in; }
+  .edit-form-thumb { width: 52px; height: 52px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: var(--surface-2); cursor: zoom-in; }
   .lightbox-overlay {
     position: fixed; inset: 0; background: rgba(20,18,14,0.82); display: flex; align-items: center; justify-content: center;
     z-index: 1000; padding: 28px; cursor: zoom-out;
@@ -307,7 +308,7 @@
 
   .edit-form { flex: 1; display: flex; gap: 8px; flex-wrap: wrap; padding: 4px 0; }
   .edit-form input { border: 1px solid var(--accent); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 16px; color: var(--ink); flex: 1; min-width: 100px; }
-  .edit-form .field-row-textarea { border: 1px solid var(--accent); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 16px; color: var(--ink); flex: 1 1 100%; min-height: 70px; resize: vertical; }
+  .edit-form .field-row-textarea { border: 1px solid var(--accent); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 16px; color: var(--ink); flex: 1 1 100%; min-height: 200px; resize: vertical; }
   .edit-form-actions { display: flex; gap: 4px; }
 
   form.add-item { display: flex; gap: 10px; align-items: center; border-bottom: 1.5px dashed var(--border); padding-bottom: 16px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -322,7 +323,6 @@
     display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.1rem;
   }
 
-  .detail-footer { display: flex; justify-content: flex-end; margin-top: 4px; }
   .app-version { text-align: center; color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; margin-top: 28px; opacity: 0.7; }
   .status-note { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.94rem; }
   .install-hint { margin: 0 0 22px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--accent-soft);
@@ -359,7 +359,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.17.1';
+  var APP_VERSION = '1.18.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -1140,6 +1140,12 @@
         editTd.colSpan = colCount; editTd.className = 'edit-row-cell';
         var form = document.createElement('form');
         form.className = 'edit-form wide-row-content';
+        if (item.omslag_url) {
+          var editThumb = document.createElement('img');
+          editThumb.className = 'edit-form-thumb'; editThumb.src = item.omslag_url; editThumb.alt = '';
+          editThumb.addEventListener('click', function (e) { e.preventDefault(); openLightbox(item.omslag_url); });
+          form.appendChild(editThumb);
+        }
         var titelInput = document.createElement('input');
         titelInput.value = item.titel || ''; titelInput.placeholder = 'Titel'; titelInput.dataset.key = '__titel';
         form.appendChild(titelInput);
@@ -1547,13 +1553,6 @@
       dbody.appendChild(buildItemsTable(items, fullItems, fullItems.length ? 'Geen items met dit filter.' : 'Nog geen items op dit lijstje.'));
     }
 
-    var footer = document.createElement('div');
-    footer.className = 'detail-footer';
-    var delListBtn = document.createElement('button');
-    delListBtn.type = 'button'; delListBtn.className = 'btn-text danger'; delListBtn.textContent = 'Verwijder lijstje';
-    delListBtn.addEventListener('click', function () { deleteList(entry.id, entry.naam); });
-    footer.appendChild(delListBtn);
-    dbody.appendChild(footer);
 
     detailCardEl.appendChild(dbody);
 

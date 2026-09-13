@@ -327,7 +327,17 @@ toegang (geen aparte accounts per persoon).
   nieuwe regel omslaan i.p.v. buiten beeld doorlopen. Dit soort bug valt niet op in de Claude
   Browser-testtool op standaardbreedte — moet je expliciet op een smalle viewport (bv. 375px)
   testen, of zoals hier: een screenshot van de gebruiker zelf.
-- App-header (logo/tagline/"Nieuw lijstje") verdwijnt in de lijst-detailweergave (alleen "← Alle
+- **Lijstje verwijderen alleen nog op de hoofdpagina (2026-09-13, v1.18.0)**: het rode "Verwijder
+  lijstje"-linkje onderaan de detailweergave is verwijderd — de hoofdpagina heeft per lijstje al
+  een ✕-knop met dezelfde bevestigingsvraag (`deleteList()`, "kan niet ongedaan gemaakt worden"),
+  dus dit was een pure duplicaat op een plek die zelf minder voor de hand lag. Aanleiding: expliciet
+  gemeld dat verwijderen intuïtief bij het overzicht hoort, niet in de detailweergave van het
+  lijstje zelf.
+- **Item bewerk-form: cover-thumbnail + grotere tracklist (2026-09-13, v1.18.0)**: het inline
+  bewerkformulier van een item toonde geen omslagfoto (wel aanwezig in de gewone rij-weergave via
+  `.item-thumb`) — nu ook een kleine (52×52) thumbnail vooraan in het formulier als het item een
+  cover heeft, met dezelfde klik-voor-lightbox-interactie. Tracklist-tekstvak ging van
+  `min-height:70px` (~3 zichtbare regels, te weinig voor een LP-kant met 8-12 tracks) naar 200px. (logo/tagline/"Nieuw lijstje") verdwijnt in de lijst-detailweergave (alleen "← Alle
   lijstjes" + lijstnaam) — was op iPhone te veel verloren ruimte vóór je daadwerkelijk items ziet.
   Lege omslagfoto-placeholder in detailweergave vervangen door een smal "+ Omslagfoto toevoegen"-
   linkje i.p.v. een grote lege blok van 140px+.
