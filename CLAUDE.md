@@ -327,6 +327,17 @@ toegang (geen aparte accounts per persoon).
   nieuwe regel omslaan i.p.v. buiten beeld doorlopen. Dit soort bug valt niet op in de Claude
   Browser-testtool op standaardbreedte — moet je expliciet op een smalle viewport (bv. 375px)
   testen, of zoals hier: een screenshot van de gebruiker zelf.
+  **Aanvulling (2026-09-13, v1.20.0): vinkjes ook in het toevoeg- en bewerkformulier** — de
+  vinkjes-kolommen zelf zijn nog steeds niet sticky (bewuste keuze, zie hierboven: alleen titel-/
+  actieskolom zijn sticky, de vinkjeskolommen mogen gewoon meescrollen), maar bleken daardoor op
+  iPhone praktisch onbereikbaar: geen zichtbare hint dat er meer kolommen waren om naar toe te
+  scrollen. Concreet gemeld: "ik kan nergens het medium (CD/vinyl) zien of aanpassen, niet op
+  iPhone". Losse checkbox-set (`buildVinkjesFieldset()`, hergebruikt `.checkbox`-stijl uit de
+  tabel) nu ook in: het toevoegformulier (nieuw item meteen met het juiste vinkje aanmaken i.p.v.
+  altijd ongevinkt beginnen — aanleiding: "is het niet logisch om bij toevoegen van muziek het
+  medium gelijk aan te geven?") én het item-bewerkformulier (bestaand item aanpassen zonder de
+  tabel te hoeven scrollen). Generiek op basis van `vink_velden`, dus geldt voor elk lijsttype
+  (Boeken: E-book/Fysiek/Gelezen, Strips: Fysiek/Digitaal/Gelezen, niet alleen Muziek LP/CD).
 - **Lijstje verwijderen alleen nog op de hoofdpagina (2026-09-13, v1.18.0)**: het rode "Verwijder
   lijstje"-linkje onderaan de detailweergave is verwijderd — de hoofdpagina heeft per lijstje al
   een ✕-knop met dezelfde bevestigingsvraag (`deleteList()`, "kan niet ongedaan gemaakt worden"),

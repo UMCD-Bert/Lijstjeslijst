@@ -302,6 +302,9 @@
     transition: stroke-dashoffset 0.2s ease; stroke-linecap: round; stroke-linejoin: round; }
   .checkbox.checked { background: var(--accent); border-color: var(--accent); }
   .checkbox.checked svg { stroke-dashoffset: 0; }
+  .form-vinkjes-row { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; flex: 1 1 100%; }
+  .form-vinkje { display: flex; align-items: center; gap: 7px; font-size: 0.86rem; color: var(--ink); cursor: pointer; }
+  .form-vinkje .checkbox { margin: 0; }
   @media (prefers-reduced-motion: reduce) { .checkbox svg, .card, .card-controls, .icon-btn { transition: none; } }
   .item-main { flex: 1; min-width: 0; display: flex; flex-direction: column; cursor: pointer; padding: 2px 0; }
   .item-primary { font-size: 0.98rem; overflow-wrap: anywhere; }
@@ -365,7 +368,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.19.1';
+  var APP_VERSION = '1.20.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -419,6 +422,39 @@
     path.setAttribute('d', 'M3 8.5L6.2 12L13 4');
     svg.appendChild(path);
     return svg;
+  }
+
+  // Herbruikbare set vinkje-toggles voor toevoeg-/bewerkformulieren (zelfde .checkbox-stijl als de
+  // tabel) — zodat je bv. bij Muziek meteen LP/CD kunt zetten i.p.v. altijd ongevinkt te starten en
+  // achteraf de tabelkolom te moeten opzoeken (die op iPhone buiten beeld valt zonder te scrollen).
+  function buildVinkjesFieldset(vinkVelden, currentVinkjes) {
+    var wrap = document.createElement('div'); wrap.className = 'form-vinkjes-row';
+    var boxes = {};
+    (vinkVelden || []).forEach(function (vk) {
+      var item = document.createElement('label'); item.className = 'form-vinkje';
+      var checked = !!(currentVinkjes && currentVinkjes[vk.key]);
+      var box = document.createElement('button');
+      box.type = 'button'; box.className = 'checkbox' + (checked ? ' checked' : '');
+      box.setAttribute('aria-pressed', checked ? 'true' : 'false');
+      box.appendChild(checkSvg());
+      box.addEventListener('click', function () {
+        var next = !box.classList.contains('checked');
+        box.classList.toggle('checked', next);
+        box.setAttribute('aria-pressed', next ? 'true' : 'false');
+      });
+      boxes[vk.key] = box;
+      var span = document.createElement('span'); span.textContent = vk.label;
+      item.appendChild(box); item.appendChild(span);
+      wrap.appendChild(item);
+    });
+    return {
+      wrap: wrap,
+      values: function () {
+        var out = {};
+        Object.keys(boxes).forEach(function (k) { out[k] = boxes[k].classList.contains('checked'); });
+        return out;
+      }
+    };
   }
 
   function cameraSvg() {
@@ -650,6 +686,8 @@
       return inp;
     });
     extraInputs.forEach(function (inp) { fieldsWrap.appendChild(inp); });
+    var vinkjesFieldset = buildVinkjesFieldset(entry.vink_velden, null);
+    if ((entry.vink_velden || []).length) fieldsWrap.appendChild(vinkjesFieldset.wrap);
     var submitBtn = document.createElement('button');
     submitBtn.type = 'submit'; submitBtn.className = 'submit-btn'; submitBtn.innerHTML = '&#43;';
     submitBtn.setAttribute('aria-label', 'Item toevoegen');
@@ -660,12 +698,14 @@
       if (!titel) return;
       var extra = {};
       extraInputs.forEach(function (inp) { extra[inp.dataset.key] = inp.value.trim() || null; });
-      var vinkjes = {};
-      (entry.vink_velden || []).forEach(function (vk) { vinkjes[vk.key] = false; });
+      var vinkjes = vinkjesFieldset.values();
       var payload = { lijst_id: entry.id, titel: titel, extra: extra, vinkjes: vinkjes, volgorde: Date.now() };
       supabase.from('lijst_items').insert(payload).then(refetchSoft);
       titelInput.value = '';
       extraInputs.forEach(function (inp) { inp.value = ''; });
+      vinkjesFieldset.wrap.querySelectorAll('.checkbox.checked').forEach(function (box) {
+        box.classList.remove('checked'); box.setAttribute('aria-pressed', 'false');
+      });
       titelInput.focus();
     });
     return form;
@@ -700,6 +740,9 @@
     });
     form.appendChild(reeksDatalist);
 
+    var vinkjesFieldset = buildVinkjesFieldset(entry.vink_velden, null);
+    if ((entry.vink_velden || []).length) form.appendChild(vinkjesFieldset.wrap);
+
     var actions = document.createElement('div'); actions.className = 'edit-form-actions';
     var submitBtn = document.createElement('button');
     submitBtn.type = 'submit'; submitBtn.className = 'btn-primary'; submitBtn.textContent = 'Toevoegen';
@@ -719,8 +762,7 @@
       if (reeksRes.error || !reeksRes.data) { console.error(reeksRes.error); window.alert('Er ging iets mis bij het opslaan.'); return; }
       var extra = {};
       (entry.extra_velden || []).forEach(function (f, i) { extra[f.key] = extraInputs[i].value.trim() || null; });
-      var vinkjes = {};
-      (entry.vink_velden || []).forEach(function (vk) { vinkjes[vk.key] = false; });
+      var vinkjes = vinkjesFieldset.values();
       var result = await supabase.from('lijst_items').insert({
         lijst_id: entry.id, titel: titel, extra: extra, vinkjes: vinkjes, reeks_id: reeksRes.data.id, volgorde: Date.now()
       });
@@ -1174,6 +1216,8 @@
           tracklistInput.className = 'field-row-textarea';
           form.appendChild(tracklistInput);
         }
+        var editVinkjesFieldset = buildVinkjesFieldset(entry.vink_velden, item.vinkjes);
+        if ((entry.vink_velden || []).length) form.appendChild(editVinkjesFieldset.wrap);
         var actions = document.createElement('div');
         actions.className = 'edit-form-actions';
         var saveBtn = document.createElement('button');
@@ -1189,7 +1233,7 @@
           if (!titel) return;
           var extra = {};
           extraInputs.forEach(function (inp) { extra[inp.dataset.key] = inp.value.trim() || null; });
-          var patch = { titel: titel, extra: extra };
+          var patch = { titel: titel, extra: extra, vinkjes: editVinkjesFieldset.values() };
           if (reeksSelect) patch.reeks_id = parseInt(reeksSelect.value, 10);
           if (tracklistInput) patch.tracklist = tracklistInput.value.trim() || null;
           supabase.from('lijst_items').update(patch).eq('id', item.id).then(refetchSoft);
