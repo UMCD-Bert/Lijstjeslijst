@@ -74,13 +74,17 @@ toegang (geen aparte accounts per persoon).
   on delete cascade), `naam`, `omslag_url` (nog niet gebruikt in UI), `volgorde`. Puur generiek
   concept: een reeks kan een auteur zijn, maar net zo goed een boekenserie (bv. reisgidsen) waar de
   auteur juist niet relevant is — de gebruiker kiest zelf de naam, er zit geen vast "type" achter.
-  Een `genest` lijstje toont per reeks: een kop (in-/uitklap-driehoekje, rename, itemaantal, evt.
-  Open Library-zoekicoon, verplaats/verwijder — verwijderen cascadeert naar de items erin) buiten de
-  tabel, dan (als niet ingeklapt) een eigen items-tabel (sticky kolommen, alleen die reeks) — elk
-  reeks-blok dus zelfstandig, GEEN gedeelde tabel over meerdere reeksen heen (gaf op iPhone een
-  verwarrende, te smalle horizontaal-scrollbare strook). In-/uitklappen is puur UI-state
-  (`state.collapsedReeks`, niet in de DB) en wordt genegeerd zodra er een actieve zoekopdracht of
-  filter is (anders zou een ingeklapte reeks zoekresultaten verbergen). Toevoegen gaat via ÉÉN
+  Een `genest` lijstje toont ÉÉN gedeelde tabel (kolomkoppen dus maar 1x, niet per reeks herhaald —
+  eerdere aanpak met een aparte tabel per reeks werd hierop afgekeurd: "kolomnamen per auteur kost
+  veel te veel ruimte"), met per reeks een kop-rij (in-/uitklap-driehoekje, rename, itemaantal, evt.
+  Open Library-zoekicoon, verplaats/verwijder — verwijderen cascadeert naar de items erin) gevolgd
+  door (als niet ingeklapt) de items van die reeks. De eerdere "aparte tabel per reeks"-opzet loste
+  toen wel een ander probleem op (mini-formulieren per reeks die op iPhone een te smalle
+  horizontaal-scrollbare strook gaven) — dat probleem keert niet terug omdat toevoegen inmiddels via
+  de ÉÉN gedeelde "+ Toevoegen"-knop gaat (zie verderop), niet meer via per-reeks formulieren in de
+  tabel. In-/uitklappen is puur UI-state (`state.collapsedReeks`, niet in de DB) en wordt genegeerd
+  zodra er een actieve zoekopdracht of filter is (anders zou een ingeklapte reeks zoekresultaten
+  verbergen). Toevoegen gaat via ÉÉN
   gedeelde "+ Toevoegen"-knop onderaan de hele lijst (niet per reeks) — opent een klein formulier
   met titel + een reeks-`<select>` (bestaande reeksen + een "+ Nieuwe reeks…"-optie die een naamveld
   toont); dit verving eerdere losse mini-formulieren per reeks plus een apart "+ Nieuwe reeks"-vak,

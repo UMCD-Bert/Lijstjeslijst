@@ -212,7 +212,9 @@
   .cover-search-candidate small { font-size: 0.72rem; color: var(--muted); line-height: 1.2; }
   .import-msg.error { color: var(--danger); font-style: normal; }
 
-  .reeks-header { display: flex; align-items: center; gap: 6px; margin: 22px 0 8px; flex-wrap: wrap; }
+  .reeks-row td { padding: 16px 4px 8px; border-bottom: none; }
+  .reeks-row:first-child td { padding-top: 4px; }
+  .reeks-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .reeks-collapse-btn { width: 20px; height: 20px; border: none; background: none; color: var(--muted); flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; padding: 0; font-size: 0.8rem; line-height: 0; }
   .reeks-collapse-btn:hover { color: var(--ink); }
@@ -317,7 +319,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.6.0';
+  var APP_VERSION = '1.6.1';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -862,31 +864,39 @@
     var vinkVelden = entry.vink_velden || [];
     var colCount = 2 + vinkVelden.length;
 
-    function buildItemsTable(rowItems, orderItems, emptyMsg) {
+    function buildThead() {
+      if (!vinkVelden.length) return null;
+      var thead = document.createElement('thead');
+      var headRow = document.createElement('tr');
+      var titleTh = document.createElement('th');
+      titleTh.className = 'col-title col-title-head';
+      headRow.appendChild(titleTh);
+      vinkVelden.forEach(function (vk) {
+        var th = document.createElement('th');
+        th.className = 'col-check'; th.textContent = vk.label;
+        headRow.appendChild(th);
+      });
+      var actionsTh = document.createElement('th');
+      actionsTh.className = 'col-actions col-actions-head';
+      headRow.appendChild(actionsTh);
+      thead.appendChild(headRow);
+      return thead;
+    }
+
+    function buildTableShell() {
       var scrollWrap = document.createElement('div');
       scrollWrap.className = 'items-scroll';
       var table = document.createElement('table');
       table.className = 'items-table';
       table.style.minWidth = (180 + vinkVelden.length * 54 + 90) + 'px';
+      var thead = buildThead();
+      if (thead) table.appendChild(thead);
+      scrollWrap.appendChild(table);
+      return { scrollWrap: scrollWrap, table: table };
+    }
 
-      if (vinkVelden.length) {
-        var thead = document.createElement('thead');
-        var headRow = document.createElement('tr');
-        var titleTh = document.createElement('th');
-        titleTh.className = 'col-title col-title-head';
-        headRow.appendChild(titleTh);
-        vinkVelden.forEach(function (vk) {
-          var th = document.createElement('th');
-          th.className = 'col-check'; th.textContent = vk.label;
-          headRow.appendChild(th);
-        });
-        var actionsTh = document.createElement('th');
-        actionsTh.className = 'col-actions col-actions-head';
-        headRow.appendChild(actionsTh);
-        thead.appendChild(headRow);
-        table.appendChild(thead);
-      }
-
+    function buildItemsTable(rowItems, orderItems, emptyMsg) {
+      var shell = buildTableShell();
       var tbody = document.createElement('tbody');
       if (!rowItems.length) {
         var emptyRow = document.createElement('tr');
@@ -898,9 +908,8 @@
       } else {
         rowItems.forEach(function (item) { tbody.appendChild(buildItemRow(item, orderItems)); });
       }
-      table.appendChild(tbody);
-      scrollWrap.appendChild(table);
-      return scrollWrap;
+      shell.table.appendChild(tbody);
+      return shell.scrollWrap;
     }
 
     function buildItemRow(item, orderItems) {
@@ -1094,6 +1103,54 @@
 
     var reeksImportSources = { openlibrary: true };
 
+    function buildReeksHeaderRow(reeks, ridx, reeksen, groupFull, collapsed) {
+      var headRow = document.createElement('tr'); headRow.className = 'reeks-row';
+      var headTd = document.createElement('td'); headTd.colSpan = colCount;
+      var headerWrap = document.createElement('div'); headerWrap.className = 'reeks-header';
+      var collapseBtn = document.createElement('button');
+      collapseBtn.type = 'button'; collapseBtn.className = 'reeks-collapse-btn'; collapseBtn.innerHTML = collapsed ? '&#9656;' : '&#9662;';
+      collapseBtn.setAttribute('aria-label', collapsed ? 'Reeks uitklappen' : 'Reeks inklappen');
+      collapseBtn.addEventListener('click', function () { state.collapsedReeks[reeks.id] = !state.collapsedReeks[reeks.id]; renderDetail(); });
+      headerWrap.appendChild(collapseBtn);
+      var nameInput = document.createElement('input');
+      nameInput.className = 'reeks-name-input'; nameInput.value = reeks.naam;
+      nameInput.setAttribute('aria-label', 'Naam van de reeks');
+      nameInput.addEventListener('blur', function () { renameReeks(reeks, nameInput.value.trim()); });
+      nameInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') nameInput.blur();
+        if (e.key === 'Escape') { nameInput.value = reeks.naam; nameInput.blur(); }
+      });
+      headerWrap.appendChild(nameInput);
+      var actionsWrap = document.createElement('div'); actionsWrap.className = 'reeks-actions';
+      var countBadge = document.createElement('span'); countBadge.className = 'count-tag';
+      countBadge.textContent = groupFull.length ? (groupFull.length + (groupFull.length === 1 ? ' item' : ' items')) : 'leeg';
+      actionsWrap.appendChild(countBadge);
+      if (reeksImportSources[entry.auto_import]) {
+        var searchBtn = document.createElement('button');
+        searchBtn.type = 'button'; searchBtn.className = 'icon-btn'; searchBtn.appendChild(coverSearchSvg());
+        searchBtn.title = 'Titels zoeken op Open Library'; searchBtn.setAttribute('aria-label', 'Titels zoeken op Open Library voor ' + reeks.naam);
+        searchBtn.addEventListener('click', function () { openImportFlow(entry, reeks); });
+        actionsWrap.appendChild(searchBtn);
+      }
+      var rUpBtn = document.createElement('button');
+      rUpBtn.type = 'button'; rUpBtn.className = 'move-btn'; rUpBtn.innerHTML = '&#9650;';
+      rUpBtn.title = 'Verplaats reeks omhoog'; rUpBtn.setAttribute('aria-label', 'Verplaats reeks omhoog'); rUpBtn.disabled = ridx === 0;
+      rUpBtn.addEventListener('click', function () { moveReeks(reeksen, reeks, -1); });
+      var rDownBtn = document.createElement('button');
+      rDownBtn.type = 'button'; rDownBtn.className = 'move-btn'; rDownBtn.innerHTML = '&#9660;';
+      rDownBtn.title = 'Verplaats reeks omlaag'; rDownBtn.setAttribute('aria-label', 'Verplaats reeks omlaag'); rDownBtn.disabled = ridx === reeksen.length - 1;
+      rDownBtn.addEventListener('click', function () { moveReeks(reeksen, reeks, 1); });
+      var rDelBtn = document.createElement('button');
+      rDelBtn.type = 'button'; rDelBtn.className = 'icon-btn danger'; rDelBtn.innerHTML = '&#10005;';
+      rDelBtn.title = 'Verwijder reeks'; rDelBtn.setAttribute('aria-label', 'Verwijder reeks ' + reeks.naam);
+      rDelBtn.addEventListener('click', function () { deleteReeks(reeks); });
+      actionsWrap.appendChild(rUpBtn); actionsWrap.appendChild(rDownBtn); actionsWrap.appendChild(rDelBtn);
+      headerWrap.appendChild(actionsWrap);
+      headTd.appendChild(headerWrap);
+      headRow.appendChild(headTd);
+      return headRow;
+    }
+
     function renderNestedItems(filtered, fullItemsAll) {
       var reeksen = reeksenFor(entry.id);
 
@@ -1101,76 +1158,54 @@
         var noReeksP = document.createElement('p'); noReeksP.className = 'items-empty';
         noReeksP.textContent = 'Nog niets toegevoegd. Gebruik de knop hieronder om te beginnen.';
         dbody.appendChild(noReeksP);
+        return;
       }
 
       var hasActiveQuery = !!(state.search[entry.id] || '').trim() || hasActiveFilter(entry);
+      var shell = buildTableShell();
+      var tbody = document.createElement('tbody');
 
       reeksen.forEach(function (reeks, ridx) {
         var groupItems = filtered.filter(function (i) { return i.reeks_id === reeks.id; });
         var groupFull = fullItemsAll.filter(function (i) { return i.reeks_id === reeks.id; });
         var collapsed = !!state.collapsedReeks[reeks.id] && !hasActiveQuery;
 
-        var headerWrap = document.createElement('div'); headerWrap.className = 'reeks-header';
-        var collapseBtn = document.createElement('button');
-        collapseBtn.type = 'button'; collapseBtn.className = 'reeks-collapse-btn'; collapseBtn.innerHTML = collapsed ? '&#9656;' : '&#9662;';
-        collapseBtn.setAttribute('aria-label', collapsed ? 'Reeks uitklappen' : 'Reeks inklappen');
-        collapseBtn.addEventListener('click', function () { state.collapsedReeks[reeks.id] = !state.collapsedReeks[reeks.id]; renderDetail(); });
-        headerWrap.appendChild(collapseBtn);
-        var nameInput = document.createElement('input');
-        nameInput.className = 'reeks-name-input'; nameInput.value = reeks.naam;
-        nameInput.setAttribute('aria-label', 'Naam van de reeks');
-        nameInput.addEventListener('blur', function () { renameReeks(reeks, nameInput.value.trim()); });
-        nameInput.addEventListener('keydown', function (e) {
-          if (e.key === 'Enter') nameInput.blur();
-          if (e.key === 'Escape') { nameInput.value = reeks.naam; nameInput.blur(); }
-        });
-        headerWrap.appendChild(nameInput);
-        var actionsWrap = document.createElement('div'); actionsWrap.className = 'reeks-actions';
-        var countBadge = document.createElement('span'); countBadge.className = 'count-tag';
-        countBadge.textContent = groupFull.length ? (groupFull.length + (groupFull.length === 1 ? ' item' : ' items')) : 'leeg';
-        actionsWrap.appendChild(countBadge);
-        if (reeksImportSources[entry.auto_import]) {
-          var searchBtn = document.createElement('button');
-          searchBtn.type = 'button'; searchBtn.className = 'icon-btn'; searchBtn.appendChild(coverSearchSvg());
-          searchBtn.title = 'Titels zoeken op Open Library'; searchBtn.setAttribute('aria-label', 'Titels zoeken op Open Library voor ' + reeks.naam);
-          searchBtn.addEventListener('click', function () { openImportFlow(entry, reeks); });
-          actionsWrap.appendChild(searchBtn);
-        }
-        var rUpBtn = document.createElement('button');
-        rUpBtn.type = 'button'; rUpBtn.className = 'move-btn'; rUpBtn.innerHTML = '&#9650;';
-        rUpBtn.title = 'Verplaats reeks omhoog'; rUpBtn.setAttribute('aria-label', 'Verplaats reeks omhoog'); rUpBtn.disabled = ridx === 0;
-        rUpBtn.addEventListener('click', function () { moveReeks(reeksen, reeks, -1); });
-        var rDownBtn = document.createElement('button');
-        rDownBtn.type = 'button'; rDownBtn.className = 'move-btn'; rDownBtn.innerHTML = '&#9660;';
-        rDownBtn.title = 'Verplaats reeks omlaag'; rDownBtn.setAttribute('aria-label', 'Verplaats reeks omlaag'); rDownBtn.disabled = ridx === reeksen.length - 1;
-        rDownBtn.addEventListener('click', function () { moveReeks(reeksen, reeks, 1); });
-        var rDelBtn = document.createElement('button');
-        rDelBtn.type = 'button'; rDelBtn.className = 'icon-btn danger'; rDelBtn.innerHTML = '&#10005;';
-        rDelBtn.title = 'Verwijder reeks'; rDelBtn.setAttribute('aria-label', 'Verwijder reeks ' + reeks.naam);
-        rDelBtn.addEventListener('click', function () { deleteReeks(reeks); });
-        actionsWrap.appendChild(rUpBtn); actionsWrap.appendChild(rDownBtn); actionsWrap.appendChild(rDelBtn);
-        headerWrap.appendChild(actionsWrap);
-        dbody.appendChild(headerWrap);
+        tbody.appendChild(buildReeksHeaderRow(reeks, ridx, reeksen, groupFull, collapsed));
 
         if (state.importFlow && state.importFlow.listId === entry.id && state.importFlow.reeksId === reeks.id) {
-          dbody.appendChild(buildImportPanel(entry));
+          openImportReeks = reeks;
+          var impRow = document.createElement('tr'); impRow.className = 'reeks-row';
+          var impTd = document.createElement('td'); impTd.colSpan = colCount;
+          impTd.appendChild(buildImportPanel(entry));
+          impRow.appendChild(impTd);
+          tbody.appendChild(impRow);
         }
 
         if (!collapsed) {
-          dbody.appendChild(buildItemsTable(groupItems, groupFull, groupFull.length ? 'Geen items met dit filter.' : 'Nog geen items in deze reeks.'));
+          if (!groupItems.length) {
+            var gEmptyRow = document.createElement('tr');
+            var gEmptyTd = document.createElement('td');
+            gEmptyTd.colSpan = colCount; gEmptyTd.className = 'items-empty';
+            gEmptyTd.textContent = groupFull.length ? 'Geen items met dit filter.' : 'Nog geen items in deze reeks.';
+            gEmptyRow.appendChild(gEmptyTd); tbody.appendChild(gEmptyRow);
+          } else {
+            groupItems.forEach(function (item) { tbody.appendChild(buildItemRow(item, groupFull)); });
+          }
         }
       });
 
       var orphanItems = filtered.filter(function (i) { return !i.reeks_id; });
       if (orphanItems.length) {
         var orphanFull = fullItemsAll.filter(function (i) { return !i.reeks_id; });
-        var oHeaderWrap = document.createElement('div'); oHeaderWrap.className = 'reeks-header';
+        var oHeadRow = document.createElement('tr'); oHeadRow.className = 'reeks-row';
+        var oHeadTd = document.createElement('td'); oHeadTd.colSpan = colCount;
         var oLabel = document.createElement('span'); oLabel.className = 'reeks-label-plain'; oLabel.textContent = 'Zonder reeks';
-        oHeaderWrap.appendChild(oLabel);
-        dbody.appendChild(oHeaderWrap);
-        dbody.appendChild(buildItemsTable(orphanItems, orphanFull, 'Geen items met dit filter.'));
+        oHeadTd.appendChild(oLabel); oHeadRow.appendChild(oHeadTd); tbody.appendChild(oHeadRow);
+        orphanItems.forEach(function (item) { tbody.appendChild(buildItemRow(item, orphanFull)); });
       }
 
+      shell.table.appendChild(tbody);
+      dbody.appendChild(shell.scrollWrap);
     }
 
     if (entry.genest) {
