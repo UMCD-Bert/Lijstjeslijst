@@ -62,8 +62,8 @@ toegang (geen aparte accounts per persoon).
   Lijst/Aangepast), `auto_import` (`openlibrary`/`musicbrainz`/`discogs`/`bgg`/null — `bgg` nog niet
   gebouwd), `bgg_username` (alleen relevant zodra BGG-import gebouwd wordt), `discogs_username`
   (alleen relevant bij `auto_import: 'discogs'`), `genest` (boolean, default false — generieke
-  aan/uit-schakelaar voor een echte 1:n-structuur reeks→albums, zie hieronder; Strips- én
-  Boeken-preset zetten 'm standaard aan, geen UI-toggle voor andere lijsttypes gebouwd want niet
+  aan/uit-schakelaar voor een echte 1:n-structuur reeks→albums, zie hieronder; Strips-, Boeken- én
+  Muziek-preset zetten 'm standaard aan, geen UI-toggle voor andere lijsttypes gebouwd want niet
   gevraagd).
 - `lijst_items`: lijst_id (FK, on delete cascade), titel, `extra` (jsonb, matcht keys uit
   `extra_velden`), `vinkjes` (jsonb, matcht keys uit `vink_velden`), `omslag_url` (foto per item,
@@ -77,7 +77,8 @@ toegang (geen aparte accounts per persoon).
   Een `genest` lijstje toont ÉÉN gedeelde tabel (kolomkoppen dus maar 1x, niet per reeks herhaald —
   eerdere aanpak met een aparte tabel per reeks werd hierop afgekeurd: "kolomnamen per auteur kost
   veel te veel ruimte"), met per reeks een kop-rij (in-/uitklap-driehoekje, rename, itemaantal, evt.
-  Open Library-zoekicoon, verplaats/verwijder — verwijderen cascadeert naar de items erin) gevolgd
+  Open Library-/MusicBrainz-zoekicoon, afhankelijk van `auto_import` — zie reeksImportSources in de
+  code, verplaats/verwijder — verwijderen cascadeert naar de items erin) gevolgd
   door (als niet ingeklapt) de items van die reeks. De eerdere "aparte tabel per reeks"-opzet loste
   toen wel een ander probleem op (mini-formulieren per reeks die op iPhone een te smalle
   horizontaal-scrollbare strook gaven) — dat probleem keert niet terug omdat toevoegen inmiddels via
@@ -138,6 +139,19 @@ toegang (geen aparte accounts per persoon).
   (alle werken van de auteur, ongeacht taal) met een duidelijke melding dat de titels mogelijk niet
   Nederlands zijn — beter een te ruime lijst waaruit de gebruiker zelf kiest dan een dichtgetimmerd
   "niets gevonden".
+- Muziek-sjabloon (2026-09-13, "artiest = reeks = auteur"): zelfde `genest`-aanpak als Boeken —
+  `genest: true`, geen los "Artiest"-tekstveld meer, groeperen gebeurt via `reeksen` (elke reeks =
+  één artiest). Vinkjes: In bezit, plus LP en CD naast elkaar (los van elkaar aan te vinken, want
+  eenzelfde album kan in beide formaten in bezit zijn) — toegevoegd op uitdrukkelijk verzoek, want
+  een collectie bevat beide fysieke vormen en dat onderscheid moet filterbaar blijven. Discogs'
+  collection-endpoint geeft het/de formaat(en) van een release al mee in dezelfde call als de rest
+  (`basic_information.formats[].name`, bv. "Vinyl"/"CD") — geen aparte aanroep per release nodig.
+  Bestaande 162 items gemigreerd: 88 reeksen (één per unieke artiestwaarde) aangemaakt, LP/CD per
+  item teruggehaald uit de live Discogs-collectie en ingevuld. De Discogs-bulkimport (importeert in
+  één keer de hele collectie, geen per-reeks handeling) matcht of maakt voortaan zelf een reeks per
+  artiestnaam en zet LP/CD automatisch op basis van het Discogs-formaat — geen handwerk bij een
+  nieuwe import. De MusicBrainz-zoekicoon in de reeks-kop (voor wishlist-items die je nog niet in
+  bezit hebt) werkt nu net als bij Boeken/Strips: zoekt direct op de artiestnaam van die reeks.
 - Items worden getoond als een tabel (`.items-table` in `.items-scroll`, `overflow-x:auto`):
   titelkolom sticky links, vinkjes-koppen (E-book/Auteur/etc.) ÉÉN keer bovenaan i.p.v. per rij
   herhaald, actieskolom (foto/bewerk/verwijder) sticky rechts. Tabelbreedte wordt expliciet in JS
@@ -229,3 +243,9 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   mini-formulieren + los "Nieuwe reeks"-vak vervangen door één "+ Toevoegen"-knop met reeks-kiezer,
   en reeksen zijn nu in-/uitklapbaar (met itemaantal in de kop) — geldt ook voor Strips, zelfde
   gedeelde code.
+- ~~Muziek: reeks/auteur-structuur doorgevoerd~~ — gebouwd (2026-09-13, zie Datamodel/
+  Muziek-sjabloon hierboven). Zelfde `genest`-aanpak als Boeken/Strips, artiest = reeks. Op
+  verzoek ook meteen het LP/CD-onderscheid toegevoegd (twee losse vinkjes naast "In bezit"),
+  automatisch gevuld uit de Discogs-collectie bij de migratie en voortaan ook automatisch gezet
+  bij nieuwe Discogs-imports. Discogs-bulkimport groepeert nieuwe albums voortaan automatisch in
+  de juiste (of een nieuwe) reeks per artiest.
