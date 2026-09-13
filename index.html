@@ -310,6 +310,8 @@
   .item-primary { font-size: 0.98rem; overflow-wrap: anywhere; }
   .item-secondary { font-size: 0.83rem; color: var(--muted); overflow-wrap: anywhere; }
   .item-row.done .item-primary { color: var(--muted); text-decoration: line-through; }
+  @keyframes item-flash-bg { 0% { background-color: var(--accent-soft); } 100% { background-color: transparent; } }
+  tr.item-flash td { animation: item-flash-bg 1.8s ease-out; }
   .item-actions { display: flex; gap: 2px; flex-shrink: 0; }
   .items-empty { color: var(--muted); font-style: italic; padding: 14px 2px; font-size: 0.9rem; text-align: left; }
   .tracklist-row td { padding: 4px 2px 14px; border-bottom: 1px solid var(--border); }
@@ -368,7 +370,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.20.0';
+  var APP_VERSION = '1.21.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -622,6 +624,18 @@
     document.addEventListener('keydown', lightboxKeyHandler);
     document.body.appendChild(overlay);
   }
+  // Scrollt een net toegevoegd item in beeld en laat de rij kort even oplichten — anders "verdwijnt"
+  // een nieuw item onzichtbaar onderaan een lange reeks/lijst (nieuwe reeksen/items sorteren op
+  // `volgorde: Date.now()`, dus altijd helemaal onderaan), zonder enige bevestiging dat het gelukt is.
+  function scrollToAndHighlightItem(itemId) {
+    var el = detailCardEl.querySelector('tr[data-item-id="' + itemId + '"]');
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.remove('item-flash');
+    void el.offsetWidth;
+    el.classList.add('item-flash');
+    setTimeout(function () { el.classList.remove('item-flash'); }, 1800);
+  }
   function extraSummary(entry, item) {
     return (entry.extra_velden || []).map(function (f) { return item.extra && item.extra[f.key]; })
       .filter(function (v) { return v; }).join(' · ');
@@ -692,7 +706,7 @@
     submitBtn.type = 'submit'; submitBtn.className = 'submit-btn'; submitBtn.innerHTML = '&#43;';
     submitBtn.setAttribute('aria-label', 'Item toevoegen');
     form.appendChild(fieldsWrap); form.appendChild(submitBtn);
-    form.addEventListener('submit', function (e) {
+    form.addEventListener('submit', async function (e) {
       e.preventDefault();
       var titel = titelInput.value.trim();
       if (!titel) return;
@@ -700,13 +714,11 @@
       extraInputs.forEach(function (inp) { extra[inp.dataset.key] = inp.value.trim() || null; });
       var vinkjes = vinkjesFieldset.values();
       var payload = { lijst_id: entry.id, titel: titel, extra: extra, vinkjes: vinkjes, volgorde: Date.now() };
-      supabase.from('lijst_items').insert(payload).then(refetchSoft);
-      titelInput.value = '';
-      extraInputs.forEach(function (inp) { inp.value = ''; });
-      vinkjesFieldset.wrap.querySelectorAll('.checkbox.checked').forEach(function (box) {
-        box.classList.remove('checked'); box.setAttribute('aria-pressed', 'false');
-      });
-      titelInput.focus();
+      var result = await supabase.from('lijst_items').insert(payload).select().single();
+      if (result.error || !result.data) { console.error(result.error); window.alert('Er ging iets mis bij het opslaan.'); return; }
+      var newItemId = result.data.id;
+      await refetchAll();
+      scrollToAndHighlightItem(newItemId);
     });
     return form;
   }
@@ -765,8 +777,12 @@
       var vinkjes = vinkjesFieldset.values();
       var result = await supabase.from('lijst_items').insert({
         lijst_id: entry.id, titel: titel, extra: extra, vinkjes: vinkjes, reeks_id: reeksRes.data.id, volgorde: Date.now()
-      });
-      refetchSoft(result);
+      }).select().single();
+      if (result.error || !result.data) { console.error(result.error); window.alert('Er ging iets mis bij het opslaan.'); return; }
+      delete state.collapsedReeks[reeksRes.data.id];
+      var newItemId = result.data.id;
+      await refetchAll();
+      scrollToAndHighlightItem(newItemId);
     });
 
     wrap.appendChild(form);
@@ -1175,6 +1191,7 @@
     function buildItemRow(item, orderItems) {
       var idx = orderItems.indexOf(item);
       var tr = document.createElement('tr');
+      tr.dataset.itemId = item.id;
       var primaryDone = vinkVelden[0] ? !!(item.vinkjes && item.vinkjes[vinkVelden[0].key]) : false;
       tr.className = 'item-row' + ((entry.doorstrepen && primaryDone) ? ' done' : '');
 

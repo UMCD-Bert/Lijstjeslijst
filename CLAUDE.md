@@ -338,6 +338,20 @@ toegang (geen aparte accounts per persoon).
   medium gelijk aan te geven?") én het item-bewerkformulier (bestaand item aanpassen zonder de
   tabel te hoeven scrollen). Generiek op basis van `vink_velden`, dus geldt voor elk lijsttype
   (Boeken: E-book/Fysiek/Gelezen, Strips: Fysiek/Digitaal/Gelezen, niet alleen Muziek LP/CD).
+  **Aanvulling (2026-09-13, v1.21.0): "zachte landing" na toevoegen** — na een succesvolle
+  toevoeging via het toevoegformulier (genest én niet-genest) scrollt de nieuwe rij automatisch in
+  beeld (`scrollIntoView({block:'center'})`) en licht 'm kort op (`.item-flash`-animatie op de
+  `<td>`'s, want de sticky titel-/actieskolom hebben zelf al een expliciete achtergrondkleur die een
+  animatie op de `<tr>` zelf zou overschilderen). Aanleiding: concreet gemeld bij het toevoegen van
+  "Chronicle" (Creedence Clearwater Revival) — "ik merk nog niets van een zachte landing... ik zie
+  hem niet". Een nieuwe reeks/item krijgt `volgorde: Date.now()` en belandt dus altijd onderaan een
+  mogelijk lange lijst, buiten beeld, zonder deze fix. Technisch: de insert-call vraagt nu de nieuwe
+  rij terug op (`.select().single()`) om het id te kennen, en een eventueel ingeklapte doelreeks
+  wordt vóór het herladen alvast uitgeklapt (`delete state.collapsedReeks[reeksId]`) zodat de rij
+  ook echt in de DOM staat om naartoe te scrollen. **Let op**: de losse "Tracklist ophalen
+  (Discogs)"-knop (zie hierboven) is bewust een aparte, expliciete actie — het toevoegformulier zelf
+  doet GEEN automatische Discogs-aanroep; wie na een handmatige toevoeging ook cover/tracklist wil,
+  moet dat knopje zelf gebruiken.
 - **Lijstje verwijderen alleen nog op de hoofdpagina (2026-09-13, v1.18.0)**: het rode "Verwijder
   lijstje"-linkje onderaan de detailweergave is verwijderd — de hoofdpagina heeft per lijstje al
   een ✕-knop met dezelfde bevestigingsvraag (`deleteList()`, "kan niet ongedaan gemaakt worden"),
