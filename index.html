@@ -136,7 +136,7 @@
   .field-row label { font-size: 0.76rem; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.03em; }
   .field-row input, .field-row textarea {
     border: 1px solid var(--border); background: var(--surface-2); border-radius: 8px; padding: 9px 11px;
-    font-family: inherit; font-size: 0.94rem; color: var(--ink); resize: vertical;
+    font-family: inherit; font-size: 16px; color: var(--ink); resize: vertical;
   }
   .field-row input:focus, .field-row textarea:focus { outline: none; border-color: var(--accent); background: var(--surface); }
   .ghost-actions { display: flex; gap: 10px; justify-content: flex-end; }
@@ -164,7 +164,7 @@
     background: transparent; color: var(--ink); flex: 1 1 auto; min-width: 160px; }
   .detail-title:focus { outline: none; border-bottom: 1.5px solid var(--accent); }
   .detail-meta { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; flex-wrap: wrap; }
-  .detail-desc { width: 100%; border: none; background: transparent; color: var(--muted); font-family: inherit; font-size: 0.92rem;
+  .detail-desc { width: 100%; border: none; background: transparent; color: var(--muted); font-family: inherit; font-size: 16px;
     padding: 2px; resize: none; line-height: 1.5; margin-bottom: 6px; }
   .detail-desc:focus { outline: none; background: var(--surface-2); border-radius: 8px; }
   .detail-desc::placeholder { color: var(--muted); opacity: 0.7; }
@@ -176,19 +176,19 @@
   .fields-editor h4 { margin: 0 0 8px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600; }
   .fields-editor-group { display: flex; flex-direction: column; gap: 6px; }
   .fields-editor-row { display: flex; align-items: center; gap: 8px; }
-  .fields-editor-row input { flex: 1; border: 1px solid var(--border); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 0.88rem; color: var(--ink); }
+  .fields-editor-row input { flex: 1; border: 1px solid var(--border); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 16px; color: var(--ink); }
 
   .search-sort-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 0 0 14px; }
   .search-input {
     flex: 1; min-width: 140px; border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px;
-    padding: 8px 12px; font-family: inherit; font-size: 0.9rem; color: var(--ink);
+    padding: 8px 12px; font-family: inherit; font-size: 16px; color: var(--ink);
   }
   .search-input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
   .search-input::-webkit-search-cancel-button { cursor: pointer; }
   .sort-wrap { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
   .sort-select {
     border: 1px solid var(--border); background: var(--surface-2); border-radius: 8px; padding: 6px 9px;
-    font-family: inherit; font-size: 0.85rem; color: var(--ink);
+    font-family: inherit; font-size: 16px; color: var(--ink);
   }
   .filter-row { display: flex; flex-wrap: wrap; gap: 14px 20px; margin: 0 0 16px; }
   .filter-group { display: flex; align-items: center; gap: 7px; }
@@ -201,7 +201,7 @@
   .import-toggle-row { margin-bottom: 14px; }
   .import-panel { border: 1.5px dashed var(--border); border-radius: 10px; padding: 14px; margin: 0 0 16px; display: flex; flex-direction: column; gap: 12px; }
   .import-search { display: flex; gap: 8px; }
-  .import-search input { flex: 1; border: 1px solid var(--border); background: var(--surface-2); border-radius: 8px; padding: 8px 11px; font-family: inherit; font-size: 0.9rem; color: var(--ink); }
+  .import-search input { flex: 1; border: 1px solid var(--border); background: var(--surface-2); border-radius: 8px; padding: 8px 11px; font-family: inherit; font-size: 16px; color: var(--ink); }
   .import-candidates { display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; }
   .import-candidate { text-align: left; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 8px 11px; font-size: 0.86rem; }
   .import-candidate:hover { background: var(--accent-soft); }
@@ -269,14 +269,14 @@
   .items-empty { color: var(--muted); font-style: italic; padding: 14px 2px; font-size: 0.9rem; text-align: left; }
 
   .edit-form { flex: 1; display: flex; gap: 8px; flex-wrap: wrap; padding: 4px 0; }
-  .edit-form input { border: 1px solid var(--accent); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 0.92rem; color: var(--ink); flex: 1; min-width: 100px; }
+  .edit-form input { border: 1px solid var(--accent); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 16px; color: var(--ink); flex: 1; min-width: 100px; }
   .edit-form-actions { display: flex; gap: 4px; }
 
   form.add-item { display: flex; gap: 10px; align-items: center; border-top: 1.5px dashed var(--border); padding-top: 16px; flex-wrap: wrap; }
   form.add-item .add-fields { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
   form.add-item input {
     flex: 1; min-width: 120px; border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px;
-    padding: 10px 13px; font-family: inherit; font-size: 0.94rem; color: var(--ink);
+    padding: 10px 13px; font-family: inherit; font-size: 16px; color: var(--ink);
   }
   form.add-item input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
   form.add-item button.submit-btn {
@@ -321,7 +321,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.4.0';
+  var APP_VERSION = '1.4.1';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -1473,7 +1473,7 @@
     state.importFlow = {
       listId: entry.id, source: entry.auto_import, step: 'search', query: '',
       candidates: [], candidateName: '', candidateId: '', works: [], selected: new Set(),
-      loading: false, error: ''
+      loading: false, error: '', note: ''
     };
     if (entry.auto_import === 'discogs') {
       state.importFlow.step = 'works';
@@ -1552,7 +1552,7 @@
   async function importPickCandidate(cand) {
     var flow = state.importFlow;
     flow.candidateName = cand.name; flow.candidateId = cand.id;
-    flow.loading = true; flow.error = ''; renderDetail();
+    flow.loading = true; flow.error = ''; flow.note = ''; renderDetail();
     try {
       var works = [];
       if (flow.source === 'openlibrary') {
@@ -1570,6 +1570,20 @@
           seen[norm] = true;
           works.push({ id: w.key, title: title, coverUrl: coverId ? ('https://covers.openlibrary.org/b/id/' + coverId + '-M.jpg') : null });
         });
+        if (!works.length) {
+          // Sommige titels missen taalmetadata in Open Library, ook als het werk zelf al een
+          // Nederlandse (vertaal)titel heeft (vaak bij recentere/kinderboeken) — val dan terug
+          // op alle werken van de auteur i.p.v. niets te tonen.
+          var res3 = await fetch('https://openlibrary.org/search.json?author_key=' + encodeURIComponent(cand.id) + '&limit=300&fields=key,title,cover_i');
+          var data3 = await res3.json();
+          (data3.docs || []).forEach(function (w) {
+            var norm = (w.title || '').trim().toLowerCase();
+            if (!norm || seen[norm]) return;
+            seen[norm] = true;
+            works.push({ id: w.key, title: w.title, coverUrl: w.cover_i ? ('https://covers.openlibrary.org/b/id/' + w.cover_i + '-M.jpg') : null });
+          });
+          if (works.length) flow.note = 'Geen titels met Nederlandse taalmarkering gevonden bij Open Library — onderstaande titels zijn mogelijk niet in het Nederlands.';
+        }
         works.sort(function (a, b) { return a.title.localeCompare(b.title); });
       } else {
         var res2 = await fetch('https://musicbrainz.org/ws/2/release-group?artist=' + cand.id + '&type=album&fmt=json&limit=100');
@@ -1684,9 +1698,14 @@
         var sub = document.createElement('p'); sub.className = 'import-msg';
         var msg;
         if (flow.source === 'discogs') msg = flow.works.length + ' items gevonden in je Discogs-collectie.';
-        else msg = flow.works.length + (flow.source === 'openlibrary' ? ' Nederlandstalige titels gevonden voor ' : ' titels gevonden voor ') + flow.candidateName + '.';
+        else if (flow.source === 'openlibrary') msg = flow.works.length + (flow.note ? ' titels gevonden voor ' : ' Nederlandstalige titels gevonden voor ') + flow.candidateName + '.';
+        else msg = flow.works.length + ' titels gevonden voor ' + flow.candidateName + '.';
         sub.textContent = msg + ' Vink uit wat je niet wilt toevoegen.';
         panel.appendChild(sub);
+        if (flow.note) {
+          var noteP = document.createElement('p'); noteP.className = 'import-msg'; noteP.textContent = flow.note;
+          panel.appendChild(noteP);
+        }
         var worksList = document.createElement('div'); worksList.className = 'import-works';
         flow.works.forEach(function (w) {
           var row = document.createElement('label'); row.className = 'import-work-row';

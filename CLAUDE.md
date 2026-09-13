@@ -44,6 +44,14 @@ toegang (geen aparte accounts per persoon).
    hover-only-reveal patronen) door `index.html` en handmatig nalopen of elk zo'n element ook zonder
    hover/focus bereikbaar is. (Aanleiding: v1.1.0 verstopte de bewerk/foto/verwijder-knoppen per item
    en de verplaats/verwijder-knoppen per lijstje volledig achter `:hover`, onbruikbaar op iPhone.)
+8. **Elk `<input>`/`<select>`/`<textarea>` moet `font-size: 16px` of groter hebben.** Onder de
+   16px zoomt mobiele Safari automatisch in zodra je het veld aantikt, en de pagina blijft daarna
+   ingezoomd/verschuifbaar ("venster is breder dan scherm") tot de gebruiker handmatig weer
+   uitzoomt — dit is puur CSS-gedreven en valt NIET op in de Claude Browser-testtool hier (Chromium-
+   gebaseerd, repliceert dit Safari-specifieke gedrag niet), dus alleen een `grep -n "font-size: 0\."`
+   op input/select/textarea-regels in `index.html` vangt het. (Aanleiding: meerdere bestaande
+   velden — zoekbalk, sorteer-select, bewerk-/toevoeg-formulieren — stonden op 13–15px; gefixt in
+   v1.4.1, 2026-09-13.)
 
 ## Datamodel (kern) — generiek velden-systeem
 - `lijsten`: naam, omschrijving, omslag_url, volgorde, `type_label` (vrije tekst, getoond als pill),
@@ -85,6 +93,13 @@ toegang (geen aparte accounts per persoon).
   `editions.title`/`editions.cover_i` in `fields=`) om de daadwerkelijke Nederlandse editie (titel
   én cover) uit `docs[].editions.docs[0]` te lezen, met de werk-titel/cover als fallback als er
   onverhoopt geen editions-match is. `omslag_url` wordt bij import direct meegezet op het item.
+  **Tweede val opgelost (2026-09-13):** sommige werken hebben in Open Library helemaal geen
+  taalmetadata op hun editie, zelfs als de titel zelf al Nederlands is (bv. "Grote Panda & Kleine
+  Draak" van James Norbury) — de strikte `language:dut`-query levert dan 0 resultaten terwijl het
+  boek wel bestaat. Fallback: bij 0 resultaten alsnog een ongefilterde `author_key`-query tonen
+  (alle werken van de auteur, ongeacht taal) met een duidelijke melding dat de titels mogelijk niet
+  Nederlands zijn — beter een te ruime lijst waaruit de gebruiker zelf kiest dan een dichtgetimmerd
+  "niets gevonden".
 - Items worden getoond als een tabel (`.items-table` in `.items-scroll`, `overflow-x:auto`):
   titelkolom sticky links, vinkjes-koppen (E-book/Auteur/etc.) ÉÉN keer bovenaan i.p.v. per rij
   herhaald, actieskolom (foto/bewerk/verwijder) sticky rechts. Tabelbreedte wordt expliciet in JS
