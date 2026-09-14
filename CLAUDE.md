@@ -84,6 +84,15 @@ toegang (geen aparte accounts per persoon).
     — anders raakt de documentatie steeds verder los van de werkelijke staat van de app. (Aanleiding:
     2026-09-14 — een andere sessie shipte v1.26.0 zonder CLAUDE.md aan te passen; deze sessie
     documenteerde tot dan toe nog de v1.25.0-aanpak die inmiddels alweer vervangen was.)
+12. **Een `position: sticky` die "het niet doet": controleer eerst de hele voorouderketen op
+    `overflow`, niet de sticky-declaratie zelf.** Elke voorouder tussen het sticky-element en de
+    daadwerkelijk scrollende ancestor met een `overflow` anders dan `visible` (ook `hidden`/`auto` op
+    een element dat zelf nooit intern hoeft te scrollen, zoals `body` naast een scrollende `html`) is
+    genoeg om sticky volledig te breken. Check dit met devtools/`getComputedStyle` op elke voorouder,
+    niet door aan `top`/`z-index` te blijven sleutelen. (Aanleiding: v1.28.0 — de nieuwe A-Z-
+    sprongbalk plakte niet vast, uiteindelijke oorzaak was `overflow-x: hidden` op `body` in de
+    basis-CSS, twee lagen hoger dan waar het probleem zich voordeed. Zie de items-tabel-sectie
+    verderop voor het volledige verhaal.)
 
 ## Datamodel (kern) — generiek velden-systeem
 - `lijsten`: naam, omschrijving, omslag_url, volgorde, `type_label` (vrije tekst, getoond als pill),
@@ -510,6 +519,29 @@ toegang (geen aparte accounts per persoon).
   grotere covers maken het bladeren zelf ook prettiger). `.item-thumb` van 44×62 naar 58×82px,
   `.col-title`'s `max-width` van 220 naar 240px mee opgehoogd zodat de titel niet extra hoeft te
   wrappen door de bredere cover.
+  **Vervolg (2026-09-14, v1.28.0): A-Z-sprongbalk blijft nu ook zichtbaar tijdens het scrollen**
+  (`position: sticky; top: 0;`, expliciet gevraagd). Dit legde een sluimerende structurele bug bloot
+  die de hele app raakte, niet alleen deze balk: **`html, body { overflow-x: hidden; }`** (basis-CSS,
+  bedoeld om de hele pagina tegen horizontaal schuiven te beschermen) maakte `body` zelf een
+  "scroll-container" voor elke `position: sticky` op de pagina — ook al scrolt `body` in de praktijk
+  nooit zelf (`html`/de viewport doet dat écht), want `body` heeft geen vaste hoogte om intern in te
+  scrollen. Resultaat: sticky "plakte" nergens ooit daadwerkelijk vast, wat tot nu toe niet opviel
+  omdat de enige sticky-elementen tot dan toe HORIZONTAAL waren (titel-/actiekolom, sticky t.o.v.
+  `.items-scroll`'s eigen `overflow-x:auto` — een ECHTE, onafhankelijke scroll-container, dus
+  ongevoelig voor dit probleem). Deze verticale A-Z-balk was de eerste sticky die tegen de kapotte
+  `body`-scroll-context aanliep. Bevestigd door `getBoundingClientRect()` vóór/na scroll te
+  vergelijken (bleef exact meebewegen i.p.v. op `top:0` te blijven hangen) en stap voor stap
+  `overflow-x` op `html` en `body` los te testen via devtools. **Fix: `overflow-x: hidden` alleen nog
+  op `html`, niet meer op `body`.** `html`'s overflow propageert nog steeds naar de viewport (dus
+  horizontaal schuiven van de hele pagina blijft net zo goed geblokkeerd — geverifieerd door
+  `scrollLeft` geforceerd op 300 te zetten en te zien dat 'ie meteen terugklapt naar 0), maar zonder
+  dat `body` zelf nog een (nooit-echt-scrollende) sticky-blokkerende context vormt. Onderweg ook nog
+  `#detail-card`'s `overflow: hidden` (had alleen als doel de omslagfoto's bovenhoeken af te ronden)
+  weggehaald — had hetzelfde effect, lager in de boom. Les: `overflow: hidden`/`auto` op ÉÉN voorouder
+  ergens tussen een `position: sticky`-element en de daadwerkelijk scrollende ancestor is genoeg om
+  sticky volledig te laten falen, zelfs als die voorouder zelf nooit zichtbaar hoeft te scrollen —
+  bij een nieuwe sticky die "het niet doet", eerst de hele voorouderketen op `overflow` controleren
+  vóór je aan de sticky-declaratie zelf gaat sleutelen.
 - **Lijstje verwijderen alleen nog op de hoofdpagina (2026-09-13, v1.18.0)**: het rode "Verwijder
   lijstje"-linkje onderaan de detailweergave is verwijderd — de hoofdpagina heeft per lijstje al
   een ✕-knop met dezelfde bevestigingsvraag (`deleteList()`, "kan niet ongedaan gemaakt worden"),

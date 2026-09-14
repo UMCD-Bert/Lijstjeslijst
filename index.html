@@ -46,7 +46,12 @@
   }
 
   * { box-sizing: border-box; }
-  html, body { overflow-x: hidden; }
+  /* Alleen op `html`, NIET ook op `body` — een niet-`visible` `overflow` op `body` maakt `body` zelf
+     een "scroll-container" voor `position: sticky` (ook al scrollt `body` zelf helemaal nooit, want
+     `html` is hier het echte scrollende element), waardoor sticky-elementen daarbinnen (zoals de
+     A-Z-sprongbalk) nooit gaan "plakken". `html`'s overflow propageert naar de viewport (voorkomt
+     dus nog steeds dat de hele pagina horizontaal kan schuiven), zonder dit sticky-lek. */
+  html { overflow-x: hidden; }
   body {
     margin: 0; background: var(--bg); color: var(--ink);
     font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
@@ -136,10 +141,17 @@
   .empty-state p.big { font-family: 'Fraunces', Georgia, serif; font-size: 1.25rem; color: var(--ink); margin: 0 0 6px; }
 
   /* ---- Detail view ---- */
-  #detail-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 1px 2px var(--shadow); }
+  /* Geen `overflow: hidden` hier (had eerder alleen als doel om de omslagfoto's bovenhoeken af te
+     ronden samen met de kaart) — dat breekt `position: sticky` voor alles daarbinnen die relatief
+     aan de PAGINA-scroll moet blijven hangen (zoals de A-Z-sprongbalk hieronder): elke voorouder met
+     een `overflow` anders dan `visible` wordt de nieuwe "sticky-context", en aangezien deze kaart
+     zelf geen vaste hoogte heeft (dus nooit intern hoeft te scrollen), zou sticky daarbinnen dan
+     nooit daadwerkelijk gaan "plakken". De omslagfoto rondt zijn eigen bovenhoeken nu zelf af.
+  */
+  #detail-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 1px 2px var(--shadow); }
 
   .cover-area { position: relative; width: 100%; }
-  .cover-img { width: 100%; max-height: 260px; object-fit: cover; display: block; background: var(--surface-2); }
+  .cover-img { width: 100%; max-height: 260px; object-fit: cover; display: block; background: var(--surface-2); border-radius: 15px 15px 0 0; }
   .cover-actions { position: absolute; bottom: 10px; right: 12px; display: flex; gap: 8px; }
   .cover-actions .btn-secondary { background: rgba(251,251,247,0.92); }
 
@@ -199,7 +211,10 @@
   }
   .filter-chip-wel { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
   .filter-chip-niet { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); font-weight: 600; }
-  .az-bar { display: flex; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0 0 4px; margin: 0 0 12px; }
+  .az-bar {
+    display: flex; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 8px 0; margin: 0 0 12px;
+    position: sticky; top: 0; z-index: 5; background: var(--surface);
+  }
   .az-btn {
     flex-shrink: 0; width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface-2);
     color: var(--ink); font-size: 0.76rem; font-weight: 600; display: flex; align-items: center; justify-content: center; padding: 0;
@@ -394,7 +409,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.27.1';
+  var APP_VERSION = '1.28.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
