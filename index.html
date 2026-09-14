@@ -206,6 +206,7 @@
   .import-work-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); flex-shrink: 0; }
   .import-work-thumb { width: 30px; height: 30px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
   .import-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .import-select-row { display: flex; gap: 14px; margin: -6px 0 4px; }
   .import-msg { font-size: 0.84rem; color: var(--muted); font-style: italic; }
   .cover-search-row { display: flex; flex-direction: column; gap: 10px; padding: 10px 0; }
   .cover-search-msg { font-size: 0.84rem; color: var(--muted); font-style: italic; }
@@ -274,25 +275,20 @@
   .items-table tbody tr { border-bottom: 1px solid var(--border); }
   .items-table tbody tr:last-child { border-bottom: none; }
   .items-table td { padding: 8px 4px; vertical-align: middle; }
-  .col-title { position: sticky; left: 0; background: var(--surface); z-index: 2; text-align: left; min-width: 160px; max-width: 280px; padding-left: 2px !important; }
+  /* Acties (foto/bewerken/verwijderen/tracklist) staan IN de sticky titelkolom, niet in een eigen
+     sticky kolom rechts. `position:sticky` maakt een kolom alleen "blijft in beeld TERWIJL je
+     scrolt" — het garandeert niet dat hij vanaf scrollLeft:0 (de openingsstand) al zichtbaar is.
+     Met titel-sticky-links ÉN acties-sticky-rechts stond je dus bij het openen van een lijstje
+     altijd met scrollLeft:0, en de rechterkolom was dan nog gewoon buiten beeld — bij elk item
+     eerst opzij scrollen om te kunnen bewerken/tracklist ophalen. Vandaar: alles wat je per item
+     wilt DOEN zit vast bij de titel; alleen de vinkjes (aankruisen) zitten in het scrollbare
+     midden — dat is een minder kritieke actie om voor te moeten scrollen. */
+  .col-title { position: sticky; left: 0; background: var(--surface); z-index: 2; text-align: left; min-width: 160px; max-width: 220px; padding-left: 2px !important; }
   .edit-row-cell { text-align: left; }
   .col-title-head { z-index: 3; }
-  .col-actions { position: sticky; right: 0; background: var(--surface); z-index: 2; white-space: nowrap; width: 1%; }
-  .col-actions-head { z-index: 3; }
-  /* Op telefoonbreedte samen sticky titelkolom (~160px) + sticky actiekolom (~90-120px, groeit met
-     het aantal icoontjes) al bijna of helemaal de volledige schermbreedte op — er blijft dan geen
-     (of een paar pixels) scrollruimte over waarin de vinkjeskolommen ertussenin ooit zichtbaar
-     kunnen worden, hoe ver je ook scrolt (ze zitten permanent "onder" een van beide sticky kolommen
-     verstopt). Gemeten op 375px: titel 160px + acties 122px = 282px, dus nog maar 3px vrij op een
-     scherm van 285px binnenwerk — vinkjes (LP/CD/In bezit e.d.) dus nooit bereikbaar. Fix: op smalle
-     schermen de actiekolom niet sticky maken (gewoon laten meescrollen als laatste kolom) — dan is
-     er nog maar ÉÉN sticky kolom (titel), en scrollen werkt weer normaal om de vinkjes te bereiken.
-     Bewerken blijft zonder scrollen mogelijk via een tik op de titel zelf. */
-  @media (max-width: 480px) {
-    .col-actions { position: static; }
-  }
   .col-check { text-align: center; width: 54px; min-width: 54px; }
   .title-cell-inner { display: flex; align-items: center; gap: 8px; }
+  .col-title .item-actions { margin-top: 4px; }
   .move-col { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
   .item-thumb { width: 30px; height: 42px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--surface-2); cursor: zoom-in; }
   .edit-form-thumb { width: 52px; height: 52px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: var(--surface-2); cursor: zoom-in; }
@@ -384,7 +380,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.25.1';
+  var APP_VERSION = '1.26.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -1180,7 +1176,7 @@
     var items = filteredItems(entry);
     var manualOrder = currentSortKey(entry) === 'volgorde';
     var vinkVelden = entry.vink_velden || [];
-    var colCount = 2 + vinkVelden.length;
+    var colCount = 1 + vinkVelden.length;
 
     function buildThead() {
       if (!vinkVelden.length) return null;
@@ -1194,9 +1190,6 @@
         th.className = 'col-check'; th.textContent = vk.label;
         headRow.appendChild(th);
       });
-      var actionsTh = document.createElement('th');
-      actionsTh.className = 'col-actions col-actions-head';
-      headRow.appendChild(actionsTh);
       thead.appendChild(headRow);
       return thead;
     }
@@ -1442,28 +1435,7 @@
       }
       titleCellInner.appendChild(main);
       titleTd.appendChild(titleCellInner);
-      tr.appendChild(titleTd);
 
-      vinkVelden.forEach(function (vk) {
-        var checkTd = document.createElement('td');
-        checkTd.className = 'col-check';
-        var checked = !!(item.vinkjes && item.vinkjes[vk.key]);
-        var box = document.createElement('button');
-        box.type = 'button'; box.className = 'checkbox' + (checked ? ' checked' : '');
-        box.setAttribute('aria-pressed', checked ? 'true' : 'false');
-        box.setAttribute('aria-label', vk.label + (checked ? ' (aan)' : ' (uit)'));
-        box.appendChild(checkSvg());
-        box.addEventListener('click', function () {
-          var next = Object.assign({}, item.vinkjes || {});
-          next[vk.key] = !checked;
-          supabase.from('lijst_items').update({ vinkjes: next }).eq('id', item.id).then(refetchSoft);
-        });
-        checkTd.appendChild(box);
-        tr.appendChild(checkTd);
-      });
-
-      var actionsTd = document.createElement('td');
-      actionsTd.className = 'col-actions';
       var itemActions = document.createElement('div');
       itemActions.className = 'item-actions';
       if (entry.auto_import === 'openlibrary' && !item.omslag_url) {
@@ -1510,8 +1482,26 @@
         supabase.from('lijst_items').delete().eq('id', item.id).then(refetchSoft);
       });
       itemActions.appendChild(editBtn); itemActions.appendChild(removeBtn);
-      actionsTd.appendChild(itemActions);
-      tr.appendChild(actionsTd);
+      titleTd.appendChild(itemActions);
+      tr.appendChild(titleTd);
+
+      vinkVelden.forEach(function (vk) {
+        var checkTd = document.createElement('td');
+        checkTd.className = 'col-check';
+        var checked = !!(item.vinkjes && item.vinkjes[vk.key]);
+        var box = document.createElement('button');
+        box.type = 'button'; box.className = 'checkbox' + (checked ? ' checked' : '');
+        box.setAttribute('aria-pressed', checked ? 'true' : 'false');
+        box.setAttribute('aria-label', vk.label + (checked ? ' (aan)' : ' (uit)'));
+        box.appendChild(checkSvg());
+        box.addEventListener('click', function () {
+          var next = Object.assign({}, item.vinkjes || {});
+          next[vk.key] = !checked;
+          supabase.from('lijst_items').update({ vinkjes: next }).eq('id', item.id).then(refetchSoft);
+        });
+        checkTd.appendChild(box);
+        tr.appendChild(checkTd);
+      });
 
       if (!item.tracklist || !state.expandedTracklist[item.id]) return tr;
       var frag = document.createDocumentFragment();
@@ -2132,7 +2122,7 @@
         };
       });
       flow.works.sort(function (a, b) { return a.title.localeCompare(b.title); });
-      flow.selected = new Set(flow.works.map(function (w) { return w.id; }));
+      flow.selected = new Set();
       if (!flow.works.length) flow.error = 'Geen items gevonden in je Discogs-collectie.';
     } catch (e) {
       console.error('discogs import failed', e);
@@ -2258,8 +2248,8 @@
       var data = await res.json();
       if (data.message) throw new Error(data.message);
       ts.candidates = (data.results || []).map(function (r) {
-        return { id: r.id, title: r.title || '', year: r.year || null, formats: r.format || [] };
-      });
+        return { id: r.id, title: r.title || '', year: r.year || null, formats: r.format || [], have: (r.community && r.community.have) || 0 };
+      }).sort(function (a, b) { return b.have - a.have; });
       if (!ts.candidates.length) ts.error = 'Geen releases gevonden op Discogs voor "' + (item.titel || '') + '".';
     } catch (e) {
       console.error('discogs track search failed', e);
@@ -2450,8 +2440,22 @@
         if (flow.source === 'discogs') msg = flow.works.length + ' items gevonden in je Discogs-collectie.';
         else if (flow.source === 'openlibrary') msg = flow.works.length + (flow.note ? ' titels gevonden voor ' : ' Nederlandstalige titels gevonden voor ') + flow.candidateName + '.';
         else msg = flow.works.length + ' titels gevonden voor ' + flow.candidateName + '.';
-        sub.textContent = msg + (flow.source === 'discogs' ? ' Vink uit wat je niet wilt toevoegen.' : ' Vink aan wat je wilt toevoegen.');
+        sub.textContent = msg + ' Vink aan wat je wilt toevoegen.';
         panel.appendChild(sub);
+        if (flow.works.length > 1) {
+          var selectRow = document.createElement('div'); selectRow.className = 'import-select-row';
+          var selectAllBtn = document.createElement('button');
+          selectAllBtn.type = 'button'; selectAllBtn.className = 'btn-text'; selectAllBtn.textContent = 'Alles selecteren';
+          selectAllBtn.addEventListener('click', function () {
+            flow.works.forEach(function (w) { flow.selected.add(w.id); });
+            renderDetail();
+          });
+          var selectNoneBtn = document.createElement('button');
+          selectNoneBtn.type = 'button'; selectNoneBtn.className = 'btn-text'; selectNoneBtn.textContent = 'Niets selecteren';
+          selectNoneBtn.addEventListener('click', function () { flow.selected.clear(); renderDetail(); });
+          selectRow.appendChild(selectAllBtn); selectRow.appendChild(selectNoneBtn);
+          panel.appendChild(selectRow);
+        }
         if (flow.note) {
           var noteP = document.createElement('p'); noteP.className = 'import-msg'; noteP.textContent = flow.note;
           panel.appendChild(noteP);
