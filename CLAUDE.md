@@ -542,6 +542,16 @@ toegang (geen aparte accounts per persoon).
   sticky volledig te laten falen, zelfs als die voorouder zelf nooit zichtbaar hoeft te scrollen —
   bij een nieuwe sticky die "het niet doet", eerst de hele voorouderketen op `overflow` controleren
   vóór je aan de sticky-declaratie zelf gaat sleutelen.
+  **Vervolg (2026-09-14, v1.28.1): sticky-balk plakte op de echte iPhone tégen de statusbalk aan.**
+  Op een standalone PWA met `black-translucent` statusbalk (zie manifest) overlapt de statusbalk
+  (tijd/batterij/wifi) de webcontent i.p.v. 'm omlaag te duwen — `top: 0` liet de sprongbalk dus
+  precies ACHTER die iconen plakken, onleesbaar (gemeld met een screenshot). Fix: `top:
+  env(safe-area-inset-top)` i.p.v. `top: 0` — zelfde techniek als `.wrap`'s bestaande
+  `padding-top: calc(32px + env(safe-area-inset-top))`, hier alleen niet reproduceerbaar te testen
+  in de Claude Browser-testtool (geen notch/safe-area-emulatie), dus vertrouwd op het al bewezen
+  patroon elders in dit bestand i.p.v. zelf te kunnen verifiëren. **Covers nóg een keer groter**
+  (derde ophoging, weer expliciet gevraagd): `.item-thumb` van 58×82 naar 72×100px, `.col-title`'s
+  `max-width` van 240 naar 258px.
 - **Lijstje verwijderen alleen nog op de hoofdpagina (2026-09-13, v1.18.0)**: het rode "Verwijder
   lijstje"-linkje onderaan de detailweergave is verwijderd — de hoofdpagina heeft per lijstje al
   een ✕-knop met dezelfde bevestigingsvraag (`deleteList()`, "kan niet ongedaan gemaakt worden"),
