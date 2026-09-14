@@ -459,6 +459,52 @@ toegang (geen aparte accounts per persoon).
   hierboven) is bewust een aparte, expliciete actie — het toevoegformulier zelf doet GEEN
   automatische Discogs-aanroep; wie na een handmatige toevoeging ook cover/tracklist wil, moet dat
   knopje zelf gebruiken.
+- **UX-herziening na kritische review + vergelijking met VinylBox (2026-09-14, v1.27.0)**: de
+  eigenaar ervoer de Muziek-collectie als "moeizaam en niet intuïtief" — vroeg om een kritische blik
+  en inspiratie uit VinylBox (een vergelijkbare, commerciëlere vinyl/cd-collectie-app met Discogs-
+  koppeling). Kernprobleem: Lijster voelde als een spreadsheet, niet als "een platenkast
+  doorbladeren" — vooral door piepkleine covers (30×42px) en 4 permanent zichtbare actie-icoontjes
+  per rij (verergerd door de v1.26.0-wijziging hierboven, die ze als eigen rij ónder de titel zette).
+  Bewust NIET overgenomen van VinylBox: scannen, marktplaats/verkoop, prijsinzicht — niet relevant
+  voor een gedeelde huishoud-app zonder account-scheiding. Vier generieke verbeteringen doorgevoerd
+  (raken dus ook Boeken/Strips/Bordspellen, niet alleen Muziek — geen type-specifieke hacks, zelfde
+  filosofie als de rest van de app):
+  1. **Rij vereenvoudigd**: cover van 30×42 naar 44×62px (`.item-thumb`), en van de 4 permanente
+     actie-icoontjes (foto/tracklist-ophalen/bewerk/verwijder) blijft alleen de tracklist-
+     bekijken-toggle over (en alleen als er al een tracklist is — puur "bekijken", geen bewerking).
+     Foto wijzigen/toevoegen, cover ophalen (Open Library), tracklist ophalen (Discogs) en
+     verwijderen zijn verplaatst naar het bewerkformulier zelf (tik op de titel, zoals al kon) —
+     nieuwe knoppen daar: `+ Foto toevoegen`/`Wijzig foto` (met bijbehorende hidden file-input,
+     zelfde `uploadItemCover()`), `Cover ophalen (Open Library)` (alleen zichtbaar zonder cover, bij
+     `auto_import: 'openlibrary'`), `Tracklist ophalen (Discogs)` (alleen zichtbaar zonder tracklist,
+     bij `auto_import: 'discogs'` — roept `openTrackSearch()` aan, die nu ook `state.editingItem =
+     null` zet zodat de trackSearch-UI daadwerkelijk verschijnt i.p.v. het bewerkformulier open te
+     houden), en een rode `Verwijderen`-tekstknop naast Opslaan/Annuleren (zelfde `delete`-call als
+     de vroegere ✕-icoon, ook zonder bevestigingsvraag — dat was al zo). Schikt zelfde principe toe
+     als eerder al bij de discogsBtn/downloadSvg-opruiming: minder altijd-zichtbare chrome voor
+     acties die je zelden per item gebruikt.
+  2. **Kaartjes i.p.v. platte teksregel bovenaan** (`.stat-cards`): i.p.v. "170/170 in bezit · 149/170
+     lp · 22/170 cd" als lopende tekst, nu losse kaartjes met een groot getal + label — plus een
+     nieuw "items"-kaartje (totaal aantal) en, alleen bij `entry.genest`, een "reeksen"-kaartje
+     (aantal artiesten/auteurs/series). Puur visuele herschikking van bestaande data (`vinkCounts()`),
+     geen nieuwe queries.
+  3. **A-Z-sprongbalk** (`buildAzBar()`, `.az-bar`): bij een alfabetisch gesorteerde genest-lijst met
+     meer dan 8 reeksen verschijnt een horizontale, scrollbare rij met de daadwerkelijk aanwezige
+     beginletters (na `sortNaam()`, dus "The Beatles" telt als "B") — tikken op een letter scrollt
+     naar de eerste reeks die ermee begint (`reeks-row`'s `data-reeks-id`, nieuw toegevoegd zodat
+     'ie te targeten is). Verborgen tijdens een actieve zoekopdracht/filter (de lijst is dan al kort,
+     en de beschikbare letters zouden niet meer overeenkomen met wat nog zichtbaar is). Vergelijkbaar
+     met de alfabet-index in Contacten-apps; bij Muziek (95 reeksen) een groot verschil t.o.v. blind
+     scrollen.
+  4. **Filters als losse chips i.p.v. een Alles/Wel/Niet-segment** (`.filter-chip`): elk vinkje is nu
+     één tikbare pil die door de status cyclet (alle → wel → niet → alle), met kleur als signaal
+     (neutraal/groen met ✓/rood met ✕) i.p.v. drie aparte knopjes per vinkje binnen een groepje.
+     Compacter (meer filters passen op één regel) en visueel dichter bij VinylBox' chip-filters. Het
+     in-/uitklappen van het hele filterblok (`state.showFilters`) is ongewijzigd gebleven — alleen de
+     knoppen ERIN zijn anders.
+  Bewust NIET gebouwd (grotere stap, expliciet afgeraden totdat er concrete behoefte aan blijkt): een
+  volledig los, navigeerbaar detailscherm per album zoals VinylBox — dat is een fundamenteel andere
+  navigatievorm dan de rest van de app (inline bewerken in de tabelrij), geen kleine aanpassing.
 - **Lijstje verwijderen alleen nog op de hoofdpagina (2026-09-13, v1.18.0)**: het rode "Verwijder
   lijstje"-linkje onderaan de detailweergave is verwijderd — de hoofdpagina heeft per lijstje al
   een ✕-knop met dezelfde bevestigingsvraag (`deleteList()`, "kan niet ongedaan gemaakt worden"),

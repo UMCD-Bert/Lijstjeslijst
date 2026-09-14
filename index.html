@@ -148,7 +148,14 @@
   .detail-title { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 1.55rem; margin: 0; padding: 4px 2px; border: none;
     background: transparent; color: var(--ink); flex: 1 1 auto; min-width: 120px; }
   .detail-title:focus { outline: none; border-bottom: 1.5px solid var(--accent); }
-  .detail-meta { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; flex-wrap: wrap; }
+  .detail-meta { display: flex; align-items: center; gap: 10px; margin: 6px 0 0; flex-wrap: wrap; }
+  .stat-cards { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 12px; }
+  .stat-card {
+    background: var(--surface-2); border-radius: 10px; padding: 7px 12px; display: flex; flex-direction: column;
+    gap: 1px; min-width: 56px;
+  }
+  .stat-card-value { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 1.15rem; line-height: 1.1; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .stat-card-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
   hr.div { border: none; border-top: 1px solid var(--border); margin: 4px 0 14px; }
 
   .fields-toggle-row { margin-bottom: 4px; }
@@ -185,13 +192,19 @@
     border: 1px solid var(--border); background: var(--surface-2); border-radius: 8px; padding: 6px 9px;
     font-family: inherit; font-size: 16px; color: var(--ink);
   }
-  .filter-row { display: flex; flex-wrap: wrap; gap: 14px 20px; margin: 0 0 16px; }
-  .filter-group { display: flex; align-items: center; gap: 7px; }
-  .filter-group .fg-label { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
-  .filter-seg { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-  .filter-seg button { background: var(--surface); border: none; padding: 5px 10px; font-size: 0.76rem; color: var(--muted); }
-  .filter-seg button + button { border-left: 1px solid var(--border); }
-  .filter-seg button.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+  .filter-chip {
+    border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); border-radius: 999px;
+    padding: 6px 13px; font-size: 0.8rem; font-weight: 500; white-space: nowrap;
+  }
+  .filter-chip-wel { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .filter-chip-niet { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); font-weight: 600; }
+  .az-bar { display: flex; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0 0 4px; margin: 0 0 12px; }
+  .az-btn {
+    flex-shrink: 0; width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface-2);
+    color: var(--ink); font-size: 0.76rem; font-weight: 600; display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .az-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 
   .import-toggle-row { margin-bottom: 14px; }
   .import-panel { border: 1.5px dashed var(--border); border-radius: 10px; padding: 14px; margin: 0 0 16px; display: flex; flex-direction: column; gap: 12px; }
@@ -290,7 +303,8 @@
   .title-cell-inner { display: flex; align-items: center; gap: 8px; }
   .col-title .item-actions { margin-top: 4px; }
   .move-col { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
-  .item-thumb { width: 30px; height: 42px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--surface-2); cursor: zoom-in; }
+  .item-thumb { width: 44px; height: 62px; object-fit: cover; border-radius: 5px; flex-shrink: 0; background: var(--surface-2); cursor: zoom-in; }
+  .edit-form-media-actions { display: flex; gap: 8px; flex-wrap: wrap; flex: 1 1 100%; }
   .edit-form-thumb { width: 52px; height: 52px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: var(--surface-2); cursor: zoom-in; }
   .lightbox-overlay {
     position: fixed; inset: 0; background: rgba(20,18,14,0.82); display: flex; align-items: center; justify-content: center;
@@ -380,7 +394,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.26.0';
+  var APP_VERSION = '1.27.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -1148,14 +1162,29 @@
     meta.className = 'detail-meta';
     var pill = document.createElement('span'); pill.className = 'pill'; pill.textContent = entry.type_label || 'Lijst';
     meta.appendChild(pill);
+    dbody.appendChild(meta);
+
+    // Kaartjes i.p.v. een platte teksregel met tellertjes — geeft meteen een "overzicht van je
+    // collectie"-gevoel bij het openen, zonder nieuwe data (dezelfde aantallen als voorheen).
+    var allEntryItems = itemsFor(entry.id);
+    var statCards = document.createElement('div'); statCards.className = 'stat-cards';
+    function addStatCard(value, label) {
+      var card = document.createElement('div'); card.className = 'stat-card';
+      var v = document.createElement('span'); v.className = 'stat-card-value'; v.textContent = value;
+      var l = document.createElement('span'); l.className = 'stat-card-label'; l.textContent = label;
+      card.appendChild(v); card.appendChild(l);
+      statCards.appendChild(card);
+    }
+    addStatCard(String(allEntryItems.length), allEntryItems.length === 1 ? 'item' : 'items');
+    if (entry.genest) {
+      var reeksenCount = reeksenFor(entry.id).length;
+      addStatCard(String(reeksenCount), 'reeksen');
+    }
     (entry.vink_velden || []).forEach(function (vk) {
       var vc = vinkCounts(entry.id, vk.key);
-      var badge = document.createElement('span');
-      badge.className = 'count-tag';
-      badge.textContent = vc.total ? (vc.yes + '/' + vc.total + ' ' + vk.label.toLowerCase()) : ('0 ' + vk.label.toLowerCase());
-      meta.appendChild(badge);
+      addStatCard(vc.total ? (vc.yes + '/' + vc.total) : '0', vk.label.toLowerCase());
     });
-    dbody.appendChild(meta);
+    dbody.appendChild(statCards);
 
     if (state.showFieldsEditor) dbody.appendChild(renderFieldsEditor(entry));
 
@@ -1241,6 +1270,29 @@
           editThumb.addEventListener('click', function (e) { e.preventDefault(); openLightbox(item.omslag_url); });
           form.appendChild(editThumb);
         }
+        // Foto/cover-/tracklist-acties staan hier in het bewerkformulier i.p.v. als permanent
+        // zichtbare icoontjes per rij (zie ook `.item-actions` hieronder) — dat maakte elke regel in
+        // een lange collectie onnodig druk voor acties die je zelden per item gebruikt. Bewerken zelf
+        // blijft één tik op de titel, net als voorheen.
+        var mediaActions = document.createElement('div'); mediaActions.className = 'edit-form-media-actions';
+        var photoEditBtn = document.createElement('button');
+        photoEditBtn.type = 'button'; photoEditBtn.className = 'btn-secondary';
+        photoEditBtn.textContent = item.omslag_url ? 'Wijzig foto' : '+ Foto toevoegen';
+        var photoEditInput = document.createElement('input');
+        photoEditInput.type = 'file'; photoEditInput.accept = 'image/*'; photoEditInput.style.display = 'none';
+        photoEditInput.addEventListener('change', function () {
+          if (photoEditInput.files && photoEditInput.files[0]) uploadItemCover(item, photoEditInput.files[0]);
+        });
+        photoEditBtn.addEventListener('click', function () { photoEditInput.click(); });
+        mediaActions.appendChild(photoEditBtn); mediaActions.appendChild(photoEditInput);
+        if (entry.auto_import === 'openlibrary' && !item.omslag_url) {
+          var coverSearchEditBtn = document.createElement('button');
+          coverSearchEditBtn.type = 'button'; coverSearchEditBtn.className = 'btn-secondary';
+          coverSearchEditBtn.textContent = 'Cover ophalen (Open Library)';
+          coverSearchEditBtn.addEventListener('click', function () { openCoverSearch(item, entry); });
+          mediaActions.appendChild(coverSearchEditBtn);
+        }
+        form.appendChild(mediaActions);
         var titelInput = document.createElement('input');
         titelInput.value = item.titel || ''; titelInput.placeholder = 'Titel'; titelInput.dataset.key = '__titel';
         form.appendChild(titelInput);
@@ -1263,6 +1315,13 @@
         }
         var tracklistInput = null;
         if (entry.auto_import === 'discogs') {
+          if (!item.tracklist) {
+            var trackSearchEditBtn = document.createElement('button');
+            trackSearchEditBtn.type = 'button'; trackSearchEditBtn.className = 'btn-secondary';
+            trackSearchEditBtn.textContent = 'Tracklist ophalen (Discogs)';
+            trackSearchEditBtn.addEventListener('click', function () { openTrackSearch(item); });
+            form.appendChild(trackSearchEditBtn);
+          }
           tracklistInput = document.createElement('textarea');
           tracklistInput.value = item.tracklist || ''; tracklistInput.placeholder = 'Tracklist (één track per regel)';
           tracklistInput.className = 'field-row-textarea';
@@ -1277,7 +1336,12 @@
         var cancelBtn = document.createElement('button');
         cancelBtn.type = 'button'; cancelBtn.className = 'btn-text'; cancelBtn.textContent = 'Annuleren';
         cancelBtn.addEventListener('click', function () { state.editingItem = null; renderDetail(); });
-        actions.appendChild(saveBtn); actions.appendChild(cancelBtn);
+        var deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button'; deleteBtn.className = 'btn-text danger'; deleteBtn.textContent = 'Verwijderen';
+        deleteBtn.addEventListener('click', function () {
+          supabase.from('lijst_items').delete().eq('id', item.id).then(refetchSoft);
+        });
+        actions.appendChild(saveBtn); actions.appendChild(cancelBtn); actions.appendChild(deleteBtn);
         form.appendChild(actions);
         form.addEventListener('submit', function (e) {
           e.preventDefault();
@@ -1436,27 +1500,12 @@
       titleCellInner.appendChild(main);
       titleTd.appendChild(titleCellInner);
 
-      var itemActions = document.createElement('div');
-      itemActions.className = 'item-actions';
-      if (entry.auto_import === 'openlibrary' && !item.omslag_url) {
-        var coverSearchBtn = document.createElement('button');
-        coverSearchBtn.type = 'button'; coverSearchBtn.className = 'icon-btn'; coverSearchBtn.appendChild(coverSearchSvg());
-        coverSearchBtn.title = 'Cover ophalen (Open Library)'; coverSearchBtn.setAttribute('aria-label', 'Cover ophalen');
-        coverSearchBtn.addEventListener('click', function () { openCoverSearch(item, entry); });
-        itemActions.appendChild(coverSearchBtn);
-      }
-      var photoBtn = document.createElement('button');
-      photoBtn.type = 'button'; photoBtn.className = 'icon-btn'; photoBtn.appendChild(cameraSvg());
-      photoBtn.title = item.omslag_url ? 'Wijzig foto' : 'Foto toevoegen';
-      photoBtn.setAttribute('aria-label', item.omslag_url ? 'Wijzig foto' : 'Foto toevoegen');
-      var photoInput = document.createElement('input');
-      photoInput.type = 'file'; photoInput.accept = 'image/*'; photoInput.style.display = 'none';
-      photoInput.addEventListener('change', function () {
-        if (photoInput.files && photoInput.files[0]) uploadItemCover(item, photoInput.files[0]);
-      });
-      photoBtn.addEventListener('click', function () { photoInput.click(); });
-      itemActions.appendChild(photoBtn); itemActions.appendChild(photoInput);
+      // Alleen de tracklist-toggle (bekijken, geen bewerking) blijft permanent zichtbaar per rij —
+      // foto/cover-/tracklist-ophalen/verwijderen zitten nu in het bewerkformulier (tik op de titel),
+      // dat scheelt een drukke actie-rij onder elk item in een lange collectie.
       if (item.tracklist) {
+        var itemActions = document.createElement('div');
+        itemActions.className = 'item-actions';
         var tlExpanded = !!state.expandedTracklist[item.id];
         var tracklistBtn = document.createElement('button');
         tracklistBtn.type = 'button'; tracklistBtn.className = 'icon-btn'; tracklistBtn.appendChild(tracklistSvg());
@@ -1464,25 +1513,8 @@
         tracklistBtn.setAttribute('aria-label', tracklistBtn.title);
         tracklistBtn.addEventListener('click', function () { state.expandedTracklist[item.id] = !state.expandedTracklist[item.id]; renderDetail(); });
         itemActions.appendChild(tracklistBtn);
-      } else if (entry.auto_import === 'discogs') {
-        var trackSearchBtn = document.createElement('button');
-        trackSearchBtn.type = 'button'; trackSearchBtn.className = 'icon-btn'; trackSearchBtn.appendChild(coverSearchSvg());
-        trackSearchBtn.title = 'Tracklist ophalen (Discogs)'; trackSearchBtn.setAttribute('aria-label', 'Tracklist ophalen via Discogs');
-        trackSearchBtn.addEventListener('click', function () { openTrackSearch(item); });
-        itemActions.appendChild(trackSearchBtn);
+        titleTd.appendChild(itemActions);
       }
-      var editBtn = document.createElement('button');
-      editBtn.type = 'button'; editBtn.className = 'icon-btn'; editBtn.innerHTML = '&#9998;';
-      editBtn.title = 'Bewerk item'; editBtn.setAttribute('aria-label', 'Bewerk item');
-      editBtn.addEventListener('click', function () { state.editingItem = item.id; renderDetail(); resetItemsScroll(); });
-      var removeBtn = document.createElement('button');
-      removeBtn.type = 'button'; removeBtn.className = 'icon-btn danger'; removeBtn.innerHTML = '&#10005;';
-      removeBtn.title = 'Verwijder item'; removeBtn.setAttribute('aria-label', 'Verwijder item');
-      removeBtn.addEventListener('click', function () {
-        supabase.from('lijst_items').delete().eq('id', item.id).then(refetchSoft);
-      });
-      itemActions.appendChild(editBtn); itemActions.appendChild(removeBtn);
-      titleTd.appendChild(itemActions);
       tr.appendChild(titleTd);
 
       vinkVelden.forEach(function (vk) {
@@ -1517,6 +1549,7 @@
 
     function buildReeksHeaderRow(reeks, ridx, reeksen, groupFull, collapsed) {
       var headRow = document.createElement('tr'); headRow.className = 'reeks-row';
+      headRow.dataset.reeksId = reeks.id;
       var headTd = document.createElement('td'); headTd.colSpan = colCount;
       var headerWrap = document.createElement('div'); headerWrap.className = 'reeks-header wide-row-content';
       var collapseBtn = document.createElement('button');
@@ -1568,6 +1601,27 @@
       return headRow;
     }
 
+    function buildAzBar(reeksenSorted) {
+      var bar = document.createElement('div'); bar.className = 'az-bar';
+      var seen = {};
+      reeksenSorted.forEach(function (reeks) {
+        var naam = sortNaam(reeks.naam).trim();
+        var letter = naam ? naam.charAt(0).toUpperCase() : '#';
+        if (!/[A-Z]/.test(letter)) letter = '#';
+        if (seen[letter]) return;
+        seen[letter] = reeks.id;
+        var btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'az-btn'; btn.textContent = letter;
+        btn.setAttribute('aria-label', 'Spring naar ' + letter);
+        btn.addEventListener('click', function () {
+          var target = detailCardEl.querySelector('tr[data-reeks-id="' + reeks.id + '"]');
+          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        bar.appendChild(btn);
+      });
+      return bar;
+    }
+
     function renderNestedItems(filtered, fullItemsAll) {
       var reeksSortActive = currentSortKey(entry) === 'reeks';
       var reeksen = reeksenFor(entry.id);
@@ -1588,6 +1642,14 @@
       }
 
       var hasActiveQuery = !!(state.search[entry.id] || '').trim() || hasActiveFilter(entry);
+      // Sprongbalk om bij een lange, alfabetische reekseklijst (bv. 90+ artiesten bij Muziek) direct
+      // naar een letter te springen i.p.v. te moeten scrollen — alleen zinvol als er ook echt
+      // alfabetisch gesorteerd wordt en er genoeg reeksen zijn om het probleem te hébben. Verborgen
+      // tijdens een actieve zoekopdracht/filter: de lijst is dan al kort, en de beschikbare letters
+      // zouden niet meer kloppen met wat er nog zichtbaar is.
+      if (reeksSortActive && !hasActiveQuery && reeksen.length > 8) {
+        dbody.appendChild(buildAzBar(reeksen));
+      }
       var shell = buildTableShell();
       var tbody = document.createElement('tbody');
 
@@ -1766,28 +1828,27 @@
   }
 
   // ---------- Filter row ----------
+  // Eén tikbare chip per vinkje i.p.v. een drieknops Alles/Wel/Niet-segment — tikken doorloopt
+  // alle → wel → niet → alle. Compacter (past meer filters op één regel) en de kleur van de chip
+  // zelf toont de status, i.p.v. een klein "actief"-knopje binnen een groepje knoppen.
+  var FILTER_CYCLE = ['alle', 'wel', 'niet'];
   function renderFilterRow(entry) {
     var row = document.createElement('div');
     row.className = 'filter-row';
     entry.vink_velden.forEach(function (vk) {
-      var group = document.createElement('div');
-      group.className = 'filter-group';
-      var lbl = document.createElement('span'); lbl.className = 'fg-label'; lbl.textContent = vk.label + ':';
-      var seg = document.createElement('div'); seg.className = 'filter-seg';
       var current = (state.filters[entry.id] && state.filters[entry.id][vk.key]) || 'alle';
-      [['alle', 'Alles'], ['wel', 'Wel'], ['niet', 'Niet']].forEach(function (pair) {
-        var b = document.createElement('button');
-        b.type = 'button'; b.textContent = pair[1];
-        if (current === pair[0]) b.className = 'active';
-        b.addEventListener('click', function () {
-          if (!state.filters[entry.id]) state.filters[entry.id] = {};
-          state.filters[entry.id][vk.key] = pair[0];
-          renderDetail();
-        });
-        seg.appendChild(b);
+      var chip = document.createElement('button');
+      chip.type = 'button'; chip.className = 'filter-chip filter-chip-' + current;
+      var mark = current === 'wel' ? '✓ ' : current === 'niet' ? '✕ ' : '';
+      chip.textContent = mark + vk.label;
+      chip.setAttribute('aria-label', vk.label + ': ' + (current === 'wel' ? 'wel' : current === 'niet' ? 'niet' : 'alles'));
+      chip.addEventListener('click', function () {
+        var next = FILTER_CYCLE[(FILTER_CYCLE.indexOf(current) + 1) % FILTER_CYCLE.length];
+        if (!state.filters[entry.id]) state.filters[entry.id] = {};
+        state.filters[entry.id][vk.key] = next;
+        renderDetail();
       });
-      group.appendChild(lbl); group.appendChild(seg);
-      row.appendChild(group);
+      row.appendChild(chip);
     });
     return row;
   }
@@ -2225,6 +2286,7 @@
 
   // ---------- Tracklist ophalen via Discogs (los, per item zonder tracklist) ----------
   function openTrackSearch(item) {
+    state.editingItem = null;
     state.trackSearch = { itemId: item.id, step: 'candidates', loading: true, error: '', candidates: [], picked: null };
     renderDetail();
     resetItemsScroll();
