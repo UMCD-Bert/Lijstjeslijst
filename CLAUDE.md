@@ -552,6 +552,12 @@ toegang (geen aparte accounts per persoon).
   patroon elders in dit bestand i.p.v. zelf te kunnen verifiëren. **Covers nóg een keer groter**
   (derde ophoging, weer expliciet gevraagd): `.item-thumb` van 58×82 naar 72×100px, `.col-title`'s
   `max-width` van 240 naar 258px.
+  **Vervolg (2026-09-14, v1.28.2): covers vierkant** — expliciet gevraagd ("er is genoeg ruimte voor
+  de meeste albumtitels"), portrait 72×100 werd 84×84. Generieke wijziging (`.item-thumb` geldt voor
+  alle lijsttypes, niet alleen Muziek) — bewust niet Muziek-specifiek gemaakt, zelfde filosofie als de
+  rest van deze sectie. Bij Boeken/Strips (portrait covers) crop `object-fit:cover` nu een groter deel
+  van de hoogte weg (gecentreerd) dan bij de vorige 72×100-verhouding; lokaal getest bij Boeken (Grote
+  Panda & Kleine Draak) en dat bleef prima herkenbaar. `.col-title`'s `max-width` mee naar 268px.
 - **Lijstje verwijderen alleen nog op de hoofdpagina (2026-09-13, v1.18.0)**: het rode "Verwijder
   lijstje"-linkje onderaan de detailweergave is verwijderd — de hoofdpagina heeft per lijstje al
   een ✕-knop met dezelfde bevestigingsvraag (`deleteList()`, "kan niet ongedaan gemaakt worden"),
