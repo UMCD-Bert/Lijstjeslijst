@@ -71,7 +71,19 @@ toegang (geen aparte accounts per persoon).
     plaats van er alleen naar te kijken. (Aanleiding: v1.25.0, gevonden bij een grondige UX-review —
     sticky titelkolom + sticky actiekolom lieten op 375px nog maar 3px vrij, dus de vinkjeskolommen
     van Boeken/Muziek/Strips waren op een iPhone al sinds hun invoering volledig onbereikbaar zonder
-    dat iemand dit als zodanig had gemeld of getest.)
+    dat iemand dit als zodanig had gemeld of getest. Zelf inmiddels vervangen door een eenvoudigere
+    aanpak, zie "Vervangen (2026-09-14, v1.26.0)" verderop bij de items-tabel.)
+11. **Let op: sessies kunnen elkaars werk inhalen.** Meerdere Claude Code-sessies (of de eigenaar zelf
+    rechtstreeks) kunnen op hetzelfde moment in deze repo werken. Als je bij het starten van een
+    sessie een `APP_VERSION`/`CACHE_VERSION` in de code aantreft die hoger is dan het laatste dat in
+    dit bestand gedocumenteerd staat, of code tegenkomt die inhoudelijk afwijkt van wat hier
+    beschreven staat — dan heeft een andere sessie hier iets veranderd zónder dit bestand bij te
+    werken (schendt zelf werkafspraak 4, maar gebeurt dus toch). Behandel de CODE dan als actuele
+    waarheid, niet dit bestand: lees eerst wat er werkelijk staat (`git log`, `git show` op de
+    onbekende commit(s)) vóórdat je verder bouwt, en werk dit bestand alsnog bij met wat je aantreft
+    — anders raakt de documentatie steeds verder los van de werkelijke staat van de app. (Aanleiding:
+    2026-09-14 — een andere sessie shipte v1.26.0 zonder CLAUDE.md aan te passen; deze sessie
+    documenteerde tot dan toe nog de v1.25.0-aanpak die inmiddels alweer vervangen was.)
 
 ## Datamodel (kern) — generiek velden-systeem
 - `lijsten`: naam, omschrijving, omslag_url, volgorde, `type_label` (vrije tekst, getoond als pill),
@@ -161,9 +173,13 @@ toegang (geen aparte accounts per persoon).
   de reeks-kop) i.p.v. als enige invoerpad: opent direct met de reeksnaam als zoekterm (geen
   hertypen), toont een "← Andere kandidaat proberen"-link (geen volledige reset meer bij een
   verkeerde auteurstreffer), en toont resultaten standaard NIET aangevinkt (aanvinken = toevoegen,
-  i.p.v. moeten uitvinken uit tientallen ongewenste titels). De Discogs-bulkimport (Muziek) blijft
+  i.p.v. moeten uitvinken uit tientallen ongewenste titels). ~~De Discogs-bulkimport (Muziek) blijft
   ongewijzigd all-checked, want die importeert een hele bestaande collectie i.p.v. een
-  "blader door het hele oeuvre"-lijst.
+  "blader door het hele oeuvre"-lijst.~~ **Herzien (2026-09-14, v1.26.0):** ook de Discogs-bulkimport
+  toont resultaten nu standaard NIET aangevinkt, met "Alles selecteren"/"Niets selecteren"-knoppen
+  erbij (alleen zichtbaar bij >1 resultaat) — in de praktijk wil je vaak maar een paar losse albums
+  toevoegen uit een grote collectie, niet alles. Zelfde interactiepatroon als Open Library dus, de
+  eerdere "want dat is een hele bestaande collectie"-redenering hierboven bleek niet houdbaar.
 - Boeken-import (Open Library) filtert op Nederlandstalige edities via
   `search.json?q=author_key:{id} AND language:dut&editions.language=dut&fields=key,title,cover_i,
   editions,editions.title,editions.cover_i` (i.p.v. de taal-agnostische `/authors/{id}/works.json`,
@@ -323,6 +339,11 @@ toegang (geen aparte accounts per persoon).
   dus zonder label niet te onderscheiden (concreet gemeld: "welk knopje is dat dan? Dat is nu niet
   duidelijk"). Icoon nu `coverSearchSvg()` (vergrootglas), dezelfde die al gebruikt wordt voor de
   reeks-scoped Open Library-zoekknop — consistent "vergrootglas = extern opzoeken"-icoontaal.
+  **Aanvulling (2026-09-14, v1.26.0): kandidaten gesorteerd op populariteit.** Discogs'
+  `database/search` geeft per resultaat ook `community.have` mee (aantal Discogs-gebruikers dat
+  precies díe persing in bezit heeft) — kandidaten staan nu aflopend op dat aantal, zodat de meest
+  voorkomende/waarschijnlijke editie vanzelf bovenaan staat i.p.v. in willekeurige (Discogs-eigen)
+  volgorde.
 - Strips-sjabloon (2026-09-13 herzien): generieke "In bezit" vervangen door "Fysiek"/"Digitaal",
   zelfde reden als bij Boeken (e-book/fysiek) — veel strips heeft de gebruiker in digitale vorm
   (CBR/CBZ, gelezen via een externe comicreader-app, zie hieronder), dus één generiek "in bezit"
@@ -404,12 +425,25 @@ toegang (geen aparte accounts per persoon).
   De vinkjeskolommen (niet sticky, bedoeld om te scrollen) zaten daardoor bij elke scrollpositie
   volledig verstopt ÓNDER een van beide sticky kolommen (ondoorzichtige achtergrond, hogere
   z-index) — optisch niet te onderscheiden van "gewoon leeg", dus nooit eerder als bug herkend.
-  Bevestigd met `getBoundingClientRect()`-metingen en een tijdelijke debug-outline vóór de fix. Fix:
-  op smalle schermen (`@media (max-width: 480px)`) is de actiekolom niet meer sticky (`position:
+  Bevestigd met `getBoundingClientRect()`-metingen en een tijdelijke debug-outline vóór de fix.
+  ~~Fix: op smalle schermen (`@media (max-width: 480px)`) is de actiekolom niet meer sticky (`position:
   static`) — daardoor is er nog maar ÉÉN sticky kolom (titel) en werkt scrollen weer normaal om de
   vinkjes te bereiken; bewerken blijft zonder scrollen mogelijk via een tik op de titel zelf (dat
   deed al hetzelfde als het potlood-icoontje). Op desktop-breedte ongewijzigd (daar was al genoeg
-  ruimte, geen media-query nodig).
+  ruimte, geen media-query nodig).~~
+  **Vervangen (2026-09-14, v1.26.0, buiten deze sessie om doorgevoerd — zie onderaan dit hoofdstuk
+  "Let op: sessies kunnen elkaars werk inhalen"): geen media-query meer, acties zitten nu gewoon IN
+  de sticky titelkolom.** `.col-actions` (de eigen sticky kolom rechts) is volledig vervallen —
+  foto/bewerken/verwijderen/tracklist-ophalen staan nu onder de titel binnen dezelfde `<td
+  class="col-title">` (`colCount` dus `1 + vinkVelden.length` i.p.v. `2 + ...`). Reden: ook mét de
+  v1.25.0-fix moest je voor foto/verwijderen/tracklist nog steeds naar rechts scrollen (alleen
+  bewerken was al zonder scrollen bereikbaar, via een tik op de titel) — `position:sticky` zorgt er
+  namelijk alleen voor dat een kolom in beeld BLIJFT terwijl je scrolt, niet dat hij al zichtbaar is
+  vanaf scrollLeft:0 (de openingsstand van elk lijstje). Met alles in de titelkolom is dat hele
+  onderscheid weg: alle item-acties zijn nu altijd direct bereikbaar, alleen de vinkjeskolommen
+  (aanvinken, minder kritiek) blijven in het scrollbare midden. `.col-title`'s `max-width` ging van
+  280px naar 220px (compenseert de extra hoogte van de acties eronder). De v1.25.0-media-query-fix
+  hierboven werkte, maar deze aanpak is eenvoudiger én lost een net iets breder probleem op.
   **Herzien (2026-09-13, v1.25.0): "zachte landing" verving `scrollIntoView` door een bevestiging
   ter plekke.** ~~Na een succesvolle toevoeging via het toevoegformulier (genest én niet-genest)
   scrollt de nieuwe rij automatisch in beeld (`scrollIntoView({block:'center'})`)~~ — dit botste met
