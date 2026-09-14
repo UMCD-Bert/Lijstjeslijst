@@ -505,6 +505,11 @@ toegang (geen aparte accounts per persoon).
   Bewust NIET gebouwd (grotere stap, expliciet afgeraden totdat er concrete behoefte aan blijkt): een
   volledig los, navigeerbaar detailscherm per album zoals VinylBox — dat is een fundamenteel andere
   navigatievorm dan de rest van de app (inline bewerken in de tabelrij), geen kleine aanpassing.
+  **Vervolg (2026-09-14, v1.27.1): covers nog groter** — expliciet gevraagd na het zien van de
+  v1.27.0-wijzigingen, "zeker met de letterbalk" (de A-Z-sprongbalk maakt bladeren al makkelijker,
+  grotere covers maken het bladeren zelf ook prettiger). `.item-thumb` van 44×62 naar 58×82px,
+  `.col-title`'s `max-width` van 220 naar 240px mee opgehoogd zodat de titel niet extra hoeft te
+  wrappen door de bredere cover.
 - **Lijstje verwijderen alleen nog op de hoofdpagina (2026-09-13, v1.18.0)**: het rode "Verwijder
   lijstje"-linkje onderaan de detailweergave is verwijderd — de hoofdpagina heeft per lijstje al
   een ✕-knop met dezelfde bevestigingsvraag (`deleteList()`, "kan niet ongedaan gemaakt worden"),
