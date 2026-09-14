@@ -492,6 +492,16 @@ toegang (geen aparte accounts per persoon).
      de vroegere ✕-icoon, ook zonder bevestigingsvraag — dat was al zo). Schikt zelfde principe toe
      als eerder al bij de discogsBtn/downloadSvg-opruiming: minder altijd-zichtbare chrome voor
      acties die je zelden per item gebruikt.
+     **Vervolg (2026-09-14, v1.29.0): tracklist-toggle rechts náást de titel i.p.v. op een eigen
+     regel eronder** — expliciet gevraagd ("zodat de covers kort boven elkaar kunnen"). Het icoontje
+     zat in een los blokje ónder `.title-cell-inner` (eigen `.item-actions`-div, met
+     `.col-title .item-actions { margin-top: 4px; }`), wat bij items MET tracklist (bij Muziek de
+     meeste) de rijhoogte met een extra regel verhoogde — averechts voor "covers dicht op elkaar",
+     vooral met de inmiddels grotere (en bij Muziek vierkante) covers. Nu gewoon een derde flex-kind
+     ín `.title-cell-inner` zelf, ná `.item-main` (dat al `flex:1` heeft en dus de resterende
+     breedte opvult, waardoor het icoontje vanzelf helemaal rechts uitkomt, verticaal gecentreerd
+     t.o.v. de cover) — geen aparte regel meer nodig. De nu ongebruikte `.item-actions`-klasse
+     (CSS + de wrapper-div in JS) is opgeruimd.
   2. **Kaartjes i.p.v. platte teksregel bovenaan** (`.stat-cards`): i.p.v. "170/170 in bezit · 149/170
      lp · 22/170 cd" als lopende tekst, nu losse kaartjes met een groot getal + label — plus een
      nieuw "items"-kaartje (totaal aantal) en, alleen bij `entry.genest`, een "reeksen"-kaartje

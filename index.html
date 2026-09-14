@@ -319,7 +319,6 @@
   .col-title-head { z-index: 3; }
   .col-check { text-align: center; width: 54px; min-width: 54px; }
   .title-cell-inner { display: flex; align-items: center; gap: 8px; }
-  .col-title .item-actions { margin-top: 4px; }
   .move-col { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
   .item-thumb { width: 72px; height: 100px; object-fit: cover; border-radius: 7px; flex-shrink: 0; background: var(--surface-2); cursor: zoom-in; }
   /* Vierkant alleen bij Muziek (`auto_import: 'discogs'`) — past bij hoe album-/platenhoezen eruit
@@ -357,7 +356,6 @@
   .item-row.done .item-primary { color: var(--muted); text-decoration: line-through; }
   @keyframes item-flash-bg { 0% { background-color: var(--accent-soft); } 100% { background-color: transparent; } }
   tr.item-flash td { animation: item-flash-bg 1.8s ease-out; }
-  .item-actions { display: flex; gap: 2px; flex-shrink: 0; }
   .items-empty { color: var(--muted); font-style: italic; padding: 14px 2px; font-size: 0.9rem; text-align: left; }
   .tracklist-row td { padding: 4px 2px 14px; border-bottom: 1px solid var(--border); }
   .tracklist-text { white-space: pre-wrap; font-size: 0.86rem; color: var(--muted); background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
@@ -415,7 +413,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.28.3';
+  var APP_VERSION = '1.29.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -1292,8 +1290,8 @@
           form.appendChild(editThumb);
         }
         // Foto/cover-/tracklist-acties staan hier in het bewerkformulier i.p.v. als permanent
-        // zichtbare icoontjes per rij (zie ook `.item-actions` hieronder) — dat maakte elke regel in
-        // een lange collectie onnodig druk voor acties die je zelden per item gebruikt. Bewerken zelf
+        // zichtbare icoontjes per rij (zie ook de tracklist-toggle hieronder) — dat maakte elke regel
+        // in een lange collectie onnodig druk voor acties die je zelden per item gebruikt. Bewerken zelf
         // blijft één tik op de titel, net als voorheen.
         var mediaActions = document.createElement('div'); mediaActions.className = 'edit-form-media-actions';
         var photoEditBtn = document.createElement('button');
@@ -1520,23 +1518,21 @@
         main.appendChild(sEl);
       }
       titleCellInner.appendChild(main);
-      titleTd.appendChild(titleCellInner);
 
       // Alleen de tracklist-toggle (bekijken, geen bewerking) blijft permanent zichtbaar per rij —
-      // foto/cover-/tracklist-ophalen/verwijderen zitten nu in het bewerkformulier (tik op de titel),
-      // dat scheelt een drukke actie-rij onder elk item in een lange collectie.
+      // foto/cover-/tracklist-ophalen/verwijderen zitten nu in het bewerkformulier (tik op de titel).
+      // Rechts naast de titel i.p.v. op een eigen regel eronder: zo blijft de rijhoogte gelijk aan
+      // die van de cover, en kunnen covers (vooral de vierkante bij Muziek) dicht op elkaar staan.
       if (item.tracklist) {
-        var itemActions = document.createElement('div');
-        itemActions.className = 'item-actions';
         var tlExpanded = !!state.expandedTracklist[item.id];
         var tracklistBtn = document.createElement('button');
         tracklistBtn.type = 'button'; tracklistBtn.className = 'icon-btn'; tracklistBtn.appendChild(tracklistSvg());
         tracklistBtn.title = tlExpanded ? 'Tracklist verbergen' : 'Tracklist tonen';
         tracklistBtn.setAttribute('aria-label', tracklistBtn.title);
         tracklistBtn.addEventListener('click', function () { state.expandedTracklist[item.id] = !state.expandedTracklist[item.id]; renderDetail(); });
-        itemActions.appendChild(tracklistBtn);
-        titleTd.appendChild(itemActions);
+        titleCellInner.appendChild(tracklistBtn);
       }
+      titleTd.appendChild(titleCellInner);
       tr.appendChild(titleTd);
 
       vinkVelden.forEach(function (vk) {
