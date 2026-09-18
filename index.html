@@ -416,7 +416,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.31.0';
+  var APP_VERSION = '1.31.1';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -1258,7 +1258,12 @@
       scrollWrap.className = 'items-scroll';
       var table = document.createElement('table');
       table.className = 'items-table';
-      table.style.minWidth = (180 + vinkVelden.length * 54 + 90) + 'px';
+      // Geen `+ 90` meer — dat was gereserveerd voor de acties-kolom, die sinds v1.26.0 niet meer
+      // los bestaat (acties staan nu IN de titelkolom, zie hierboven). Die vestigiale +90px bleef
+      // de tabel onnodig breed maken, wat bij weinig vinkjes (bv. Bordspellen: alleen "Gespeeld")
+      // de titelkolom tot z'n max-width opblies en het ene vinkje-kolom volledig buiten beeld duwde
+      // — pas op na scrollen zichtbaar (gemeld met een iPhone-screenshot).
+      table.style.minWidth = (180 + vinkVelden.length * 54) + 'px';
       var thead = buildThead();
       if (thead) table.appendChild(thead);
       scrollWrap.appendChild(table);

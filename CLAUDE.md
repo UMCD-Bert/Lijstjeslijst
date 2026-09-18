@@ -454,6 +454,22 @@ toegang (geen aparte accounts per persoon).
   (aanvinken, minder kritiek) blijven in het scrollbare midden. `.col-title`'s `max-width` ging van
   280px naar 220px (compenseert de extra hoogte van de acties eronder). De v1.25.0-media-query-fix
   hierboven werkte, maar deze aanpak is eenvoudiger én lost een net iets breder probleem op.
+  **Vervolg (2026-09-19, v1.31.1): bij Bordspellen (1 vinkje) was het ene vinkje-kolom alsnog buiten
+  beeld, ondanks deze fix** — gemeld met een iPhone-screenshot van de echte, inmiddels via BGG
+  gevulde "Spellen Bert"-lijst. Oorzaak: de tabelbreedte-formule in `buildTableShell()`
+  (`180 + vinkVelden.length * 54 + 90`) rekende nog steeds die `+ 90` mee die ooit specifiek voor de
+  (inmiddels vervallen) losse acties-kolom was gereserveerd — puur dode gewichtstoevoeging sindsdien.
+  Bij Muziek/Boeken (3-4 vinkjes) valt dat relatief minder op (162-216px echte vinkjes-inhoud t.o.v.
+  90px overbodige marge); bij Bordspellen (1 vinkje, 54px) is die 90px overbodige marge groter dan
+  de vinkjes-kolom zelf. Gemeten op 375px: `clientWidth` 285px, `scrollWidth`/tabel-`minWidth` 324px
+  (180+54+90) — de titelkolom (enige flexibele kolom, `min-width:160/max-width:268`) werd door de
+  tabel-auto-layout richting zijn max-width 268 opgerekt om die overtollige breedte op te vangen,
+  waardoor het ene vinkje-kolom volledig rechts buiten `clientWidth` viel (bevestigd met
+  `getBoundingClientRect()`: kolomrand bij 369px, ruim voorbij de zichtbare 285px). Fix: de `+ 90`
+  geschrapt (`180 + vinkVelden.length * 54`) — bij Bordspellen wordt de tabel dan exact even breed
+  als het scherm (geen scrollen meer nodig), bij Muziek/Boeken ongewijzigd nog een beetje scrollen
+  nodig (was al zo, geen regressie — geverifieerd op de echte "Spellen Bert"- én
+  "Muziekcollectie"-lijst vóór en na de fix).
   **Herzien (2026-09-13, v1.25.0): "zachte landing" verving `scrollIntoView` door een bevestiging
   ter plekke.** ~~Na een succesvolle toevoeging via het toevoegformulier (genest én niet-genest)
   scrollt de nieuwe rij automatisch in beeld (`scrollIntoView({block:'center'})`)~~ — dit botste met
