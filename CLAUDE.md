@@ -655,6 +655,61 @@ toegang (geen aparte accounts per persoon).
   actieve tabblad: in "Bekijken" wijst 'm naar het tabblad "Toevoegen" hierboven, in "Toevoegen"
   verwijst 'm naar het formulier dat er al staat. Zelfde aanpassing bij niet-geneste lijstjes
   (Lijst/Bordspellen/Aangepast).
+- **Synchroniseren met Discogs/BGG (2026-09-18, v1.31.0)**: expliciet verzoek ("ik wil dat mijn
+  collecties van platen/cd's en bordspellen synchroon blijven lopen tussen Lijster en discogs resp.
+  BGG"). Vóór het bouwen eerst uitgezocht wat elke bron daadwerkelijk toestaat — dat bleek
+  fundamenteel te verschillen:
+  - **BGG: alleen-lezen.** De volledige XMLAPI2-documentatie doorgenomen — geen enkel schrijf-
+    endpoint voor een collectie (geen POST/PUT ergens). BGG heeft intern wel een endpoint waarmee de
+    eigen website dat doet, maar die is niet gedocumenteerd/vrijgegeven, en hun voorwaarden
+    verbieden expliciet gebruik van zulke privé-endpoints. Bordspellen toevoegen aan je échte
+    BGG-collectie blijft dus altijd iets wat je zelf op BGG (blijft) doen.
+  - **Discogs: kan wel schrijven.** Discogs' API heeft een "Add To Collection Folder"-endpoint
+    (`POST /users/{username}/collection/folders/1/releases/{release_id}` — folder 1 =
+    "Uncategorized", folder 0 "All" accepteert geen toevoegingen) én een simpele
+    authenticatiemethode die bij deze app past: een persoonlijk token (Developer Settings →
+    "Generate new token"), gestuurd als `Authorization: Discogs token=…` — geen volledige OAuth-
+    inlogflow nodig, vergelijkbaar met de andere tokens in dit bestand qua zichtbaarheid-trade-off
+    (`DISCOGS_TOKEN`-constante).
+
+  Gebouwd, generiek over beide bronnen (`state.compareFlow`, `openCompareFlow()`/
+  `runCompareFlow()`/`buildComparePanel()`, gedeeld tussen Muziek en Bordspellen — zelfde
+  velden-systeem-filosofie als de rest van de app): een **"Vergelijk met BGG/Discogs"-knop** in het
+  "Toevoegen"-tabblad (naast de gewone import-/ranks-knoppen, alleen zichtbaar als de lijst al items
+  heeft) die de externe collectie ophaalt en twee categorieën toont:
+  1. **Niet (bevestigd) in de externe collectie** — items met `bron !== source` (dus nooit vanuit
+     die bron geïmporteerd, meestal handmatig toegevoegd). Bij BGG: een link "Zoek op BGG →"
+     (`geeksearch.php?action=search&objecttype=boardgame&q=…`) om het zelf op te zoeken en toe te
+     voegen — kán niet automatisch, zie hierboven. Bij Discogs: een knop "Zoek & voeg toe aan
+     Discogs" die de al bestaande candidate-picker van "Tracklist ophalen" hergebruikt
+     (`openTrackSearch(item, entry, true)`, nieuwe derde parameter `syncToDiscogs`) — bevestigen
+     haalt niet alleen de tracklist op maar voegt de gekozen release ook echt toe aan de Discogs-
+     collectie (`addReleaseToDiscogsCollection()`) en zet dan pas `bron:'discogs'`/`extern_id`
+     (alleen bij een geslaagde toevoeging — een mislukte poging laat het item bewust in de
+     "nog niet bevestigd"-lijst staan voor een nieuwe poging, i.p.v. dat stilzwijgend als geslaagd
+     te markeren). Bewust NIET de default voor het gewone per-item "Tracklist ophalen"-knopje (dat
+     blijft puur metadata ophalen) — alleen wanneer expliciet via deze vergelijk-knop geopend, met
+     een zichtbare waarschuwing ("Deze release wordt ook toegevoegd aan je Discogs-collectie") en
+     een aangepast knoplabel ("Toevoegen aan Discogs" i.p.v. "Toevoegen"), zodat een schrijfactie
+     naar een extern account nooit als bijverschijnsel van een andere handeling gebeurt. Als het
+     item in een ingeklapte reeks zit, klapt die vanzelf open en scrollt de rij in beeld (anders zou
+     het zoekpaneel wel openen maar nergens zichtbaar verschijnen).
+  2. **Niet meer in de externe collectie** — items met `bron === source` waarvan `extern_id` niet
+     meer voorkomt in de zojuist opgehaalde collectie (mogelijk verkocht/weggedaan). Een rode
+     "Verwijder uit Lijster"-knop per item, zonder bevestigingsvraag (zelfde precedent als de andere
+     item-verwijderknoppen in de app) — de review-lijst zelf is al de bewuste tussenstap.
+
+  Expliciet **niet** automatisch/bij het openen van een lijst — "actief knop drukken, niet
+  volautomatisch. Mutaties zijn regelmatig, maar voorspelbaar en bekend" — en expliciet **geen**
+  automatische verwijdering — "lijstje zien" i.p.v. stilzwijgend opruimen. Verificatie: de
+  categorieën lokaal getest met een tijdelijk testlijstje (Bordspellen) en een bewust vervalste
+  `extern_id` op een SQL-testrij (niet op de échte BGG-collectie) om de "niet meer aanwezig"-
+  categorie te kunnen zien zonder iets echts te hoeven verwijderen/wijzigen op BGG zelf. De
+  Discogs-schrijfaanroep zelf (`addReleaseToDiscogsCollection`) is qua URL/headers/methode
+  geverifieerd tegen Discogs' eigen API-documentatie, maar bewust NIET live tegen de echte
+  Discogs-collectie van de eigenaar getest zonder diens toestemming vooraf — dat is een schrijvende
+  actie op een extern, semi-publiek account, wezenlijk anders dan de overige (alleen-lezen)
+  testverificaties in dit bestand.
 - Volgorde wordt bijgehouden als timestamp (nieuw item/lijst = `Date.now()`); verplaatsen wisselt de
   `volgorde`-waarde van twee buren om (last-writer-wins, geen transacties nodig op deze schaal).
 
@@ -722,6 +777,9 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   terug — een eigen gehost logo-bestand leek voor dit doel (een privé huishoud-app) niet nodig, een
   tekstlink "Bordspelgegevens via BoardGameGeek.com" (zichtbaar naast de importknop) dekt de geest
   van de eis.
+  **Vervolg (2026-09-18, v1.31.0): "Vergelijk met BGG/Discogs"** — zie de nieuwe sectie
+  "Synchroniseren met Discogs/BGG" bij het Datamodel hieronder voor het volledige verhaal (geldt
+  voor Muziek én Bordspellen samen, één gedeelde aanpak).
 - ~~MusicBrainz-auto-import (Muziek) kon vanuit deze dev-omgeving niet betrouwbaar getest worden
   ("server is busy"-responses)~~ — bleek ook vanaf de telefoon van de gebruiker onbetrouwbaar/zonder
   resultaat, en is daarom 2026-09-13 (v1.24.0) volledig verwijderd i.p.v. verder uitgezocht.

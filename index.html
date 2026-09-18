@@ -232,6 +232,8 @@
   .import-candidate { text-align: left; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 8px 11px; font-size: 0.86rem; }
   .import-candidate:hover { background: var(--accent-soft); }
   .import-candidate small { display: block; color: var(--muted); font-size: 0.76rem; margin-top: 2px; }
+  .import-candidate-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .import-candidate-row .btn-text { flex-shrink: 0; padding: 4px 2px; }
   .import-works { display: flex; flex-direction: column; gap: 4px; max-height: 280px; overflow-y: auto; border-top: 1px solid var(--border); padding-top: 10px; }
   .import-work-row { display: flex; align-items: center; gap: 8px; font-size: 0.86rem; padding: 3px 0; }
   .import-work-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); flex-shrink: 0; }
@@ -414,7 +416,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.30.0';
+  var APP_VERSION = '1.31.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -424,6 +426,10 @@
   // ook non-commercial. Onvermijdelijk zichtbaar in broncode bij een statische app zonder backend —
   // zelfde geaccepteerde trade-off als de Supabase-key hierboven (zie CLAUDE.md).
   var BGG_APP_TOKEN = 'dabdb1de-5ccf-4075-918c-7e461c4e718d';
+  // Persoonlijk Discogs-token (Developer Settings → "Generate new token") — i.t.t. BGG kan Discogs'
+  // API ook SCHRIJVEN (release aan je collectie toevoegen), vandaar nodig voor de "sync naar
+  // Discogs"-kant hieronder. Zelfde zichtbaarheid-trade-off als de andere tokens hierboven.
+  var DISCOGS_TOKEN = 'lzpDJCYWlKuEWtlVyWtwchzUvjtahtmZDbSGbNKI';
 
   var PRESETS = {
     simpel:      { label: 'Lijst',       desc: 'losse items, afvinkbaar',    type_label: 'Lijst',       extra_velden: [], vink_velden: [{ key: 'gedaan', label: 'Gedaan' }], auto_import: null, doorstrepen: true },
@@ -444,7 +450,7 @@
   var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var state = {
     lijsten: [], items: [], reeksen: [], currentId: null, editingItem: null,
-    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}, trackSearch: null, viewMode: {}, addConfirm: {}, bggRefreshing: {}
+    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}, trackSearch: null, viewMode: {}, addConfirm: {}, bggRefreshing: {}, compareFlow: null
   };
 
   var gridEl = document.getElementById('grid');
@@ -1343,7 +1349,7 @@
             var trackSearchEditBtn = document.createElement('button');
             trackSearchEditBtn.type = 'button'; trackSearchEditBtn.className = 'btn-secondary';
             trackSearchEditBtn.textContent = 'Tracklist ophalen (Discogs)';
-            trackSearchEditBtn.addEventListener('click', function () { openTrackSearch(item); });
+            trackSearchEditBtn.addEventListener('click', function () { openTrackSearch(item, entry); });
             form.appendChild(trackSearchEditBtn);
           }
           tracklistInput = document.createElement('textarea');
@@ -1446,13 +1452,19 @@
           var pkPre = document.createElement('pre'); pkPre.className = 'track-confirm-tracklist'; pkPre.textContent = pk.tracklist;
           preview.appendChild(pkPre);
           tsWrap.appendChild(preview);
+          if (ts.syncToDiscogs) {
+            var syncNote = document.createElement('p'); syncNote.className = 'import-msg';
+            syncNote.textContent = 'Deze release wordt ook toegevoegd aan je Discogs-collectie.';
+            tsWrap.appendChild(syncNote);
+          }
           if (ts.error) {
             var tsErr2 = document.createElement('p'); tsErr2.className = 'import-msg error'; tsErr2.textContent = ts.error;
             tsWrap.appendChild(tsErr2);
           }
           var tsConfirmActions = document.createElement('div'); tsConfirmActions.className = 'import-actions';
           var tsConfirmBtn = document.createElement('button');
-          tsConfirmBtn.type = 'button'; tsConfirmBtn.className = 'btn-primary'; tsConfirmBtn.textContent = 'Toevoegen';
+          tsConfirmBtn.type = 'button'; tsConfirmBtn.className = 'btn-primary';
+          tsConfirmBtn.textContent = ts.syncToDiscogs ? 'Toevoegen aan Discogs' : 'Toevoegen';
           tsConfirmBtn.addEventListener('click', function () { confirmTrackPick(item); });
           var tsBackBtn = document.createElement('button');
           tsBackBtn.type = 'button'; tsBackBtn.className = 'btn-text'; tsBackBtn.textContent = '← Andere kandidaat';
@@ -1777,6 +1789,7 @@
     if (prev === 'toevoegen') {
       delete state.isbnLookup[entry.id];
       if (state.importFlow && state.importFlow.listId === entry.id) state.importFlow = null;
+      if (state.compareFlow && state.compareFlow.listId === entry.id) state.compareFlow = null;
     }
     state.viewMode[entry.id] = mode;
     renderDetail();
@@ -2196,20 +2209,35 @@
   }
   function closeImportFlow() { state.importFlow = null; renderDetail(); }
 
+  async function fetchDiscogsCollection(username) {
+    var page = 1, perPage = 100, all = [];
+    while (true) {
+      var res = await fetch('https://api.discogs.com/users/' + encodeURIComponent(username) + '/collection/folders/0/releases?per_page=' + perPage + '&page=' + page);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var data = await res.json();
+      all = all.concat(data.releases || []);
+      var pages = (data.pagination && data.pagination.pages) || 1;
+      if (page >= pages || !data.releases || !data.releases.length) break;
+      page++;
+    }
+    return all;
+  }
+  // Persoonlijk token (zie DISCOGS_TOKEN hierboven) i.p.v. anoniem — nodig omdat dit een schrijvende
+  // aanroep is (i.t.t. alle andere Discogs-aanroepen in dit bestand, die publieke, alleen-lezen data
+  // ophalen en geen auth nodig hebben). Folder 1 = "Uncategorized", de enige geldige folder om
+  // rechtstreeks aan toe te voegen (folder 0 "All" accepteert geen toevoegingen, zie Discogs' eigen
+  // API-documentatie).
+  async function addReleaseToDiscogsCollection(username, releaseId) {
+    var url = 'https://api.discogs.com/users/' + encodeURIComponent(username) + '/collection/folders/1/releases/' + encodeURIComponent(releaseId);
+    var res = await fetch(url, { method: 'POST', headers: { 'Authorization': 'Discogs token=' + DISCOGS_TOKEN } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  }
+
   async function runDiscogsFetch(entry) {
     var flow = state.importFlow;
     try {
-      var username = entry.discogs_username;
-      var page = 1, perPage = 100, all = [];
-      while (true) {
-        var res = await fetch('https://api.discogs.com/users/' + encodeURIComponent(username) + '/collection/folders/0/releases?per_page=' + perPage + '&page=' + page);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        var data = await res.json();
-        all = all.concat(data.releases || []);
-        var pages = (data.pagination && data.pagination.pages) || 1;
-        if (page >= pages || !data.releases || !data.releases.length) break;
-        page++;
-      }
+      var all = await fetchDiscogsCollection(entry.discogs_username);
       var seen = {};
       flow.works = all.filter(function (r) {
         if (seen[r.id]) return false;
@@ -2330,6 +2358,42 @@
     }
   }
 
+  // ---------- Vergelijken met BGG/Discogs ----------
+  // Generiek over beide bronnen (net als de rest van de import-machinerie) — laat twee dingen zien
+  // die de gewone import-knop niet dekt: items die uit de externe collectie zijn verdwenen (mogelijk
+  // verkocht/weggedaan) en items in Lijster die nooit vanuit die bron bevestigd zijn. Bewust GEEN
+  // automatische verwijdering of (bij BGG) toevoeging — altijd een expliciete handeling per item,
+  // op verzoek van de eigenaar ("actief knop drukken, niet volautomatisch... lijstje zien").
+  function openCompareFlow(entry) {
+    state.compareFlow = { listId: entry.id, source: entry.auto_import, loading: true, error: '', notConfirmed: [], removedFromSource: [] };
+    renderDetail();
+    resetItemsScroll();
+    runCompareFlow(entry);
+  }
+  function closeCompareFlow() { state.compareFlow = null; renderDetail(); }
+
+  async function runCompareFlow(entry) {
+    var cmp = state.compareFlow;
+    try {
+      var externalIds = {};
+      if (cmp.source === 'bgg') {
+        var xml = await fetchBggCollectionXml(entry.bgg_username);
+        parseBggCollection(xml).forEach(function (w) { externalIds[w.id] = true; });
+      } else if (cmp.source === 'discogs') {
+        var releases = await fetchDiscogsCollection(entry.discogs_username);
+        releases.forEach(function (r) { externalIds[String(r.id)] = true; });
+      }
+      var items = itemsFor(entry.id);
+      cmp.removedFromSource = items.filter(function (i) { return i.bron === cmp.source && i.extern_id && !externalIds[i.extern_id]; });
+      cmp.notConfirmed = items.filter(function (i) { return i.bron !== cmp.source; });
+    } catch (e) {
+      console.error('compare failed', e);
+      cmp.error = 'Vergelijken is niet gelukt. Klopt de gebruikersnaam?';
+    } finally {
+      cmp.loading = false; renderDetail();
+    }
+  }
+
   async function importSearch(query) {
     var flow = state.importFlow;
     flow.query = query; flow.loading = true; flow.error = ''; renderDetail();
@@ -2422,11 +2486,27 @@
   }
 
   // ---------- Tracklist ophalen via Discogs (los, per item zonder tracklist) ----------
-  function openTrackSearch(item) {
+  // `syncToDiscogs`: alleen `true` als dit geopend is vanuit de "Vergelijk met Discogs"-lijst (zie
+  // verderop) — dan voegt bevestigen de gekozen release ook echt toe aan de Discogs-collectie van
+  // de gebruiker, naast de gewone tracklist-ophalen-functie hieronder. Bewust NIET de default voor
+  // het gewone per-item "Tracklist ophalen"-knopje: dat blijft puur metadata ophalen, zonder
+  // bijwerking op een extern account — anders zou je onverwacht iets aan je Discogs-collectie
+  // toevoegen terwijl je alleen een tracklist wilde opzoeken.
+  function openTrackSearch(item, entry, syncToDiscogs) {
     state.editingItem = null;
-    state.trackSearch = { itemId: item.id, step: 'candidates', loading: true, error: '', candidates: [], picked: null };
+    // Vanuit "Vergelijk met Discogs" kan het item in een ingeklapte reeks zitten (of ver buiten
+    // beeld) — zonder dit zou het zoekpaneel wel openen maar nergens zichtbaar verschijnen.
+    if (syncToDiscogs && item.reeks_id) delete state.collapsedReeks[item.reeks_id];
+    state.trackSearch = {
+      itemId: item.id, listId: entry ? entry.id : null, syncToDiscogs: !!syncToDiscogs,
+      step: 'candidates', loading: true, error: '', candidates: [], picked: null
+    };
     renderDetail();
     resetItemsScroll();
+    if (syncToDiscogs) {
+      var rowEl = detailCardEl.querySelector('tr[data-item-id="' + item.id + '"]');
+      if (rowEl) rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
     runTrackSearch(item);
   }
   function closeTrackSearch() { state.trackSearch = null; renderDetail(); }
@@ -2484,6 +2564,24 @@
     if (!picked) return;
     var patch = { tracklist: picked.tracklist };
     if (!item.omslag_url && picked.coverUrl) patch.omslag_url = picked.coverUrl;
+    if (ts.syncToDiscogs) {
+      var entry = state.lijsten.find(function (l) { return l.id === ts.listId; });
+      if (entry && entry.discogs_username) {
+        try {
+          await addReleaseToDiscogsCollection(entry.discogs_username, picked.id);
+          // Alleen bron/extern_id zetten als de Discogs-toevoeging ook echt lukte — anders blijft
+          // dit item terecht in de "nog niet op Discogs"-lijst staan voor een nieuwe poging, i.p.v.
+          // dat we een mislukte sync stilzwijgend als geslaagd markeren.
+          patch.bron = 'discogs'; patch.extern_id = String(picked.id);
+          if (state.compareFlow && state.compareFlow.listId === ts.listId) {
+            state.compareFlow.notConfirmed = state.compareFlow.notConfirmed.filter(function (i) { return i.id !== item.id; });
+          }
+        } catch (e) {
+          console.error('discogs collection add failed', e);
+          window.alert('Toevoegen aan je Discogs-collectie is niet gelukt. De tracklist is wel opgeslagen; je kunt het later opnieuw proberen via "Vergelijk met Discogs".');
+        }
+      }
+    }
     state.trackSearch = null;
     var result = await supabase.from('lijst_items').update(patch).eq('id', item.id);
     refetchSoft(result);
@@ -2566,6 +2664,11 @@
   function renderImportSection(entry) {
     var wrap = document.createElement('div');
     var flow = state.importFlow;
+    var cmp = state.compareFlow;
+    if (cmp && cmp.listId === entry.id) {
+      wrap.appendChild(buildComparePanel(entry));
+      return wrap;
+    }
     if (flow && flow.listId === entry.id && flow.source !== entry.auto_import) return wrap;
     if (!flow || flow.listId !== entry.id) {
       // Discogs' bulk-collectie-import stond eerder als los download-icoontje in de compacte
@@ -2596,6 +2699,13 @@
           refreshBtn.addEventListener('click', function () { refreshBggRanks(entry); });
           row.appendChild(refreshBtn);
         }
+        if ((entry.auto_import === 'bgg' || entry.auto_import === 'discogs') && itemsFor(entry.id).length > 0) {
+          var compareBtn = document.createElement('button');
+          compareBtn.type = 'button'; compareBtn.className = 'btn-text';
+          compareBtn.textContent = 'Vergelijk met ' + (entry.auto_import === 'bgg' ? 'BGG' : 'Discogs');
+          compareBtn.addEventListener('click', function () { openCompareFlow(entry); });
+          row.appendChild(compareBtn);
+        }
         wrap.appendChild(row);
         if (entry.auto_import === 'bgg') {
           // BGG's gebruiksvoorwaarden vereisen een bronvermelding met link terug voor een
@@ -2616,6 +2726,86 @@
     }
     wrap.appendChild(buildImportPanel(entry));
     return wrap;
+  }
+
+  function buildComparePanel(entry) {
+    var cmp = state.compareFlow;
+    var sourceLabel = cmp.source === 'bgg' ? 'BGG' : 'Discogs';
+    var panel = document.createElement('div'); panel.className = 'import-panel wide-row-content';
+    var header = document.createElement('div'); header.className = 'import-actions';
+    var titleSpan = document.createElement('strong'); titleSpan.textContent = 'Vergelijk met ' + sourceLabel;
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button'; closeBtn.className = 'btn-text'; closeBtn.textContent = 'Sluiten';
+    closeBtn.addEventListener('click', closeCompareFlow);
+    header.appendChild(titleSpan); header.appendChild(closeBtn);
+    panel.appendChild(header);
+
+    if (cmp.loading) {
+      var loadingP = document.createElement('p'); loadingP.className = 'import-msg'; loadingP.textContent = 'Vergelijken…';
+      panel.appendChild(loadingP);
+      return panel;
+    }
+    if (cmp.error) {
+      var errP = document.createElement('p'); errP.className = 'import-msg error'; errP.textContent = cmp.error;
+      panel.appendChild(errP);
+      return panel;
+    }
+
+    if (cmp.notConfirmed.length) {
+      var sub1 = document.createElement('p'); sub1.className = 'import-msg';
+      sub1.textContent = cmp.notConfirmed.length + (cmp.notConfirmed.length === 1 ? ' item staat' : ' items staan')
+        + ' niet (bevestigd) in je ' + sourceLabel + '-collectie:';
+      panel.appendChild(sub1);
+      var list1 = document.createElement('div'); list1.className = 'import-candidates';
+      cmp.notConfirmed.forEach(function (item) {
+        var row = document.createElement('div'); row.className = 'import-candidate import-candidate-row';
+        var span = document.createElement('span'); span.textContent = item.titel;
+        row.appendChild(span);
+        if (cmp.source === 'bgg') {
+          var link = document.createElement('a'); link.className = 'btn-text';
+          link.href = 'https://boardgamegeek.com/geeksearch.php?action=search&objecttype=boardgame&q=' + encodeURIComponent(item.titel);
+          link.target = '_blank'; link.rel = 'noopener'; link.textContent = 'Zoek op BGG →';
+          row.appendChild(link);
+        } else {
+          var addBtn = document.createElement('button');
+          addBtn.type = 'button'; addBtn.className = 'btn-text';
+          addBtn.textContent = 'Zoek & voeg toe aan Discogs';
+          addBtn.addEventListener('click', function () { openTrackSearch(item, entry, true); });
+          row.appendChild(addBtn);
+        }
+        list1.appendChild(row);
+      });
+      panel.appendChild(list1);
+    }
+
+    if (cmp.removedFromSource.length) {
+      var sub2 = document.createElement('p'); sub2.className = 'import-msg';
+      sub2.textContent = cmp.removedFromSource.length + (cmp.removedFromSource.length === 1 ? ' item staat' : ' items staan')
+        + ' niet meer in je ' + sourceLabel + '-collectie:';
+      panel.appendChild(sub2);
+      var list2 = document.createElement('div'); list2.className = 'import-candidates';
+      cmp.removedFromSource.forEach(function (item) {
+        var row2 = document.createElement('div'); row2.className = 'import-candidate import-candidate-row';
+        var span2 = document.createElement('span'); span2.textContent = item.titel;
+        var delBtn = document.createElement('button');
+        delBtn.type = 'button'; delBtn.className = 'btn-text danger'; delBtn.textContent = 'Verwijder uit Lijster';
+        delBtn.addEventListener('click', function () {
+          supabase.from('lijst_items').delete().eq('id', item.id).then(refetchSoft);
+          cmp.removedFromSource = cmp.removedFromSource.filter(function (i) { return i.id !== item.id; });
+          renderDetail();
+        });
+        row2.appendChild(span2); row2.appendChild(delBtn);
+        list2.appendChild(row2);
+      });
+      panel.appendChild(list2);
+    }
+
+    if (!cmp.notConfirmed.length && !cmp.removedFromSource.length) {
+      var okP = document.createElement('p'); okP.className = 'import-msg';
+      okP.textContent = 'Geen verschillen gevonden — Lijster en je ' + sourceLabel + '-collectie komen overeen.';
+      panel.appendChild(okP);
+    }
+    return panel;
   }
 
   function buildImportPanel(entry) {
