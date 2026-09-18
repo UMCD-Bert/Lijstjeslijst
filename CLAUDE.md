@@ -100,9 +100,10 @@ toegang (geen aparte accounts per persoon).
   array van `{key,label}`, max 5 — checkboxvelden per item), `doorstrepen` (boolean, default true —
   bepaalt of het aanvinken van het EERSTE vinkje het item doorstreept; staat op `false` bij
   Boeken/Muziek/Strips/Bordspellen omdat een verzameling geen mancolijst is, op `true` bij
-  Lijst/Aangepast), `auto_import` (`openlibrary`/`discogs`/`bgg`/null — `bgg` nog niet gebouwd;
+  Lijst/Aangepast), `auto_import` (`openlibrary`/`discogs`/`bgg`/null — `bgg` sinds 2026-09-18
+  (v1.30.0) gebouwd, zie de BGG-paragraaf verderop in dit hoofdstuk voor het volledige verhaal;
   `musicbrainz` bestond ook, maar is 2026-09-13 volledig verwijderd, zie Muziek-sjabloon hieronder),
-  `bgg_username` (alleen relevant zodra BGG-import gebouwd wordt), `discogs_username`
+  `bgg_username` (alleen relevant bij `auto_import: 'bgg'`), `discogs_username`
   (alleen relevant bij `auto_import: 'discogs'`), `genest` (boolean, default false — generieke
   aan/uit-schakelaar voor een echte 1:n-structuur reeks→albums, zie hieronder; Strips-, Boeken- én
   Muziek-preset zetten 'm standaard aan, geen UI-toggle voor andere lijsttypes gebouwd want niet
@@ -692,19 +693,35 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   `afbeeldingen`) — alleen de databaseverwijzing wordt gewist.
 - Losstaand van dit project: de bestaande `Verzamelingen`-tabellen hadden RLS uitgeschakeld — dit is
   inmiddels gefixt (RLS aan + permissieve policies, zelfde toegangsmodel als voorheen).
-- BGG-collectie-import voor Bordspellen (auto_import: 'bgg'): username "bertuf", inclusief
-  uitbreidingen. Ontwerp uitgewerkt maar nog niet gebouwd: BGG's `collection`-endpoint (met
-  `stats=1`) geeft titel + BGG-id + rank in één call — genoeg voor import én een latere "Ververs
-  BGG-ranks"-knop (herhaalt dezelfde call, matcht op `extern_id`). Ontwerper/uitgever bewust NIET
-  automatisch invullen: dat zit achter BGG's `thing`-endpoint. **Update (2026-09-12): BGG vereist
-  sinds kort verplichte app-registratie + Bearer-token voor de HELE XML-API (v1, v2, GraphQL)** —
-  geverifieerd via directe test (401 + `WWW-Authenticate: Bearer`), bevestigd door BGG's eigen
-  `/using_the_xml_api`-pagina. Applicatie is aangevraagd (non-commercial, app-URL = live Lijster-
-  site) — goedkeuring kan volgens BGG een week of langer duren. Zodra het token er is: token in de
-  client-JS zetten (onvermijdelijk zichtbaar in broncode bij een statische app zonder backend — BGG
-  noemt dat zelf een aanvaard risico, vergelijkbaar met de storage-orphan-trade-off hierboven) en
-  pas dan de import bouwen. Async-gedrag (BGG kan 202 teruggeven terwijl de export wordt
-  voorbereid) vraagt om een retry-met-backoff bij het ophalen.
+- ~~BGG-collectie-import voor Bordspellen (auto_import: 'bgg'): username "bertuf", inclusief
+  uitbreidingen. Ontwerp uitgewerkt maar nog niet gebouwd... BGG vereist sinds kort verplichte
+  app-registratie + Bearer-token voor de HELE XML-API... Applicatie is aangevraagd, goedkeuring kan
+  een week of langer duren.~~ **Gebouwd (2026-09-18, v1.30.0).** Applicatie goedgekeurd, token
+  aangemaakt via boardgamegeek.com/applications → "Tokens" (zit niet in de goedkeuringsmail zelf —
+  moet je zelf genereren) en als `BGG_APP_TOKEN`-constante in de client-JS gezet (zelfde trade-off
+  als de Supabase-key: onvermijdelijk zichtbaar in broncode zonder backend). Bordspellen-preset
+  default `auto_import` van `null` naar `'bgg'`. BGG-gebruikersnaamveld in "Velden bewerken" (zelfde
+  patroon als Discogs-gebruikersnaam). Import via `collection`-endpoint (`?stats=1&own=1` — de
+  `own=1`-filter scheelt een handjevol wishlist-items die niet in de echte collectie horen,
+  geverifieerd: 790 totaal → 787 eigen exemplaren bij de eigenaar). Async-202-gedrag bevestigd met
+  een directe test (eerste aanroep 202 "nog bezig", 4 seconden later 200 met de volledige data) en
+  opgevangen met een retry-met-pauze (`fetchBggCollectionXml()`, max 10 pogingen). XML-respons
+  geparsed met de browser-eigen `DOMParser` (geen library nodig). Rank uit `<rank type="subtype"
+  name="boardgame" value="…">` — value is soms de letterlijke tekst "Not Ranked" (bevestigd: ~1 op
+  de 3 spellen in een steekproef) i.p.v. een getal, dan bewust geen rank opslaan. Ontwerper/uitgever
+  bewust NIET automatisch ingevuld (zit achter BGG's `thing`-endpoint, een aparte aanroep per spel)
+  — alleen `bgg_rank` wordt gevuld, zelfde bewuste keuze als in het oorspronkelijke ontwerp. Cover
+  komt gratis mee in dezelfde call (`<thumbnail>`/`<image>`). Net als Open Library/Discogs staan
+  resultaten standaard NIET aangevinkt. **"Ranks verversen"-knop** (`refreshBggRanks()`) — enige
+  losse knop naast "BGG-collectie importeren", alleen zichtbaar als er al minstens 1 bgg-item in de
+  lijst staat: haalt de collectie opnieuw op en werkt alléén de `bgg_rank` van al geïmporteerde
+  items bij (matcht op `extern_id`), voegt niets nieuws toe (dat doet de gewone importknop, die
+  vanzelf al nieuwe collectie-items oppikt bij een herhaalde run dankzij de bestaande
+  `existingExternIds`-dedup in `importCommit()`). **Bronvermelding**: BGG's gebruiksvoorwaarden
+  (`using_the_xml_api`) vereisen voor een publiek-gerichte app een "Powered by BGG"-logo met link
+  terug — een eigen gehost logo-bestand leek voor dit doel (een privé huishoud-app) niet nodig, een
+  tekstlink "Bordspelgegevens via BoardGameGeek.com" (zichtbaar naast de importknop) dekt de geest
+  van de eis.
 - ~~MusicBrainz-auto-import (Muziek) kon vanuit deze dev-omgeving niet betrouwbaar getest worden
   ("server is busy"-responses)~~ — bleek ook vanaf de telefoon van de gebruiker onbetrouwbaar/zonder
   resultaat, en is daarom 2026-09-13 (v1.24.0) volledig verwijderd i.p.v. verder uitgezocht.

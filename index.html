@@ -239,6 +239,7 @@
   .import-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
   .import-select-row { display: flex; gap: 14px; margin: -6px 0 4px; }
   .import-msg { font-size: 0.84rem; color: var(--muted); font-style: italic; }
+  .import-msg a { color: var(--accent); }
   .cover-search-row { display: flex; flex-direction: column; gap: 10px; padding: 10px 0; }
   .cover-search-msg { font-size: 0.84rem; color: var(--muted); font-style: italic; }
   .cover-search-candidates { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -413,23 +414,27 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.29.0';
+  var APP_VERSION = '1.30.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
   var COVER_PREFIX = 'lijstjeslijst/';
   var FIELD_CAP = { extra: 4, vink: 5 };
+  // BGG vereist sinds 2026 een Application Token (Authorization: Bearer …) voor de HELE XML-API,
+  // ook non-commercial. Onvermijdelijk zichtbaar in broncode bij een statische app zonder backend —
+  // zelfde geaccepteerde trade-off als de Supabase-key hierboven (zie CLAUDE.md).
+  var BGG_APP_TOKEN = 'dabdb1de-5ccf-4075-918c-7e461c4e718d';
 
   var PRESETS = {
     simpel:      { label: 'Lijst',       desc: 'losse items, afvinkbaar',    type_label: 'Lijst',       extra_velden: [], vink_velden: [{ key: 'gedaan', label: 'Gedaan' }], auto_import: null, doorstrepen: true },
     boeken:      { label: 'Boeken',      desc: 'gegroepeerd per auteur/reeks', type_label: 'Boeken',      extra_velden: [{ key: 'jaar', label: 'Jaar van uitgave' }], vink_velden: [{ key: 'e_book', label: 'E-book' }, { key: 'fysiek', label: 'Fysiek boek' }, { key: 'gelezen_ellen', label: 'Gelezen door Ellen' }, { key: 'gelezen_bert', label: 'Gelezen door Bert' }], auto_import: 'openlibrary', doorstrepen: false, genest: true },
     muziek:      { label: 'Muziek',      desc: 'gegroepeerd per artiest',    type_label: 'Muziek',      extra_velden: [{ key: 'jaar', label: 'Jaar van uitgave' }], vink_velden: [{ key: 'in_bezit', label: 'In bezit' }, { key: 'lp', label: 'LP' }, { key: 'cd', label: 'CD' }], auto_import: 'discogs', doorstrepen: false, genest: true },
     strips:      { label: 'Strips',      desc: 'reeksen met albums',         type_label: 'Strips',      extra_velden: [{ key: 'volgnummer', label: 'Volgnummer' }, { key: 'jaar', label: 'Jaar van uitgave' }], vink_velden: [{ key: 'fysiek', label: 'Fysiek' }, { key: 'digitaal', label: 'Digitaal' }, { key: 'gelezen', label: 'Gelezen' }], auto_import: null, doorstrepen: false, genest: true },
-    bordspellen: { label: 'Bordspellen', desc: 'auteur, uitgever, BGG-rank', type_label: 'Bordspellen', extra_velden: [{ key: 'auteur', label: 'Auteur/ontwerper' }, { key: 'uitgever', label: 'Uitgever' }, { key: 'bgg_rank', label: 'BGG-rank' }], vink_velden: [{ key: 'gespeeld', label: 'Gespeeld' }], auto_import: null, doorstrepen: false },
+    bordspellen: { label: 'Bordspellen', desc: 'auteur, uitgever, BGG-rank', type_label: 'Bordspellen', extra_velden: [{ key: 'auteur', label: 'Auteur/ontwerper' }, { key: 'uitgever', label: 'Uitgever' }, { key: 'bgg_rank', label: 'BGG-rank' }], vink_velden: [{ key: 'gespeeld', label: 'Gespeeld' }], auto_import: 'bgg', doorstrepen: false },
     aangepast:   { label: 'Aangepast',   desc: 'zelf velden kiezen',         type_label: null,          extra_velden: [], vink_velden: [{ key: 'gedaan', label: 'Gedaan' }], auto_import: null, doorstrepen: true }
   };
   var PRESET_ORDER = ['simpel', 'boeken', 'muziek', 'strips', 'bordspellen', 'aangepast'];
-  var IMPORT_LABELS = { openlibrary: 'Auteur toevoegen', discogs: 'Discogs-collectie importeren' };
+  var IMPORT_LABELS = { openlibrary: 'Auteur toevoegen', discogs: 'Discogs-collectie importeren', bgg: 'BGG-collectie importeren' };
   var REEKS_SEARCH_LABELS = { openlibrary: 'Open Library' };
   function secondarySearchSource(entry) {
     if (entry.auto_import === 'openlibrary') return 'openlibrary';
@@ -439,7 +444,7 @@
   var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var state = {
     lijsten: [], items: [], reeksen: [], currentId: null, editingItem: null,
-    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}, trackSearch: null, viewMode: {}, addConfirm: {}
+    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}, trackSearch: null, viewMode: {}, addConfirm: {}, bggRefreshing: {}
   };
 
   var gridEl = document.getElementById('grid');
@@ -1944,6 +1949,24 @@
       box.appendChild(sourceGroup);
     }
 
+    if (entry.auto_import === 'bgg') {
+      var bggGroup = document.createElement('div'); bggGroup.className = 'fields-editor-group';
+      var bh4 = document.createElement('h4'); bh4.textContent = 'BoardGameGeek';
+      bggGroup.appendChild(bh4);
+      var bggRow = document.createElement('div'); bggRow.className = 'field-row';
+      var bggLabel = document.createElement('label'); bggLabel.textContent = 'BGG-gebruikersnaam';
+      var bggInput = document.createElement('input');
+      bggInput.value = entry.bgg_username || ''; bggInput.placeholder = 'Bijv. bertuf';
+      bggInput.addEventListener('blur', function () {
+        var v = bggInput.value.trim();
+        if (v === (entry.bgg_username || '')) return;
+        persist({ bgg_username: v || null });
+      });
+      bggRow.appendChild(bggLabel); bggRow.appendChild(bggInput);
+      bggGroup.appendChild(bggRow);
+      box.appendChild(bggGroup);
+    }
+
     box.appendChild(buildGroup('Tekstvelden', entry.extra_velden || [], FIELD_CAP.extra, 'extra', function () {
       var arr = entry.extra_velden || [];
       var key = uniqueKey(slugify('Nieuw veld'), arr.map(function (f) { return f.key; }));
@@ -2156,10 +2179,10 @@
       candidates: [], candidateName: '', candidateId: '', works: [], selected: new Set(),
       loading: false, error: '', note: ''
     };
-    if (source === 'discogs') {
+    if (source === 'discogs' || source === 'bgg') {
       state.importFlow.step = 'works';
       state.importFlow.loading = true;
-      runDiscogsFetch(entry);
+      if (source === 'discogs') runDiscogsFetch(entry); else runBggFetch(entry);
       renderDetail();
     } else if (reeks) {
       importSearch(reeks.naam);
@@ -2208,6 +2231,102 @@
       flow.error = 'Ophalen van je Discogs-collectie is niet gelukt. Klopt de gebruikersnaam en staat de collectie op publiek?';
     } finally {
       flow.loading = false; renderDetail();
+    }
+  }
+
+  // BGG's collection-endpoint bouwt de export server-side pas op bij de eerste aanvraag en geeft
+  // dan meteen 202 terug ("nog bezig") i.p.v. te wachten — pas bij een volgende, identieke aanvraag
+  // (na een korte pauze) komt de echte data. Bevestigd met een directe test: eerste aanroep 202,
+  // 4 seconden later 200 met de volledige collectie. Vereist een Application Token (zie
+  // BGG_APP_TOKEN hierboven, sinds 2026 verplicht voor de hele XML-API).
+  async function fetchBggCollectionXml(username) {
+    var url = 'https://boardgamegeek.com/xmlapi2/collection?username=' + encodeURIComponent(username) + '&stats=1&own=1';
+    for (var attempt = 0; attempt < 10; attempt++) {
+      var res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + BGG_APP_TOKEN } });
+      if (res.status === 202) { await sleep(2000); continue; }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.text();
+    }
+    throw new Error('BGG bleef te lang "bezig" (202) met de collectie opbouwen.');
+  }
+  // `<rank type="subtype" name="boardgame" value="…">` — value is een getal, of de letterlijke
+  // tekst "Not Ranked" bij een spel zonder BGG-rank (veel voorkomend, ~1 op 3 in een steekproef) —
+  // dan bewust geen rank opslaan i.p.v. die tekst zelf als "rank".
+  function parseBggCollection(xmlText) {
+    var doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+    var items = Array.prototype.slice.call(doc.getElementsByTagName('item'));
+    return items.map(function (itemEl) {
+      var id = itemEl.getAttribute('objectid');
+      var nameEl = itemEl.getElementsByTagName('name')[0];
+      var yearEl = itemEl.getElementsByTagName('yearpublished')[0];
+      var thumbEl = itemEl.getElementsByTagName('thumbnail')[0];
+      var imgEl = itemEl.getElementsByTagName('image')[0];
+      var rank = null;
+      var rankEls = itemEl.getElementsByTagName('rank');
+      for (var i = 0; i < rankEls.length; i++) {
+        if (rankEls[i].getAttribute('name') === 'boardgame') {
+          var v = rankEls[i].getAttribute('value');
+          if (v && v !== 'Not Ranked') rank = v;
+          break;
+        }
+      }
+      return {
+        id: id, title: nameEl ? nameEl.textContent : '(onbekende titel)',
+        year: yearEl ? yearEl.textContent : null,
+        coverUrl: (thumbEl && thumbEl.textContent) || (imgEl && imgEl.textContent) || null,
+        rank: rank
+      };
+    }).filter(function (w) { return w.id; });
+  }
+  async function runBggFetch(entry) {
+    var flow = state.importFlow;
+    try {
+      var username = entry.bgg_username;
+      var xml = await fetchBggCollectionXml(username);
+      var seen = {};
+      flow.works = parseBggCollection(xml).filter(function (w) {
+        if (seen[w.id]) return false;
+        seen[w.id] = true; return true;
+      }).map(function (w) {
+        return { id: w.id, title: w.title, coverUrl: w.coverUrl, year: w.year ? Number(w.year) : null, rank: w.rank };
+      });
+      flow.works.sort(function (a, b) { return a.title.localeCompare(b.title); });
+      flow.selected = new Set();
+      if (!flow.works.length) flow.error = 'Geen items gevonden in je BGG-collectie.';
+    } catch (e) {
+      console.error('bgg import failed', e);
+      flow.error = 'Ophalen van je BGG-collectie is niet gelukt. Klopt de gebruikersnaam?';
+    } finally {
+      flow.loading = false; renderDetail();
+    }
+  }
+  // Werkt alleen bestaande, al geïmporteerde items bij (matcht op extern_id) — voegt niets nieuws
+  // toe, dat gaat via de gewone importflow hierboven. Ranks veranderen namelijk voortdurend op BGG,
+  // titel/cover niet, dus dit is de enige data die het waard is om apart te kunnen verversen.
+  async function refreshBggRanks(entry) {
+    if (state.bggRefreshing[entry.id]) return;
+    var existing = itemsFor(entry.id).filter(function (i) { return i.bron === 'bgg' && i.extern_id; });
+    var bggRankKey = (entry.extra_velden || []).some(function (f) { return f.key === 'bgg_rank'; }) ? 'bgg_rank' : null;
+    if (!existing.length || !bggRankKey) return;
+    state.bggRefreshing[entry.id] = true; renderDetail();
+    try {
+      var xml = await fetchBggCollectionXml(entry.bgg_username);
+      var rankById = {};
+      parseBggCollection(xml).forEach(function (w) { rankById[w.id] = w.rank; });
+      for (var i = 0; i < existing.length; i++) {
+        var item = existing[i];
+        if (!rankById.hasOwnProperty(item.extern_id)) continue;
+        var extra = Object.assign({}, item.extra || {});
+        var newRank = rankById[item.extern_id];
+        extra[bggRankKey] = newRank ? String(newRank) : null;
+        await supabase.from('lijst_items').update({ extra: extra }).eq('id', item.id);
+      }
+      await refetchAll();
+    } catch (e) {
+      console.error('bgg rank refresh failed', e);
+      window.alert('BGG-ranks verversen is niet gelukt.');
+    } finally {
+      state.bggRefreshing[entry.id] = false; renderDetail();
     }
   }
 
@@ -2403,12 +2522,18 @@
     }
 
     var jaarKey = (entry.extra_velden || []).some(function (f) { return f.key === 'jaar'; }) ? 'jaar' : null;
+    var bggRankKey = (entry.extra_velden || []).some(function (f) { return f.key === 'bgg_rank'; }) ? 'bgg_rank' : null;
     var rows = [];
     for (var wi = 0; wi < selectedWorks.length; wi++) {
       var w = selectedWorks[wi];
       var extra = {};
       if (entry.genest) {
         if (jaarKey && w.year) extra[jaarKey] = String(w.year);
+      } else if (flow.source === 'bgg') {
+        // Ontwerper/uitgever bewust NIET automatisch ingevuld (zit achter BGG's eigen thing-
+        // endpoint, een aparte aanroep per spel) — alleen de rank, die het collection-endpoint al
+        // gratis meegeeft.
+        if (bggRankKey && w.rank) extra[bggRankKey] = String(w.rank);
       } else if (extraKey) {
         extra[extraKey] = flow.source === 'discogs' ? (w.artist || '') : flow.candidateName;
       }
@@ -2447,10 +2572,14 @@
       // koprij (naast tandwiel/camera) — inconsistent met de rest van het "Toevoegen"-tabblad, waar
       // juist alle manieren om iets toe te voegen bij elkaar horen te staan. Nu net als Open Library
       // gewoon een knop hier, mits er al een Discogs-gebruikersnaam is ingevuld.
-      if (entry.auto_import === 'discogs' && !entry.discogs_username) {
+      var missingUsername = (entry.auto_import === 'discogs' && !entry.discogs_username)
+        || (entry.auto_import === 'bgg' && !entry.bgg_username);
+      if (missingUsername) {
         var row2 = document.createElement('div'); row2.className = 'import-toggle-row';
         var hint = document.createElement('p'); hint.className = 'import-msg';
-        hint.textContent = 'Vul je Discogs-gebruikersnaam in bij "Velden bewerken" om te kunnen importeren.';
+        hint.textContent = entry.auto_import === 'bgg'
+          ? 'Vul je BGG-gebruikersnaam in bij "Velden bewerken" om te kunnen importeren.'
+          : 'Vul je Discogs-gebruikersnaam in bij "Velden bewerken" om te kunnen importeren.';
         row2.appendChild(hint);
         wrap.appendChild(row2);
       } else {
@@ -2459,7 +2588,29 @@
         btn.type = 'button'; btn.className = 'btn-secondary'; btn.textContent = IMPORT_LABELS[entry.auto_import] || 'Toevoegen';
         btn.addEventListener('click', function () { openImportFlow(entry); });
         row.appendChild(btn);
+        if (entry.auto_import === 'bgg' && itemsFor(entry.id).some(function (i) { return i.bron === 'bgg'; })) {
+          var refreshBtn = document.createElement('button');
+          refreshBtn.type = 'button'; refreshBtn.className = 'btn-text';
+          refreshBtn.textContent = state.bggRefreshing[entry.id] ? 'Bezig…' : 'Ranks verversen';
+          refreshBtn.disabled = !!state.bggRefreshing[entry.id];
+          refreshBtn.addEventListener('click', function () { refreshBggRanks(entry); });
+          row.appendChild(refreshBtn);
+        }
         wrap.appendChild(row);
+        if (entry.auto_import === 'bgg') {
+          // BGG's gebruiksvoorwaarden vereisen een bronvermelding met link terug voor een
+          // publiek-gerichte app (zie using_the_xml_api) — een eigen officieel logo-plaatje hosten
+          // leek voor dit doel niet nodig, een duidelijke tekstlink dekt de geest van de eis.
+          var attrRow = document.createElement('div'); attrRow.className = 'import-toggle-row';
+          var attrP = document.createElement('p'); attrP.className = 'import-msg';
+          var attrLink = document.createElement('a');
+          attrLink.href = 'https://boardgamegeek.com'; attrLink.target = '_blank'; attrLink.rel = 'noopener';
+          attrLink.textContent = 'BoardGameGeek.com';
+          attrP.appendChild(document.createTextNode('Bordspelgegevens via '));
+          attrP.appendChild(attrLink);
+          attrRow.appendChild(attrP);
+          wrap.appendChild(attrRow);
+        }
       }
       return wrap;
     }
@@ -2512,12 +2663,13 @@
     } else if (flow.step === 'works') {
       if (flow.loading) {
         var loadingP = document.createElement('p'); loadingP.className = 'import-msg';
-        loadingP.textContent = flow.source === 'discogs' ? 'Collectie ophalen…' : 'Bezig…';
+        loadingP.textContent = (flow.source === 'discogs' || flow.source === 'bgg') ? 'Collectie ophalen…' : 'Bezig…';
         panel.appendChild(loadingP);
       } else {
         var sub = document.createElement('p'); sub.className = 'import-msg';
         var msg;
         if (flow.source === 'discogs') msg = flow.works.length + ' items gevonden in je Discogs-collectie.';
+        else if (flow.source === 'bgg') msg = flow.works.length + ' spellen gevonden in je BGG-collectie.';
         else if (flow.source === 'openlibrary') msg = flow.works.length + (flow.note ? ' titels gevonden voor ' : ' Nederlandstalige titels gevonden voor ') + flow.candidateName + '.';
         else msg = flow.works.length + ' titels gevonden voor ' + flow.candidateName + '.';
         sub.textContent = msg + ' Vink aan wat je wilt toevoegen.';
@@ -2562,7 +2714,8 @@
             row.appendChild(thumb);
           }
           var span = document.createElement('span');
-          span.textContent = w.title + (w.artist ? ' — ' + w.artist : '') + (w.year ? ' (' + w.year + ')' : '');
+          span.textContent = w.title + (w.artist ? ' — ' + w.artist : '') + (w.year ? ' (' + w.year + ')' : '')
+            + (w.rank ? ' · rank ' + w.rank : '');
           row.appendChild(span);
           worksList.appendChild(row);
         });
