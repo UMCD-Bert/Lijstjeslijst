@@ -776,7 +776,25 @@ toegang (geen aparte accounts per persoon).
   Riffen (stond op Nox onder de Engelse titel "Finspan: Sharks & Reefs" — talen-mismatch die de
   automatische matching niet ving, handmatig herkend) kregen alsnog een video; Small Fjords komt in
   geen van de drie bronnen voor en bleef leeg. Eindstand: 402 van 789.
-- Volgorde wordt bijgehouden als timestamp (nieuw item/lijst = `Date.now()`); verplaatsen wisselt de
+  **Fix (2026-09-21, v1.32.3): video-links onvoldoende herkenbaar als klikbaar, en niet klikbaar op
+  iPhone.** Eerste versie toonde de kale, lange YouTube-URL als linktekst met alleen een kleurtje
+  (`.extra-links a { color: var(--accent) }`) — te weinig visueel onderscheid van gewone tekst, en
+  een kleine inline tap-target. Nu een losse `.extra-link`-stijl: elk linkje is een volledig gevuld,
+  afgerond blokje (`--accent-soft`-achtergrond, `--accent`-tekst, 10px padding — dus een veel groter
+  tik-oppervlak) met een play-icoontje en duidelijke tekst ("Video 1 bekijken →" i.p.v. de rauwe URL).
+  **Let op: de eerste poging gebruikte per ongeluk `--accent-ink` als tekstkleur op een
+  `--accent-soft`-achtergrond** — beide zijn *lichte* kleuren (bedoeld voor tekst op een *volle*
+  `--accent`-achtergrond, niet op de zachte variant), dus vrijwel onleesbaar geweest als het
+  ongetest was verstuurd; ontdekt door de tokens na te lopen tegen een bestaand gebruik (`.pill`)
+  vóór het live ging, niet door zelf te zien dat het fout was — reden te meer om kleurtokens altijd
+  tegen een bestaand voorbeeld te controleren i.p.v. op de naam af te gaan. Ook het toggle-icoontje
+  naast de titel (alleen zichtbaar als er al video's zijn) kreeg een `.icon-btn-accent`-variant i.p.v.
+  de standaard grijze `.icon-btn`-kleur, zodat het meteen opvalt dat er video's beschikbaar zijn,
+  zonder dat er een tweede, apart icoontje nodig was. **Het "niet klikbaar op iPhone"-deel kon niet
+  gereproduceerd of hard bevestigd geverifieerd worden** in de Claude Browser-testtool hier (geen
+  echte iOS Safari) — toegepast: expliciete `cursor: pointer` en een fors grotere tap-target
+  (klassieke WebKit/mobiele-Safari-aandachtspunten bij kleine/inline tikoppervlakken), maar dit moet
+  nog op het echte toestel bevestigd worden. (nieuw item/lijst = `Date.now()`); verplaatsen wisselt de
   `volgorde`-waarde van twee buren om (last-writer-wins, geen transacties nodig op deze schaal).
 
 ## Sync & offline

@@ -117,6 +117,8 @@
     display: flex; align-items: center; justify-content: center; font-size: 0.8rem; box-shadow: 0 1px 3px var(--shadow); flex-shrink: 0;
   }
   .icon-btn:hover { color: var(--ink); background: var(--surface); }
+  .icon-btn-accent { color: var(--accent); }
+  .icon-btn-accent:hover { color: var(--accent); background: var(--accent-soft); }
   .icon-btn.danger:hover { color: var(--danger); background: var(--danger-soft); }
 
   .ghost-card { border: 1.5px dashed var(--border); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; background: var(--surface); grid-column: 1 / -1; }
@@ -362,8 +364,14 @@
   .items-empty { color: var(--muted); font-style: italic; padding: 14px 2px; font-size: 0.9rem; text-align: left; }
   .tracklist-row td { padding: 4px 2px 14px; border-bottom: 1px solid var(--border); }
   .tracklist-text { white-space: pre-wrap; font-size: 0.86rem; color: var(--muted); background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
-  .extra-links { display: flex; flex-direction: column; gap: 4px; font-size: 0.86rem; background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
-  .extra-links a { color: var(--accent); word-break: break-all; }
+  .extra-links { display: flex; flex-direction: column; gap: 8px; font-size: 0.86rem; background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
+  .extra-link {
+    display: flex; align-items: center; gap: 8px; color: var(--accent); background: var(--accent-soft);
+    border-radius: 8px; padding: 10px 12px; min-height: 24px; font-weight: 600; text-decoration: none;
+    cursor: pointer; -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+  }
+  .extra-link svg { flex-shrink: 0; }
+  .extra-link:hover, .extra-link:active { text-decoration: underline; }
 
   .edit-form { flex: 1; display: flex; gap: 8px; flex-wrap: wrap; padding: 4px 0; }
   .edit-form input { border: 1px solid var(--accent); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 16px; color: var(--ink); flex: 1; min-width: 100px; }
@@ -422,7 +430,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.32.2';
+  var APP_VERSION = '1.32.3';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -1587,7 +1595,7 @@
         var extraExpandKey = item.id + ':' + f.key;
         var extraExpanded = !!state.expandedExtra[extraExpandKey];
         var extraBtn = document.createElement('button');
-        extraBtn.type = 'button'; extraBtn.className = 'icon-btn'; extraBtn.appendChild(videoSvg());
+        extraBtn.type = 'button'; extraBtn.className = 'icon-btn icon-btn-accent'; extraBtn.appendChild(videoSvg());
         extraBtn.title = (extraExpanded ? (f.label + ' verbergen') : (f.label + ' tonen'));
         extraBtn.setAttribute('aria-label', extraBtn.title);
         extraBtn.addEventListener('click', function () { state.expandedExtra[extraExpandKey] = !state.expandedExtra[extraExpandKey]; renderDetail(); });
@@ -1630,9 +1638,14 @@
         var exRow = document.createElement('tr'); exRow.className = 'tracklist-row';
         var exTd = document.createElement('td'); exTd.colSpan = colCount;
         var exWrap = document.createElement('div'); exWrap.className = 'extra-links';
+        var linkIdx = 0;
         (item.extra[f.key] || '').split('\n').map(function (l) { return l.trim(); }).filter(function (l) { return l; }).forEach(function (line) {
           if (/^https?:\/\//i.test(line)) {
-            var a = document.createElement('a'); a.href = line; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = line;
+            linkIdx++;
+            var a = document.createElement('a'); a.className = 'extra-link'; a.href = line; a.target = '_blank'; a.rel = 'noopener noreferrer';
+            a.appendChild(videoSvg());
+            var labelSpan = document.createElement('span'); labelSpan.textContent = 'Video ' + linkIdx + ' bekijken →';
+            a.appendChild(labelSpan);
             exWrap.appendChild(a);
           } else {
             var span = document.createElement('span'); span.textContent = line;

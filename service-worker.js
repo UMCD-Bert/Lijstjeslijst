@@ -1,6 +1,6 @@
 // Simpele, read-only offline-fallback voor de app-shell (HTML/manifest/icons/
 // supabase-js library). Live data (Supabase-aanroepen) lopen hier NIET doorheen.
-const CACHE_VERSION = 'lijstjeslijst-shell-v56';
+const CACHE_VERSION = 'lijstjeslijst-shell-v57';
 
 const APP_SHELL = [
   './',
