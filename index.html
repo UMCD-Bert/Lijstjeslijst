@@ -422,7 +422,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.32.1';
+  var APP_VERSION = '1.32.2';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -641,7 +641,7 @@
         var bv = sortKey === 'titel' ? (b.titel || '') : ((b.extra && b.extra[sortKey]) || '');
         if (!av && bv) return 1;
         if (av && !bv) return -1;
-        return av.localeCompare(bv, 'nl', { sensitivity: 'base' });
+        return av.localeCompare(bv, 'nl', { sensitivity: 'base', numeric: true });
       });
     }
     if (entry.genest && hasVolgnummerField(entry)) items = sortByVolgnummer(items);

@@ -613,6 +613,15 @@ toegang (geen aparte accounts per persoon).
   vertrouwen op de native browser-clearknop van `type="search"` — die is inconsistent aanwezig
   tussen browsers/platforms (o.a. onopvallend/afwezig op iPhone), dus een eigen zichtbare knop
   is betrouwbaarder.
+  **Fix (2026-09-21, v1.32.2): sorteren op een tekstveld ging tekstueel, niet numeriek.** Gemeld bij
+  BGG-rank ("Sorteren op ranking gaat in tekstuele volgorde, niet numeriek") — `filteredItems()`'s
+  generieke tekstveld-sortering gebruikte `localeCompare(..., 'nl', {sensitivity:'base'})` zonder de
+  `numeric: true`-optie, dus "11" kwam vóór "2" te staan (puur karakter-voor-karakter vergeleken).
+  `sortByVolgnummer()` (Strips' Volgnummer-veld) deed dit al wél goed, met exact dezelfde
+  `localeCompare`-optie erbij — simpelweg toegevoegd aan de generieke sortering, geen aparte
+  BGG-rank-specifieke uitzondering nodig. Werkt hierdoor voortaan voor élk tekstveld met numerieke
+  waarden (dus ook toekomstige velden), en breekt puur alfabetische velden niet (numeric:true valt
+  terug op gewone tekstvergelijking zodra er geen cijfers in het spel zijn).
   **Aanvulling (2026-09-13, v1.22.0): sorteren op "Artiest/auteur/reeks"** bij `genest` lijstjes
   (Boeken/Muziek/Strips) — herordent de REEKSEN zelf alfabetisch (`localeCompare` met 'nl'-locale),
   i.p.v. alleen de items binnen een reeks te sorteren (dat deed "Titel" al). Zonder deze optie
