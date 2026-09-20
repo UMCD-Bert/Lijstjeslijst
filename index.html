@@ -422,7 +422,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.32.0';
+  var APP_VERSION = '1.32.1';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -2435,14 +2435,16 @@
       state.bggRefreshing[entry.id] = false; renderDetail();
     }
   }
-  // BGG's `thing`-endpoint (in tegenstelling tot `collection`) geeft ontwerper(s) en, met
-  // `&videos=1`, community-video's per spel — geen 202-ophoud-gedrag hier, dat is uniek voor
-  // `collection` (die per-gebruiker on-the-fly wordt opgebouwd). Accepteert een kommagescheiden
-  // lijst van ids in één aanroep. Filtert video's op category="instructional" (uitleg-video's,
-  // niet "session"/"review"/"humor" e.d.) en houdt er per spel maximaal 3 van over — een populair
-  // spel als Catan heeft er ruim 500, veruit te veel om op te slaan of zinvol te tonen.
+  // BGG's `thing`-endpoint (in tegenstelling tot `collection`) geeft ontwerper(s) per spel — geen
+  // 202-ophoud-gedrag hier, dat is uniek voor `collection` (die per-gebruiker on-the-fly wordt
+  // opgebouwd). Accepteert een kommagescheiden lijst van ids in één aanroep.
+  // Video's bewust NIET automatisch (meer) opgehaald: BGG's eigen "instructional"-categorie als
+  // filter bleek voor de eigenaar geen goed criterium — hij zoekt uitlegvideo's liever zelf uit,
+  // desgevraagd met hulp van Claude om specifieke, door hem aangewezen sites te doorzoeken. Het
+  // `videos`-tekstveld (multiline, zie extra_velden bij het Bordspellen-preset) blijft gewoon
+  // bestaan voor handmatige invoer, alleen de automatische BGG-videoharvest is eruit.
   async function fetchBggThingBatch(ids) {
-    var url = 'https://boardgamegeek.com/xmlapi2/thing?id=' + ids.join(',') + '&videos=1';
+    var url = 'https://boardgamegeek.com/xmlapi2/thing?id=' + ids.join(',');
     var res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + BGG_APP_TOKEN } });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     var doc = new DOMParser().parseFromString(await res.text(), 'text/xml');
@@ -2453,16 +2455,12 @@
       var links = Array.prototype.slice.call(itemEl.getElementsByTagName('link'));
       var designers = links.filter(function (l) { return l.getAttribute('type') === 'boardgamedesigner' && l.getAttribute('value') !== '(Uncredited)'; })
         .map(function (l) { return l.getAttribute('value'); });
-      var videoEls = Array.prototype.slice.call(itemEl.getElementsByTagName('video'));
-      var videos = videoEls.filter(function (v) { return v.getAttribute('category') === 'instructional'; })
-        .map(function (v) { return v.getAttribute('link'); }).filter(function (l) { return l; }).slice(0, 3);
-      byId[id] = { designer: designers.join(', ') || null, videos: videos };
+      byId[id] = { designer: designers.join(', ') || null };
     });
     return byId;
   }
-  // Batcht in groepjes van 15 ids (grotere response bij populaire spellen met honderden video's,
-  // klein houden voorkomt trage/logge aanroepen) met een korte pauze ertussen, zelfde voorzichtige
-  // patroon als de Discogs-tracklist-backfill elders in dit bestand.
+  // Batcht in groepjes van 15 ids met een korte pauze ertussen, zelfde voorzichtige patroon als de
+  // Discogs-tracklist-backfill elders in dit bestand.
   async function fetchBggThingForIds(ids) {
     var byId = {};
     for (var i = 0; i < ids.length; i += 15) {
@@ -2472,15 +2470,15 @@
     }
     return byId;
   }
-  // Vult auteur/uitgever/video's alleen aan waar ze nog ontbreken (eenmalige backfill, geen
-  // doorlopende "ververs"-actie zoals bij rank — die drie veranderen nooit meer voor een bestaand
-  // spel). Uitgever komt gratis mee uit een collection-herhaling (met &version=1, zie
-  // fetchBggCollectionXml); auteur/video's vereisen de aparte thing-batch hierboven.
+  // Vult auteur/uitgever alleen aan waar ze nog ontbreken (eenmalige backfill, geen doorlopende
+  // "ververs"-actie zoals bij rank — die twee veranderen nooit meer voor een bestaand spel).
+  // Uitgever komt gratis mee uit een collection-herhaling (met &version=1, zie
+  // fetchBggCollectionXml); auteur vereist de aparte thing-batch hierboven. Video's zitten hier
+  // bewust niet (meer) bij — zie de toelichting bij fetchBggThingBatch().
   async function fillBggExtras(entry) {
     if (state.bggEnriching[entry.id]) return;
     var auteurKey = (entry.extra_velden || []).some(function (f) { return f.key === 'auteur'; }) ? 'auteur' : null;
     var uitgeverKey = (entry.extra_velden || []).some(function (f) { return f.key === 'uitgever'; }) ? 'uitgever' : null;
-    var videosKey = (entry.extra_velden || []).some(function (f) { return f.key === 'videos'; }) ? 'videos' : null;
     var existing = itemsFor(entry.id).filter(function (i) { return i.bron === 'bgg' && i.extern_id; });
     if (!existing.length) return;
     state.bggEnriching[entry.id] = true; renderDetail();
@@ -2500,17 +2498,16 @@
           }
         }
       }
-      if (auteurKey || videosKey) {
-        var missingThing = existing.filter(function (i) { return !(i.extra && i.extra[auteurKey || '__x']); });
+      if (auteurKey) {
+        var missingThing = existing.filter(function (i) { return !(i.extra && i.extra[auteurKey]); });
         if (missingThing.length) {
           var thingById = await fetchBggThingForIds(missingThing.map(function (i) { return i.extern_id; }));
           for (var t = 0; t < missingThing.length; t++) {
             var ti = missingThing[t];
             var info = thingById[ti.extern_id];
-            if (!info) continue;
+            if (!info || !info.designer) continue;
             var tExtra = Object.assign({}, ti.extra || {});
-            if (auteurKey && info.designer) tExtra[auteurKey] = info.designer;
-            if (videosKey && info.videos.length) tExtra[videosKey] = info.videos.join('\n');
+            tExtra[auteurKey] = info.designer;
             await supabase.from('lijst_items').update({ extra: tExtra }).eq('id', ti.id);
           }
         }
@@ -2518,7 +2515,7 @@
       await refetchAll();
     } catch (e) {
       console.error('bgg extras backfill failed', e);
-      window.alert('Auteur/uitgever/video\'s aanvullen is niet gelukt.');
+      window.alert('Auteur/uitgever aanvullen is niet gelukt.');
     } finally {
       state.bggEnriching[entry.id] = false; renderDetail();
     }
@@ -2789,7 +2786,6 @@
     var bggRankKey = (entry.extra_velden || []).some(function (f) { return f.key === 'bgg_rank'; }) ? 'bgg_rank' : null;
     var uitgeverKey = (entry.extra_velden || []).some(function (f) { return f.key === 'uitgever'; }) ? 'uitgever' : null;
     var auteurKey = (entry.extra_velden || []).some(function (f) { return f.key === 'auteur'; }) ? 'auteur' : null;
-    var videosKey = (entry.extra_velden || []).some(function (f) { return f.key === 'videos'; }) ? 'videos' : null;
     var rows = [];
     for (var wi = 0; wi < selectedWorks.length; wi++) {
       var w = selectedWorks[wi];
@@ -2798,9 +2794,10 @@
         if (jaarKey && w.year) extra[jaarKey] = String(w.year);
       } else if (flow.source === 'bgg') {
         // Rank en (indien de gebruiker een editie aan het spel gekoppeld heeft in zijn eigen BGG-
-        // collectie) uitgever komen al gratis mee uit het collection-endpoint. Ontwerper en video's
-        // vereisen een aparte thing-endpoint-aanroep per spel — gebeurt hieronder, ná het inserten,
-        // voor deze batch (zie fillBggExtras() voor dezelfde aanvulling achteraf op bestaande items).
+        // collectie) uitgever komen al gratis mee uit het collection-endpoint. Ontwerper vereist een
+        // aparte thing-endpoint-aanroep per spel — gebeurt hieronder, ná het inserten, voor deze
+        // batch (zie fillBggExtras() voor dezelfde aanvulling achteraf op bestaande items). Video's
+        // worden bewust niet automatisch ingevuld, zie fetchBggThingBatch().
         if (bggRankKey && w.rank) extra[bggRankKey] = String(w.rank);
         if (uitgeverKey && w.publisher) extra[uitgeverKey] = w.publisher;
       } else if (extraKey) {
@@ -2830,19 +2827,18 @@
     }
     var result = await supabase.from('lijst_items').insert(rows).select();
     await refetchSoft(result);
-    // Ontwerper/video's zitten niet in het collection-endpoint (zie hierboven) — voor een verse
-    // BGG-import meteen aanvullen via de thing-batch, zodat een nieuw geïmporteerd spel niet als
-    // enige zonder deze gegevens komt te staan tot iemand de "aanvullen"-knop gebruikt.
-    if (flow.source === 'bgg' && (auteurKey || videosKey) && result.data && result.data.length) {
+    // Ontwerper zit niet in het collection-endpoint (zie hierboven) — voor een verse BGG-import
+    // meteen aanvullen via de thing-batch, zodat een nieuw geïmporteerd spel niet als enige zonder
+    // deze gegevens komt te staan tot iemand de "aanvullen"-knop gebruikt.
+    if (flow.source === 'bgg' && auteurKey && result.data && result.data.length) {
       try {
         var thingById = await fetchBggThingForIds(result.data.map(function (r) { return r.extern_id; }));
         for (var ri = 0; ri < result.data.length; ri++) {
           var r = result.data[ri];
           var info = thingById[r.extern_id];
-          if (!info) continue;
+          if (!info || !info.designer) continue;
           var rExtra = Object.assign({}, r.extra || {});
-          if (auteurKey && info.designer) rExtra[auteurKey] = info.designer;
-          if (videosKey && info.videos.length) rExtra[videosKey] = info.videos.join('\n');
+          rExtra[auteurKey] = info.designer;
           await supabase.from('lijst_items').update({ extra: rExtra }).eq('id', r.id);
         }
         await refetchAll();
@@ -2900,7 +2896,7 @@
           if (needsExtras) {
             var fillBtn = document.createElement('button');
             fillBtn.type = 'button'; fillBtn.className = 'btn-text';
-            fillBtn.textContent = state.bggEnriching[entry.id] ? 'Bezig…' : 'Auteur/uitgever/video\'s aanvullen';
+            fillBtn.textContent = state.bggEnriching[entry.id] ? 'Bezig…' : 'Auteur/uitgever aanvullen';
             fillBtn.disabled = !!state.bggEnriching[entry.id];
             fillBtn.addEventListener('click', function () { fillBggExtras(entry); });
             row.appendChild(fillBtn);

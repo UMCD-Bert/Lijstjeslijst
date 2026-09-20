@@ -866,6 +866,18 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   op de volle 786-spellen-lijst, om niet onnodig veel BGG-verkeer te genereren tijdens het testen
   (zie werkafspraak 6) — na een geslaagde test opgeruimd, daarna pas de 4e veld-kolom aan de
   bestaande "Spellen Bert"-lijst toegevoegd.
+  **Herzien (2026-09-20, v1.32.1): automatische video's er weer uit.** Expliciet teruggedraaid:
+  "Ik wil liever zelf de video's uitzoeken. De eerste 3 op BGG is geen goed criterium" — BGG's eigen
+  `category="instructional"`-filter garandeert geen kwaliteit of relevantie, alleen dat het label
+  door de indiener zo gezet is. De eigenaar zoekt uitlegvideo's liever zelf uit, desgevraagd met
+  hulp van Claude om specifieke, door hem aangewezen sites te doorzoeken (ad-hoc per spel in de
+  chat, geen eigen bouwwerk). `&videos=1` en de video-parsing zijn uit `fetchBggThingBatch()`
+  gehaald (was toch al zwaar: honderden video's per populair spel in de respons voor iets wat niet
+  gebruikt werd), `fillBggExtras()`/`importCommit()` vullen nu alleen nog auteur/uitgever aan, de
+  knop heet weer "Auteur/uitgever aanvullen". Het `videos`-tekstveld zelf (multiline, met
+  in-/uitklap-icoontje en klikbare links) blijft ongewijzigd bestaan voor handmatige invoer — alleen
+  de automatische BGG-bron is eruit, de generieke multiline-infrastructuur (textarea, expand-rij)
+  was sowieso niet BGG-specifiek en dus niets aan te veranderen.
 - ~~MusicBrainz-auto-import (Muziek) kon vanuit deze dev-omgeving niet betrouwbaar getest worden
   ("server is busy"-responses)~~ — bleek ook vanaf de telefoon van de gebruiker onbetrouwbaar/zonder
   resultaat, en is daarom 2026-09-13 (v1.24.0) volledig verwijderd i.p.v. verder uitgezocht.
