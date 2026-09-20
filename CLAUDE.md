@@ -733,6 +733,28 @@ toegang (geen aparte accounts per persoon).
 - Live sync via Supabase Realtime (`postgres_changes` op beide tabellen, wildcard event) — bij elke
   wijziging wordt de hele dataset opnieuw opgehaald (`refetchAll`), geen incrementele diff-logica.
   Werkt prima op deze schaal (huishoudelijke lijstjes, geen duizenden rijen).
+  **Bug (2026-09-20, v1.31.2): stilzwijgend afgekapt op 1000 rijen zodra alle lijstjes samen die
+  grens passeerden.** Gemeld als "BGG-import geeft maar 462 van de 789 spellen" (met een screenshot
+  van de "462 items"-statkaart en een lijst die op de laptop niet verder scrolde dan een willekeurig
+  punt) — bleek na onderzoek geen import-bug: de database bevatte al gewoon 786 van de 789 BGG-
+  spellen (in één moment geïmporteerd op 2026-09-18). `refetchAll()` haalt met `select('*')` echter
+  ALLE rijen van `lijst_items` in één keer op, voor ALLE lijstjes samen, zonder `lijst_id`-filter en
+  zonder paginering — en Supabase/PostgREST kapt zo'n ongefilterde select standaard stilzwijgend af
+  op 1000 rijen (geen foutmelding, gewoon een onvolledige resultset). Met Strips (361) + Muziek
+  (170) + Boeken (7) + Bordspellen (786) samen op 1324 items, gesorteerd oplopend op `volgorde`
+  (oudste eerst), vielen precies de 324 nieuwste rijen weg — vrijwel allemaal de net geïmporteerde
+  BGG-spellen: 786 − 324 = 462, exact het gemelde aantal. Bevestigd door de daadwerkelijke rijtelling
+  per lijstje rechtstreeks in de database te vergelijken met wat de app toonde, vóór er ook maar iets
+  aan de code werd aangepast — **geen data verloren, puur een client-side ophaal-bug**, dus geen
+  lijstje leeggemaakt/opnieuw geïmporteerd (was het eerste voorstel van de gebruiker, maar bleek na
+  onderzoek onnodig én zou 783 al-correct-geïmporteerde spellen hebben weggegooid). Fix:
+  `fetchAllRows(table, orderCol)` haalt in een lus met `.range()` net zo lang door tot een pagina
+  minder dan 1000 rijen teruggeeft — werkt voortaan voor elk aantal rijen, ongeacht een eventuele
+  toekomstige servergrens. Toegepast op `lijst_items` én `reeksen` (laatstgenoemde zat nog ruim onder
+  de 1000, maar dezelfde ongefilterde aanpak had hetzelfde probleem kunnen krijgen bij verdere groei).
+  Les: een lege/onvolledige resultset bij een ongefilterde select is niet per se een applicatiebug —
+  eerst de daadwerkelijke databasestand los verifiëren vóórdat je de gerapporteerde symptomen (hier:
+  "er ontbreken spellen") als waarheid aanneemt en er destructief naar gaat handelen.
 - Service worker (`service-worker.js`) cachet alleen de app-shell (HTML/manifest/icons/supabase-js),
   read-only fallback bij geen verbinding — geen queue/sync-logica voor schrijfacties zoals bij Gezin.
   Schrijven zonder verbinding faalt gewoon met een alert; dat is bewust simpel gehouden.

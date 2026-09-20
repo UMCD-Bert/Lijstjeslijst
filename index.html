@@ -416,7 +416,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.31.1';
+  var APP_VERSION = '1.31.2';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -2935,11 +2935,27 @@
   }
 
   // ---------- Data ----------
+  // Een ongefilterde `select('*')` levert bij Supabase/PostgREST standaard maximaal 1000 rijen op
+  // (server-side max-rows-cap, geen foutmelding bij afkappen) — met alle lijstjes samen inmiddels
+  // ruim boven de 1000 items (vooral door de BGG-bulkimport) werden de nieuwste rijen daardoor
+  // stilzwijgend niet meer opgehaald. `.range()` in een lus haalt alles op, ongeacht hoeveel rijen
+  // de tabel ooit bevat.
+  async function fetchAllRows(table, orderCol) {
+    var pageSize = 1000, rows = [], from = 0;
+    while (true) {
+      var res = await supabase.from(table).select('*').order(orderCol, { ascending: true }).range(from, from + pageSize - 1);
+      if (res.error) return res;
+      rows = rows.concat(res.data || []);
+      if (!res.data || res.data.length < pageSize) break;
+      from += pageSize;
+    }
+    return { data: rows, error: null };
+  }
   async function refetchAll() {
     var res = await Promise.all([
-      supabase.from('lijsten').select('*').order('volgorde', { ascending: true }),
-      supabase.from('lijst_items').select('*').order('volgorde', { ascending: true }),
-      supabase.from('reeksen').select('*').order('volgorde', { ascending: true })
+      fetchAllRows('lijsten', 'volgorde'),
+      fetchAllRows('lijst_items', 'volgorde'),
+      fetchAllRows('reeksen', 'volgorde')
     ]);
     var lijstenRes = res[0], itemsRes = res[1], reeksenRes = res[2];
     if (lijstenRes.error || itemsRes.error || reeksenRes.error) {
