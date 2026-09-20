@@ -430,7 +430,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.32.3';
+  var APP_VERSION = '1.33.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -738,7 +738,8 @@
     var inp = document.createElement(f.multiline ? 'textarea' : 'input');
     if (!f.multiline) inp.type = 'text';
     else { inp.rows = 3; inp.className = 'extra-field-textarea'; }
-    inp.placeholder = f.label; inp.dataset.key = f.key;
+    inp.placeholder = f.multiline ? (f.label + ' — één per regel, evt. "Bron: link"') : f.label;
+    inp.dataset.key = f.key;
     inp.setAttribute('aria-label', f.label);
     return inp;
   }
@@ -1639,12 +1640,20 @@
         var exTd = document.createElement('td'); exTd.colSpan = colCount;
         var exWrap = document.createElement('div'); exWrap.className = 'extra-links';
         var linkIdx = 0;
+        // Een regel mag "Bron: URL" zijn (bv. "Nox: https://…", zelf zo ingevuld bij de
+        // video-backfill vanuit nox-spellenzolder.nl/despelletjesvrienden.nl/Rahdo, of handmatig
+        // door de gebruiker) — dan wordt de bronnaam getoond i.p.v. een kaal volgnummer, zodat in
+        // één oogopslag duidelijk is welke video van welke site komt. Een kale URL zonder label
+        // valt terug op "Video N".
         (item.extra[f.key] || '').split('\n').map(function (l) { return l.trim(); }).filter(function (l) { return l; }).forEach(function (line) {
-          if (/^https?:\/\//i.test(line)) {
+          var labeled = line.match(/^([^:]{1,30}):\s*(https?:\/\/\S+)$/i);
+          var url = labeled ? labeled[2] : (/^https?:\/\//i.test(line) ? line : null);
+          if (url) {
             linkIdx++;
-            var a = document.createElement('a'); a.className = 'extra-link'; a.href = line; a.target = '_blank'; a.rel = 'noopener noreferrer';
+            var label = labeled ? labeled[1].trim() : ('Video ' + linkIdx);
+            var a = document.createElement('a'); a.className = 'extra-link'; a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer';
             a.appendChild(videoSvg());
-            var labelSpan = document.createElement('span'); labelSpan.textContent = 'Video ' + linkIdx + ' bekijken →';
+            var labelSpan = document.createElement('span'); labelSpan.textContent = label + ' bekijken →';
             a.appendChild(labelSpan);
             exWrap.appendChild(a);
           } else {

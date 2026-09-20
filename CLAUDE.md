@@ -794,7 +794,20 @@ toegang (geen aparte accounts per persoon).
   gereproduceerd of hard bevestigd geverifieerd worden** in de Claude Browser-testtool hier (geen
   echte iOS Safari) — toegepast: expliciete `cursor: pointer` en een fors grotere tap-target
   (klassieke WebKit/mobiele-Safari-aandachtspunten bij kleine/inline tikoppervlakken), maar dit moet
-  nog op het echte toestel bevestigd worden. (nieuw item/lijst = `Date.now()`); verplaatsen wisselt de
+  nog op het echte toestel bevestigd worden.
+  **Aanvulling (2026-09-21, v1.33.0): bronlabel per video i.p.v. kaal "Video 1"/"Video 2".** Gemeld:
+  "Graag wel iets meer dan alleen 'Video 1 bekijken'. Is dat een Nox? Een DSV? Een Rahdo?" — de knop
+  toonde geen bron omdat die nooit was opgeslagen, alleen de kale YouTube-URL. Oplossing generiek op
+  het bestaande multiline-veldformaat gehouden (geen aparte kolom/datastructuur): een regel mag
+  voortaan `Bron: URL` zijn i.p.v. alleen een URL — bij het uitklappen wordt de bronnaam getoond
+  ("Nox bekijken →", "DSV bekijken →", "Rahdo bekijken →"), een regel zonder herkenbaar `Label:
+  https://…`-voorvoegsel valt terug op "Video N" (zodat kaal handmatig geplakte links, van vóór deze
+  wijziging of gewoon zonder label toegevoegd, gewoon blijven werken). De 401+3 al bestaande
+  video-links (zie de backfill hierboven) zijn met terugwerkende kracht herschreven met
+  `Nox:`/`DSV:`/`Rahdo:`-voorvoegsel. Het textarea-placeholder in het toevoeg-/bewerkformulier
+  (`buildExtraFieldInput()`) geeft dit format nu ook als hint mee bij elk multiline-veld, niet
+  Bordspellen-specifiek — generiek bruikbaar voor toekomstige multiline-velden elders in de app.
+- Volgorde wordt bijgehouden als timestamp (nieuw item/lijst = `Date.now()`); verplaatsen wisselt de
   `volgorde`-waarde van twee buren om (last-writer-wins, geen transacties nodig op deze schaal).
 
 ## Sync & offline
