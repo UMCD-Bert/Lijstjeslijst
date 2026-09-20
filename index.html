@@ -362,11 +362,17 @@
   .items-empty { color: var(--muted); font-style: italic; padding: 14px 2px; font-size: 0.9rem; text-align: left; }
   .tracklist-row td { padding: 4px 2px 14px; border-bottom: 1px solid var(--border); }
   .tracklist-text { white-space: pre-wrap; font-size: 0.86rem; color: var(--muted); background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
+  .extra-links { display: flex; flex-direction: column; gap: 4px; font-size: 0.86rem; background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
+  .extra-links a { color: var(--accent); word-break: break-all; }
 
   .edit-form { flex: 1; display: flex; gap: 8px; flex-wrap: wrap; padding: 4px 0; }
   .edit-form input { border: 1px solid var(--accent); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 16px; color: var(--ink); flex: 1; min-width: 100px; }
   .edit-form .field-row-textarea { border: 1px solid var(--accent); background: var(--surface); border-radius: 7px; padding: 6px 9px; font-family: inherit; font-size: 16px; color: var(--ink); flex: 1 1 100%; min-height: 200px; resize: vertical; }
   .edit-form-actions { display: flex; gap: 4px; }
+  /* Multiline extra-velden (bv. video-links) staan in .add-fields/.genest-add-form/.edit-form
+     tussen gewone <input>-elementen — die scopes stylen alleen `input`, dus een eigen regel nodig
+     i.p.v. te vertrouwen op de omliggende context. font-size 16px verplicht (werkafspraak 8). */
+  .extra-field-textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px; padding: 9px 12px; font-family: inherit; font-size: 16px; color: var(--ink); resize: vertical; min-height: 60px; }
 
   form.add-item { display: flex; gap: 10px; align-items: center; border-bottom: 1.5px dashed var(--border); padding-bottom: 16px; margin-bottom: 16px; flex-wrap: wrap; }
   form.add-item .add-fields { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
@@ -416,7 +422,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.31.2';
+  var APP_VERSION = '1.32.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -436,7 +442,7 @@
     boeken:      { label: 'Boeken',      desc: 'gegroepeerd per auteur/reeks', type_label: 'Boeken',      extra_velden: [{ key: 'jaar', label: 'Jaar van uitgave' }], vink_velden: [{ key: 'e_book', label: 'E-book' }, { key: 'fysiek', label: 'Fysiek boek' }, { key: 'gelezen_ellen', label: 'Gelezen door Ellen' }, { key: 'gelezen_bert', label: 'Gelezen door Bert' }], auto_import: 'openlibrary', doorstrepen: false, genest: true },
     muziek:      { label: 'Muziek',      desc: 'gegroepeerd per artiest',    type_label: 'Muziek',      extra_velden: [{ key: 'jaar', label: 'Jaar van uitgave' }], vink_velden: [{ key: 'in_bezit', label: 'In bezit' }, { key: 'lp', label: 'LP' }, { key: 'cd', label: 'CD' }], auto_import: 'discogs', doorstrepen: false, genest: true },
     strips:      { label: 'Strips',      desc: 'reeksen met albums',         type_label: 'Strips',      extra_velden: [{ key: 'volgnummer', label: 'Volgnummer' }, { key: 'jaar', label: 'Jaar van uitgave' }], vink_velden: [{ key: 'fysiek', label: 'Fysiek' }, { key: 'digitaal', label: 'Digitaal' }, { key: 'gelezen', label: 'Gelezen' }], auto_import: null, doorstrepen: false, genest: true },
-    bordspellen: { label: 'Bordspellen', desc: 'auteur, uitgever, BGG-rank', type_label: 'Bordspellen', extra_velden: [{ key: 'auteur', label: 'Auteur/ontwerper' }, { key: 'uitgever', label: 'Uitgever' }, { key: 'bgg_rank', label: 'BGG-rank' }], vink_velden: [{ key: 'gespeeld', label: 'Gespeeld' }], auto_import: 'bgg', doorstrepen: false },
+    bordspellen: { label: 'Bordspellen', desc: 'auteur, uitgever, BGG-rank', type_label: 'Bordspellen', extra_velden: [{ key: 'auteur', label: 'Auteur/ontwerper' }, { key: 'uitgever', label: 'Uitgever' }, { key: 'bgg_rank', label: 'BGG-rank' }, { key: 'videos', label: 'Video\'s', multiline: true }], vink_velden: [{ key: 'gespeeld', label: 'Gespeeld' }], auto_import: 'bgg', doorstrepen: false },
     aangepast:   { label: 'Aangepast',   desc: 'zelf velden kiezen',         type_label: null,          extra_velden: [], vink_velden: [{ key: 'gedaan', label: 'Gedaan' }], auto_import: null, doorstrepen: true }
   };
   var PRESET_ORDER = ['simpel', 'boeken', 'muziek', 'strips', 'bordspellen', 'aangepast'];
@@ -450,7 +456,7 @@
   var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var state = {
     lijsten: [], items: [], reeksen: [], currentId: null, editingItem: null,
-    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}, trackSearch: null, viewMode: {}, addConfirm: {}, bggRefreshing: {}, compareFlow: null
+    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}, expandedExtra: {}, trackSearch: null, viewMode: {}, addConfirm: {}, bggRefreshing: {}, bggEnriching: {}, compareFlow: null
   };
 
   var gridEl = document.getElementById('grid');
@@ -542,6 +548,20 @@
       line.setAttribute('stroke', 'currentColor'); line.setAttribute('stroke-width', '1.3'); line.setAttribute('stroke-linecap', 'round');
       svg.appendChild(line);
     });
+    return svg;
+  }
+
+  function videoSvg() {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('width', '14'); svg.setAttribute('height', '14');
+    var circle = document.createElementNS(ns, 'circle');
+    circle.setAttribute('cx', '8'); circle.setAttribute('cy', '8'); circle.setAttribute('r', '6.3');
+    circle.setAttribute('fill', 'none'); circle.setAttribute('stroke', 'currentColor'); circle.setAttribute('stroke-width', '1.3');
+    var play = document.createElementNS(ns, 'path');
+    play.setAttribute('d', 'M6.5 5.3L11 8L6.5 10.7Z');
+    play.setAttribute('fill', 'currentColor');
+    svg.appendChild(circle); svg.appendChild(play);
     return svg;
   }
 
@@ -701,9 +721,26 @@
       if (state.addConfirm[entry.id] === text) { delete state.addConfirm[entry.id]; renderDetail(); }
     }, 2200);
   }
+  // Multiline-velden (bv. video-links) horen niet thuis in deze platte, komma-achtige samenvatting
+  // onder de titel — die krijgen hun eigen in-/uitklapbare rij, zie de tabelrij-render hieronder.
+  // Een multiline-tekstveld (bv. video-links, één per regel) krijgt een textarea i.p.v. een
+  // eenregelig tekstvak — verder identiek te gebruiken (.value, .dataset.key), dus geen aparte
+  // opslaglogica nodig op de aanroepplekken.
+  function buildExtraFieldInput(f) {
+    var inp = document.createElement(f.multiline ? 'textarea' : 'input');
+    if (!f.multiline) inp.type = 'text';
+    else { inp.rows = 3; inp.className = 'extra-field-textarea'; }
+    inp.placeholder = f.label; inp.dataset.key = f.key;
+    inp.setAttribute('aria-label', f.label);
+    return inp;
+  }
   function extraSummary(entry, item) {
-    return (entry.extra_velden || []).map(function (f) { return item.extra && item.extra[f.key]; })
+    return (entry.extra_velden || []).filter(function (f) { return !f.multiline; })
+      .map(function (f) { return item.extra && item.extra[f.key]; })
       .filter(function (v) { return v; }).join(' · ');
+  }
+  function multilineFieldsWithContent(entry, item) {
+    return (entry.extra_velden || []).filter(function (f) { return f.multiline && item.extra && item.extra[f.key]; });
   }
 
   // ---------- Reeksen (genest datamodel) ----------
@@ -767,12 +804,7 @@
     titelInput.type = 'text'; titelInput.placeholder = 'Titel'; titelInput.dataset.key = '__titel';
     titelInput.setAttribute('aria-label', 'Titel');
     fieldsWrap.appendChild(titelInput);
-    var extraInputs = (entry.extra_velden || []).map(function (f) {
-      var inp = document.createElement('input');
-      inp.type = 'text'; inp.placeholder = f.label; inp.dataset.key = f.key;
-      inp.setAttribute('aria-label', f.label);
-      return inp;
-    });
+    var extraInputs = (entry.extra_velden || []).map(buildExtraFieldInput);
     extraInputs.forEach(function (inp) { fieldsWrap.appendChild(inp); });
     var vinkjesFieldset = buildVinkjesFieldset(entry.vink_velden, null);
     if ((entry.vink_velden || []).length) fieldsWrap.appendChild(vinkjesFieldset.wrap);
@@ -815,11 +847,7 @@
     titelInput.type = 'text'; titelInput.placeholder = 'Titel'; titelInput.setAttribute('aria-label', 'Titel');
     form.appendChild(titelInput);
 
-    var extraInputs = (entry.extra_velden || []).map(function (f) {
-      var inp = document.createElement('input');
-      inp.type = 'text'; inp.placeholder = f.label; inp.setAttribute('aria-label', f.label);
-      return inp;
-    });
+    var extraInputs = (entry.extra_velden || []).map(buildExtraFieldInput);
     extraInputs.forEach(function (inp) { form.appendChild(inp); });
 
     var reeksListId = 'reeks-datalist-' + entry.id;
@@ -1332,8 +1360,8 @@
         titelInput.value = item.titel || ''; titelInput.placeholder = 'Titel'; titelInput.dataset.key = '__titel';
         form.appendChild(titelInput);
         var extraInputs = (entry.extra_velden || []).map(function (f) {
-          var inp = document.createElement('input');
-          inp.value = (item.extra && item.extra[f.key]) || ''; inp.placeholder = f.label; inp.dataset.key = f.key;
+          var inp = buildExtraFieldInput(f);
+          inp.value = (item.extra && item.extra[f.key]) || '';
           return inp;
         });
         extraInputs.forEach(function (inp) { form.appendChild(inp); });
@@ -1554,6 +1582,17 @@
         tracklistBtn.addEventListener('click', function () { state.expandedTracklist[item.id] = !state.expandedTracklist[item.id]; renderDetail(); });
         titleCellInner.appendChild(tracklistBtn);
       }
+      var extraFieldsWithLinks = multilineFieldsWithContent(entry, item);
+      extraFieldsWithLinks.forEach(function (f) {
+        var extraExpandKey = item.id + ':' + f.key;
+        var extraExpanded = !!state.expandedExtra[extraExpandKey];
+        var extraBtn = document.createElement('button');
+        extraBtn.type = 'button'; extraBtn.className = 'icon-btn'; extraBtn.appendChild(videoSvg());
+        extraBtn.title = (extraExpanded ? (f.label + ' verbergen') : (f.label + ' tonen'));
+        extraBtn.setAttribute('aria-label', extraBtn.title);
+        extraBtn.addEventListener('click', function () { state.expandedExtra[extraExpandKey] = !state.expandedExtra[extraExpandKey]; renderDetail(); });
+        titleCellInner.appendChild(extraBtn);
+      });
       titleTd.appendChild(titleCellInner);
       tr.appendChild(titleTd);
 
@@ -1575,15 +1614,35 @@
         tr.appendChild(checkTd);
       });
 
-      if (!item.tracklist || !state.expandedTracklist[item.id]) return tr;
+      var expandedExtraFields = extraFieldsWithLinks.filter(function (f) { return state.expandedExtra[item.id + ':' + f.key]; });
+      if ((!item.tracklist || !state.expandedTracklist[item.id]) && !expandedExtraFields.length) return tr;
       var frag = document.createDocumentFragment();
       frag.appendChild(tr);
-      var tlRow = document.createElement('tr'); tlRow.className = 'tracklist-row';
-      var tlTd = document.createElement('td'); tlTd.colSpan = colCount;
-      var tlText = document.createElement('div'); tlText.className = 'tracklist-text'; tlText.textContent = item.tracklist;
-      tlTd.appendChild(tlText);
-      tlRow.appendChild(tlTd);
-      frag.appendChild(tlRow);
+      if (item.tracklist && state.expandedTracklist[item.id]) {
+        var tlRow = document.createElement('tr'); tlRow.className = 'tracklist-row';
+        var tlTd = document.createElement('td'); tlTd.colSpan = colCount;
+        var tlText = document.createElement('div'); tlText.className = 'tracklist-text'; tlText.textContent = item.tracklist;
+        tlTd.appendChild(tlText);
+        tlRow.appendChild(tlTd);
+        frag.appendChild(tlRow);
+      }
+      expandedExtraFields.forEach(function (f) {
+        var exRow = document.createElement('tr'); exRow.className = 'tracklist-row';
+        var exTd = document.createElement('td'); exTd.colSpan = colCount;
+        var exWrap = document.createElement('div'); exWrap.className = 'extra-links';
+        (item.extra[f.key] || '').split('\n').map(function (l) { return l.trim(); }).filter(function (l) { return l; }).forEach(function (line) {
+          if (/^https?:\/\//i.test(line)) {
+            var a = document.createElement('a'); a.href = line; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = line;
+            exWrap.appendChild(a);
+          } else {
+            var span = document.createElement('span'); span.textContent = line;
+            exWrap.appendChild(span);
+          }
+        });
+        exTd.appendChild(exWrap);
+        exRow.appendChild(exTd);
+        frag.appendChild(exRow);
+      });
       return frag;
     }
 
@@ -2273,7 +2332,13 @@
   // 4 seconden later 200 met de volledige collectie. Vereist een Application Token (zie
   // BGG_APP_TOKEN hierboven, sinds 2026 verplicht voor de hele XML-API).
   async function fetchBggCollectionXml(username) {
-    var url = 'https://boardgamegeek.com/xmlapi2/collection?username=' + encodeURIComponent(username) + '&stats=1&own=1';
+    // `&version=1` levert, wanneer de gebruiker een specifieke editie aan een spel gekoppeld heeft
+    // in zijn eigen BGG-collectie, een <version>-blok met de uitgever van PRECIES die editie — in
+    // tegenstelling tot BGG's `thing`-endpoint, die (zonder editie-context) de uitgevers van ALLE
+    // wereldwijde edities van een spel teruggeeft (bij een populair spel als Catan al gauw 50+), wat
+    // voor "uitgever" onbruikbaar is. Niet elk item heeft een gekoppelde editie (bij deze gebruiker
+    // ~74% van de collectie) — voor de rest blijft `uitgever` bewust leeg i.p.v. te gokken.
+    var url = 'https://boardgamegeek.com/xmlapi2/collection?username=' + encodeURIComponent(username) + '&stats=1&own=1&version=1';
     for (var attempt = 0; attempt < 10; attempt++) {
       var res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + BGG_APP_TOKEN } });
       if (res.status === 202) { await sleep(2000); continue; }
@@ -2303,11 +2368,19 @@
           break;
         }
       }
+      var publisher = null;
+      var versionEl = itemEl.getElementsByTagName('version')[0];
+      if (versionEl) {
+        var verLinks = versionEl.getElementsByTagName('link');
+        for (var j = 0; j < verLinks.length; j++) {
+          if (verLinks[j].getAttribute('type') === 'boardgamepublisher') { publisher = verLinks[j].getAttribute('value'); break; }
+        }
+      }
       return {
         id: id, title: nameEl ? nameEl.textContent : '(onbekende titel)',
         year: yearEl ? yearEl.textContent : null,
         coverUrl: (thumbEl && thumbEl.textContent) || (imgEl && imgEl.textContent) || null,
-        rank: rank
+        rank: rank, publisher: publisher
       };
     }).filter(function (w) { return w.id; });
   }
@@ -2321,7 +2394,7 @@
         if (seen[w.id]) return false;
         seen[w.id] = true; return true;
       }).map(function (w) {
-        return { id: w.id, title: w.title, coverUrl: w.coverUrl, year: w.year ? Number(w.year) : null, rank: w.rank };
+        return { id: w.id, title: w.title, coverUrl: w.coverUrl, year: w.year ? Number(w.year) : null, rank: w.rank, publisher: w.publisher };
       });
       flow.works.sort(function (a, b) { return a.title.localeCompare(b.title); });
       flow.selected = new Set();
@@ -2360,6 +2433,94 @@
       window.alert('BGG-ranks verversen is niet gelukt.');
     } finally {
       state.bggRefreshing[entry.id] = false; renderDetail();
+    }
+  }
+  // BGG's `thing`-endpoint (in tegenstelling tot `collection`) geeft ontwerper(s) en, met
+  // `&videos=1`, community-video's per spel — geen 202-ophoud-gedrag hier, dat is uniek voor
+  // `collection` (die per-gebruiker on-the-fly wordt opgebouwd). Accepteert een kommagescheiden
+  // lijst van ids in één aanroep. Filtert video's op category="instructional" (uitleg-video's,
+  // niet "session"/"review"/"humor" e.d.) en houdt er per spel maximaal 3 van over — een populair
+  // spel als Catan heeft er ruim 500, veruit te veel om op te slaan of zinvol te tonen.
+  async function fetchBggThingBatch(ids) {
+    var url = 'https://boardgamegeek.com/xmlapi2/thing?id=' + ids.join(',') + '&videos=1';
+    var res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + BGG_APP_TOKEN } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var doc = new DOMParser().parseFromString(await res.text(), 'text/xml');
+    var items = Array.prototype.slice.call(doc.getElementsByTagName('item'));
+    var byId = {};
+    items.forEach(function (itemEl) {
+      var id = itemEl.getAttribute('id');
+      var links = Array.prototype.slice.call(itemEl.getElementsByTagName('link'));
+      var designers = links.filter(function (l) { return l.getAttribute('type') === 'boardgamedesigner' && l.getAttribute('value') !== '(Uncredited)'; })
+        .map(function (l) { return l.getAttribute('value'); });
+      var videoEls = Array.prototype.slice.call(itemEl.getElementsByTagName('video'));
+      var videos = videoEls.filter(function (v) { return v.getAttribute('category') === 'instructional'; })
+        .map(function (v) { return v.getAttribute('link'); }).filter(function (l) { return l; }).slice(0, 3);
+      byId[id] = { designer: designers.join(', ') || null, videos: videos };
+    });
+    return byId;
+  }
+  // Batcht in groepjes van 15 ids (grotere response bij populaire spellen met honderden video's,
+  // klein houden voorkomt trage/logge aanroepen) met een korte pauze ertussen, zelfde voorzichtige
+  // patroon als de Discogs-tracklist-backfill elders in dit bestand.
+  async function fetchBggThingForIds(ids) {
+    var byId = {};
+    for (var i = 0; i < ids.length; i += 15) {
+      var chunk = ids.slice(i, i + 15);
+      Object.assign(byId, await fetchBggThingBatch(chunk));
+      if (i + 15 < ids.length) await sleep(1500);
+    }
+    return byId;
+  }
+  // Vult auteur/uitgever/video's alleen aan waar ze nog ontbreken (eenmalige backfill, geen
+  // doorlopende "ververs"-actie zoals bij rank — die drie veranderen nooit meer voor een bestaand
+  // spel). Uitgever komt gratis mee uit een collection-herhaling (met &version=1, zie
+  // fetchBggCollectionXml); auteur/video's vereisen de aparte thing-batch hierboven.
+  async function fillBggExtras(entry) {
+    if (state.bggEnriching[entry.id]) return;
+    var auteurKey = (entry.extra_velden || []).some(function (f) { return f.key === 'auteur'; }) ? 'auteur' : null;
+    var uitgeverKey = (entry.extra_velden || []).some(function (f) { return f.key === 'uitgever'; }) ? 'uitgever' : null;
+    var videosKey = (entry.extra_velden || []).some(function (f) { return f.key === 'videos'; }) ? 'videos' : null;
+    var existing = itemsFor(entry.id).filter(function (i) { return i.bron === 'bgg' && i.extern_id; });
+    if (!existing.length) return;
+    state.bggEnriching[entry.id] = true; renderDetail();
+    try {
+      if (uitgeverKey) {
+        var missingPub = existing.filter(function (i) { return !(i.extra && i.extra[uitgeverKey]); });
+        if (missingPub.length) {
+          var xml = await fetchBggCollectionXml(entry.bgg_username);
+          var pubById = {};
+          parseBggCollection(xml).forEach(function (w) { pubById[w.id] = w.publisher; });
+          for (var p = 0; p < missingPub.length; p++) {
+            var pi = missingPub[p];
+            if (!pubById[pi.extern_id]) continue;
+            var pExtra = Object.assign({}, pi.extra || {});
+            pExtra[uitgeverKey] = pubById[pi.extern_id];
+            await supabase.from('lijst_items').update({ extra: pExtra }).eq('id', pi.id);
+          }
+        }
+      }
+      if (auteurKey || videosKey) {
+        var missingThing = existing.filter(function (i) { return !(i.extra && i.extra[auteurKey || '__x']); });
+        if (missingThing.length) {
+          var thingById = await fetchBggThingForIds(missingThing.map(function (i) { return i.extern_id; }));
+          for (var t = 0; t < missingThing.length; t++) {
+            var ti = missingThing[t];
+            var info = thingById[ti.extern_id];
+            if (!info) continue;
+            var tExtra = Object.assign({}, ti.extra || {});
+            if (auteurKey && info.designer) tExtra[auteurKey] = info.designer;
+            if (videosKey && info.videos.length) tExtra[videosKey] = info.videos.join('\n');
+            await supabase.from('lijst_items').update({ extra: tExtra }).eq('id', ti.id);
+          }
+        }
+      }
+      await refetchAll();
+    } catch (e) {
+      console.error('bgg extras backfill failed', e);
+      window.alert('Auteur/uitgever/video\'s aanvullen is niet gelukt.');
+    } finally {
+      state.bggEnriching[entry.id] = false; renderDetail();
     }
   }
 
@@ -2626,6 +2787,9 @@
 
     var jaarKey = (entry.extra_velden || []).some(function (f) { return f.key === 'jaar'; }) ? 'jaar' : null;
     var bggRankKey = (entry.extra_velden || []).some(function (f) { return f.key === 'bgg_rank'; }) ? 'bgg_rank' : null;
+    var uitgeverKey = (entry.extra_velden || []).some(function (f) { return f.key === 'uitgever'; }) ? 'uitgever' : null;
+    var auteurKey = (entry.extra_velden || []).some(function (f) { return f.key === 'auteur'; }) ? 'auteur' : null;
+    var videosKey = (entry.extra_velden || []).some(function (f) { return f.key === 'videos'; }) ? 'videos' : null;
     var rows = [];
     for (var wi = 0; wi < selectedWorks.length; wi++) {
       var w = selectedWorks[wi];
@@ -2633,10 +2797,12 @@
       if (entry.genest) {
         if (jaarKey && w.year) extra[jaarKey] = String(w.year);
       } else if (flow.source === 'bgg') {
-        // Ontwerper/uitgever bewust NIET automatisch ingevuld (zit achter BGG's eigen thing-
-        // endpoint, een aparte aanroep per spel) — alleen de rank, die het collection-endpoint al
-        // gratis meegeeft.
+        // Rank en (indien de gebruiker een editie aan het spel gekoppeld heeft in zijn eigen BGG-
+        // collectie) uitgever komen al gratis mee uit het collection-endpoint. Ontwerper en video's
+        // vereisen een aparte thing-endpoint-aanroep per spel — gebeurt hieronder, ná het inserten,
+        // voor deze batch (zie fillBggExtras() voor dezelfde aanvulling achteraf op bestaande items).
         if (bggRankKey && w.rank) extra[bggRankKey] = String(w.rank);
+        if (uitgeverKey && w.publisher) extra[uitgeverKey] = w.publisher;
       } else if (extraKey) {
         extra[extraKey] = flow.source === 'discogs' ? (w.artist || '') : flow.candidateName;
       }
@@ -2662,8 +2828,28 @@
       }
       rows.push(row);
     }
-    var result = await supabase.from('lijst_items').insert(rows);
-    refetchSoft(result);
+    var result = await supabase.from('lijst_items').insert(rows).select();
+    await refetchSoft(result);
+    // Ontwerper/video's zitten niet in het collection-endpoint (zie hierboven) — voor een verse
+    // BGG-import meteen aanvullen via de thing-batch, zodat een nieuw geïmporteerd spel niet als
+    // enige zonder deze gegevens komt te staan tot iemand de "aanvullen"-knop gebruikt.
+    if (flow.source === 'bgg' && (auteurKey || videosKey) && result.data && result.data.length) {
+      try {
+        var thingById = await fetchBggThingForIds(result.data.map(function (r) { return r.extern_id; }));
+        for (var ri = 0; ri < result.data.length; ri++) {
+          var r = result.data[ri];
+          var info = thingById[r.extern_id];
+          if (!info) continue;
+          var rExtra = Object.assign({}, r.extra || {});
+          if (auteurKey && info.designer) rExtra[auteurKey] = info.designer;
+          if (videosKey && info.videos.length) rExtra[videosKey] = info.videos.join('\n');
+          await supabase.from('lijst_items').update({ extra: rExtra }).eq('id', r.id);
+        }
+        await refetchAll();
+      } catch (e) {
+        console.error('bgg extras na import mislukt', e);
+      }
+    }
   }
 
   function renderImportSection(entry) {
@@ -2703,6 +2889,22 @@
           refreshBtn.disabled = !!state.bggRefreshing[entry.id];
           refreshBtn.addEventListener('click', function () { refreshBggRanks(entry); });
           row.appendChild(refreshBtn);
+          // Alleen op ontbrekende auteur checken, niet op uitgever: bijna elk BGG-spel heeft een
+          // gecrediteerde ontwerper (dus dit convergeert na één run naar "klaar"), maar uitgever
+          // blijft voor spellen zonder gekoppelde editie in de eigen BGG-collectie blijvend leeg —
+          // zou de knop anders voor altijd zichtbaar houden voor spellen die toch nooit een uitgever
+          // krijgen.
+          var needsExtras = itemsFor(entry.id).some(function (i) {
+            return i.bron === 'bgg' && i.extern_id && !(i.extra && i.extra.auteur);
+          });
+          if (needsExtras) {
+            var fillBtn = document.createElement('button');
+            fillBtn.type = 'button'; fillBtn.className = 'btn-text';
+            fillBtn.textContent = state.bggEnriching[entry.id] ? 'Bezig…' : 'Auteur/uitgever/video\'s aanvullen';
+            fillBtn.disabled = !!state.bggEnriching[entry.id];
+            fillBtn.addEventListener('click', function () { fillBggExtras(entry); });
+            row.appendChild(fillBtn);
+          }
         }
         if ((entry.auto_import === 'bgg' || entry.auto_import === 'discogs') && itemsFor(entry.id).length > 0) {
           var compareBtn = document.createElement('button');

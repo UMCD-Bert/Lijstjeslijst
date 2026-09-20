@@ -818,6 +818,54 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   **Vervolg (2026-09-18, v1.31.0): "Vergelijk met BGG/Discogs"** — zie de nieuwe sectie
   "Synchroniseren met Discogs/BGG" bij het Datamodel hieronder voor het volledige verhaal (geldt
   voor Muziek én Bordspellen samen, één gedeelde aanpak).
+  **Vervolg (2026-09-20, v1.32.0): auteur/uitgever/video's.** Expliciet gevraagd nadat bleek dat
+  deze drie tekstvelden bij Bordspellen al wel in het (2026-09-18) preset stonden maar nooit gevuld
+  werden — precies zoals destijds gedocumenteerd ("bewust niet automatisch ingevuld"). Voor elk
+  bleek een andere bron nodig, uitgezocht vóór het bouwen (niet aangenomen):
+  - **Auteur/ontwerper**: zit niet in het collection-endpoint, wel in BGG's `thing`-endpoint
+    (`boardgamedesigner`-links) — meestal 1-3 namen, betrouwbaar te joinen met ", ". "(Uncredited)"
+    (BGG's placeholder voor spellen zonder gecrediteerde ontwerper) wordt eruit gefilterd.
+  - **Uitgever**: `thing`-endpoint geeft hier NIET aan mee — die levert de uitgevers van ALLE
+    wereldwijde edities van een spel (bij Catan: 50+), onbruikbaar als "de uitgever van mijn
+    exemplaar". In plaats daarvan: `collection`-endpoint met `&version=1` erbij (nieuw toegevoegd
+    aan `fetchBggCollectionXml()`) geeft, wanneer de gebruiker in zijn eigen BGG-collectie een
+    specifieke editie aan een spel gekoppeld heeft, een `<version>`-blok met de uitgever van precies
+    díe editie. Bij deze gebruiker heeft ~74% van de collectie zo'n gekoppelde editie (583 van 790,
+    geverifieerd vóór het bouwen) — voor de rest blijft `uitgever` bewust leeg i.p.v. te gokken
+    (zelfde "niet gokken bij onzekere data"-principe als "Not Ranked" eerder bij `bgg_rank`).
+  - **Video's ("waarin het spel wordt uitgelegd")**: BGG's `thing`-endpoint heeft met `&videos=1`
+    een ingebouwde, door de community aangeleverde videolijst per spel, met een `category`-attribuut
+    — `category="instructional"` (i.t.t. "session"/"review"/"humor"/etc.) is precies "legt het spel
+    uit". Bij een populair spel kunnen dit er honderden zijn (Catan: 532 in totaal, waarvan nog
+    altijd tientallen instructional) — hier bewust gecapt op de eerste 3 (BGG's eigen, ogenschijnlijk
+    nieuwste-eerst-volgorde), meer zou het doel ("een paar uitlegvideo's") voorbij schieten.
+  Nieuw, generiek `multiline`-veldtype op `extra_velden` (`{key,label,multiline:true}`, hier gezet op
+  het nieuwe `videos`-veld bij Bordspellen — 4e/laatste tekstveld, `FIELD_CAP.extra` is 4) — een
+  bewuste, kleine generalisatie van het bestaande velden-systeem i.p.v. een Bordspellen-specifieke
+  hack: elk multiline-veld krijgt automatisch een `<textarea>` i.p.v. een eenregelig tekstvak in de
+  toevoeg-/bewerkformulieren (`buildExtraFieldInput()`), wordt uitgesloten van de platte
+  `extraSummary()`-regel onder de titel (`multilineFieldsWithContent()`), en krijgt in plaats daarvan
+  een eigen in-/uitklap-icoontje naast de titel (zelfde patroon als de bestaande tracklist-toggle)
+  dat een rij toont met elke regel als eigen item — een regel die met `http(s)://` begint wordt een
+  klikbaar linkje, andere tekst gewoon platte tekst (dus generiek bruikbaar, niet alleen voor URL's).
+  Twee vulmomenten, generiek per veld (niet Bordspellen-specifiek in de code):
+  1. **Bij een nieuwe BGG-import** (`importCommit()`): uitgever komt gratis mee uit de gewone
+     collection-call; auteur/video's worden er direct na de insert bij gehaald via een aparte
+     thing-batch-aanroep vóór de allereerste render van de nieuwe items, zodat een vers geïmporteerd
+     spel nooit als enige zonder deze gegevens komt te staan.
+  2. **"Auteur/uitgever/video's aanvullen"-knop** (`fillBggExtras()`, naast "Ranks verversen",
+     zichtbaar zolang er nog bgg-items zonder auteur zijn — bewust NIET op ontbrekende uitgever
+     gecontroleerd, want die blijft voor spellen zonder gekoppelde editie voor altijd leeg en zou de
+     knop dan nooit meer laten verdwijnen) — eenmalige backfill, vult alleen aan wat nog ontbreekt,
+     géén doorlopende "ververs"-actie zoals bij rank (auteur/uitgever/video's veranderen niet meer
+     voor een bestaand spel). Gebruikt voor de bestaande 786 spellen in "Spellen Bert".
+  `thing`-aanroepen gebeuren in batches van 15 ids met een korte pauze ertussen (`fetchBggThingForIds()`,
+  zelfde voorzichtige patroon als de Discogs-tracklist-backfill) — een populair spel als Catan heeft
+  op z'n eentje al honderden video's in de respons, batches klein houden voorkomt trage/logge
+  aanroepen. Getest met een tijdelijk testlijstje (2 echte BGG-spellen, Catan + Set) i.p.v. meteen
+  op de volle 786-spellen-lijst, om niet onnodig veel BGG-verkeer te genereren tijdens het testen
+  (zie werkafspraak 6) — na een geslaagde test opgeruimd, daarna pas de 4e veld-kolom aan de
+  bestaande "Spellen Bert"-lijst toegevoegd.
 - ~~MusicBrainz-auto-import (Muziek) kon vanuit deze dev-omgeving niet betrouwbaar getest worden
   ("server is busy"-responses)~~ — bleek ook vanaf de telefoon van de gebruiker onbetrouwbaar/zonder
   resultaat, en is daarom 2026-09-13 (v1.24.0) volledig verwijderd i.p.v. verder uitgezocht.
