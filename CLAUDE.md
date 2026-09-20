@@ -735,6 +735,47 @@ toegang (geen aparte accounts per persoon).
   Discogs-collectie van de eigenaar getest zonder diens toestemming vooraf — dat is een schrijvende
   actie op een extern, semi-publiek account, wezenlijk anders dan de overige (alleen-lezen)
   testverificaties in dit bestand.
+- **Video-links bij Bordspellen handmatig aangevuld vanuit 3 bronnen (2026-09-21, buiten een
+  versiebump om — puur databackfill, geen codewijziging).** Vervolg op het `videos`-veld uit v1.32.0/
+  v1.32.1: automatisch vullen vanuit BGG zelf werd afgewezen ("de eerste 3 op BGG is geen goed
+  criterium"), de eigenaar wilde zelf bronnen kunnen aanwijzen. Alle drie de bronnen zijn eenmalig,
+  buiten de app om met Bash/Python gescraped (niet via de UI — dit is eenmalig databeheer, geen
+  herhaalbare appfunctie), met de daadwerkelijke database-rijtelling als eindcontrole i.p.v. alleen
+  op tussenresultaten te vertrouwen:
+  - **nox-spellenzolder.nl**: heeft een volledige "Video Index A-Z"-pagina (één pagina, ~3400
+    spellen met link naar een eigen reviewpagina per spel) — die pagina in zijn geheel opgehaald en
+    op genormaliseerde titel gematcht tegen de 786 spellen (zelfde soort normalisatie als
+    `normalizeReeksNaam()`: lowercase, diacritics eruit, `(NL)`-suffix eraf). 337 matches; per
+    matchte reviewpagina de ingesloten YouTube-video geëxtraheerd (`youtube.com/embed/<id>` in de
+    HTML). 334 video's gevonden.
+  - **despelletjesvrienden.nl**: een webshop (Shopify), geen reviewsite — maar productpagina's
+    hebben vaak een uitleg-video in de fotogalerij. Volledige catalogus (8049 producten, via
+    Shopify's `/products.json`-endpoint, geen aparte zoekopdracht per spel nodig) opgehaald en
+    gematcht na het strippen van vaste winkel-suffixen ("- Bordspel (NL)", "uitbreiding (ENG)", etc.).
+    374 matches. **Val (eerst fout, toen ontdekt vóór er iets werd weggeschreven): de eerste
+    extractiepoging pakte een vast "Livestreams"-linkje uit het paginamenu (op élke pagina identiek
+    aanwezig) i.p.v. de productspecifieke video — alle 374 "gevonden" video's bleken exact dezelfde
+    URL.** Gevonden door de resultaten te controleren op verdachte duplicaten vóór het schrijven naar
+    de database (zelfde soort controle als eerder al bij Discogs/BGG-schrijfacties gehanteerd).
+    Juiste patroon: de video zit specifiek in een `<a data-fancybox="product-gallery-...">`-element.
+    Na de fix: 124 van de 374 matches hadden daadwerkelijk zo'n galerij-video (de rest simpelweg
+    niet, met name oudere/niet-meer-leverbare producten).
+  - **Rahdo (YouTube)**: BGG's eigen video-datalijst per spel bleek niet bruikbaar om specifiek
+    Rahdo's video's te vinden (zie hieronder) — Rahdo onderhoudt zelf een YouTube-afspeellijst "All
+    The Rahdo Runthroughs" met (bijna) al zijn video's in één lijst. Die volledig opgehaald (2449
+    video's, via YouTube's eigen interne `youtubei/v1/browse`-endpoint met een continuation-token,
+    gevonden in de paginabron — geen browser-scrollen nodig). Video-titels volgen geen vast format
+    (`<Spel> ►►► <ondertitel>`, `<Spel> | Rahdo Runthrough by X`, `<Spel> Gameplay Runthrough`, of
+    soms alléén een ondertitel zonder spelnaam als vervolg op een eerdere video) — spelnaam
+    geëxtraheerd met een paar patroonregels, matches tegen de 786 spellen. 132 matches, geen enkele
+    dubbelzinnig (geen spel matchte op 2 verschillende Rahdo-video's).
+  Samen (gedupliceerd op video, dus een spel met een match in 2 bronnen krijgt 2 regels in het
+  `videos`-veld): **401 van de 786 spellen kregen minstens 1 video-link**, 166 daarvan 2. Daarna nog
+  de 3 op dat moment nét apart geïmporteerde ontbrekende BGG-spellen (zie hierboven, "Vergelijk met
+  BGG/Discogs"-sectie) los nagelopen: Kingdom Legacy: Feudal Kingdom (Nox) en Finspan: Haaien &
+  Riffen (stond op Nox onder de Engelse titel "Finspan: Sharks & Reefs" — talen-mismatch die de
+  automatische matching niet ving, handmatig herkend) kregen alsnog een video; Small Fjords komt in
+  geen van de drie bronnen voor en bleef leeg. Eindstand: 402 van 789.
 - Volgorde wordt bijgehouden als timestamp (nieuw item/lijst = `Date.now()`); verplaatsen wisselt de
   `volgorde`-waarde van twee buren om (last-writer-wins, geen transacties nodig op deze schaal).
 
