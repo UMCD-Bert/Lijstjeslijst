@@ -243,7 +243,12 @@
   .import-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
   .import-select-row { display: flex; gap: 14px; margin: -6px 0 4px; }
   .import-msg { font-size: 0.84rem; color: var(--muted); font-style: italic; }
-  .paste-hint { display: block; flex: 1 1 100%; font-size: 0.8rem; color: var(--muted); font-style: italic; margin-top: 6px; }
+  /* Bewust GEEN italic/losse regel tussen de knoppen in — dat oogde als een derde, gelijkwaardige
+     keuze in een rijtje knoppen i.p.v. een algemene tip die overal in de vorm geldt (concreet
+     gemeld: "niet duidelijk dat ik overal Cmd-V kon drukken"). Nu met een klein pictogram + een
+     subtiele achtergrond, duidelijk los van de knoppenrij. */
+  .paste-hint { display: flex; align-items: center; gap: 5px; flex: 1 1 100%; font-size: 0.78rem; color: var(--muted); background: var(--surface-2); border-radius: 6px; padding: 5px 9px; margin-top: 4px; }
+  .paste-hint svg { flex-shrink: 0; opacity: 0.8; }
   .import-msg a { color: var(--accent); }
   .cover-search-row { display: flex; flex-direction: column; gap: 10px; padding: 10px 0; }
   .cover-search-msg { font-size: 0.84rem; color: var(--muted); font-style: italic; }
@@ -303,12 +308,29 @@
   .isbn-msg { width: 100%; color: var(--muted); font-size: 0.84rem; font-style: italic; margin: 0; }
   .isbn-msg.error { color: var(--danger); font-style: normal; }
 
+  /* `overflow-x: auto` alleen laat de browser van `overflow-y` (anders standaard `visible`)
+     stilzwijgend ook `auto` maken (CSS-spec: als één as niet-`visible` is, wordt de andere as dat
+     ook) — waardoor dit element zelf een scroll-container wordt voor `position:sticky`-
+     nakomelingen, ook al scrolt het in de praktijk nooit verticaal (geen vaste hoogte). Precies het
+     patroon uit werkafspraak 12 (v1.28.0, toen met `overflow-x:hidden` op `body`). **Val**:
+     `overflow-y: visible` er hier expliciet bij zetten lost het NIET op — de browser dwingt de
+     *gebruikte* waarde alsnog naar `auto`, ook al staat er `visible` in de CSS (bevestigd via
+     `getComputedStyle`, ondanks de expliciete declaratie). Er is dus geen CSS-only oplossing;
+     zie `thead-mirror` verderop voor de gekozen aanpak (een sticky kopregel BUITEN dit element). */
   .items-scroll { overflow-x: auto; margin: 0 0 18px; -webkit-overflow-scrolling: touch; }
-  .items-table { border-collapse: collapse; width: 100%; }
-  .items-table thead th {
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  /* Zelfde `env(safe-area-inset-top)`-reden als de A-Z-sprongbalk (v1.28.1): anders plakt 'ie op
+     een standalone PWA achter de iPhone-statusbalk. Bij een lijstje MET sprongbalk erboven wordt de
+     top-offset in JS opgehoogd met de gemeten hoogte daarvan, zie applyStickyTheadOffset() —
+     anders zouden ze over elkaar heen vallen. */
+  .thead-mirror { position: sticky; top: env(safe-area-inset-top); z-index: 5; overflow: hidden; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .thead-mirror-row { display: flex; }
+  .thead-mirror-spacer { flex-shrink: 0; }
+  .thead-mirror-th {
     font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.02em; color: var(--muted); font-weight: 600;
-    text-align: center; padding: 0 4px 8px; border-bottom: 1px solid var(--border); white-space: normal; line-height: 1.15;
+    display: flex; align-items: center; justify-content: center; text-align: center; padding: 4px 4px 8px; line-height: 1.15; flex-shrink: 0;
   }
+  .items-table { border-collapse: collapse; width: 100%; }
   .items-table tbody tr { border-bottom: 1px solid var(--border); }
   .items-table tbody tr:last-child { border-bottom: none; }
   .items-table td { padding: 8px 4px; vertical-align: middle; }
@@ -322,7 +344,6 @@
      midden — dat is een minder kritieke actie om voor te moeten scrollen. */
   .col-title { position: sticky; left: 0; background: var(--surface); z-index: 2; text-align: left; min-width: 160px; max-width: 268px; padding-left: 2px !important; }
   .edit-row-cell { text-align: left; }
-  .col-title-head { z-index: 3; }
   .col-check { text-align: center; width: 54px; min-width: 54px; }
   .title-cell-inner { display: flex; align-items: center; gap: 8px; }
   .move-col { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
@@ -431,7 +452,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.33.1';
+  var APP_VERSION = '1.33.2';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -527,6 +548,30 @@
     };
   }
 
+  function clipboardSvg() {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('width', '13'); svg.setAttribute('height', '13');
+    var rect = document.createElementNS(ns, 'rect');
+    rect.setAttribute('x', '3'); rect.setAttribute('y', '3'); rect.setAttribute('width', '10'); rect.setAttribute('height', '12'); rect.setAttribute('rx', '1.3');
+    rect.setAttribute('fill', 'none'); rect.setAttribute('stroke', 'currentColor'); rect.setAttribute('stroke-width', '1.2');
+    var clip = document.createElementNS(ns, 'rect');
+    clip.setAttribute('x', '5.5'); clip.setAttribute('y', '1.5'); clip.setAttribute('width', '5'); clip.setAttribute('height', '2.6'); clip.setAttribute('rx', '0.8');
+    clip.setAttribute('fill', 'none'); clip.setAttribute('stroke', 'currentColor'); clip.setAttribute('stroke-width', '1.2');
+    svg.appendChild(rect); svg.appendChild(clip);
+    return svg;
+  }
+  // Bewust een korte, algemene "Tip:"-zin i.p.v. "of plak..." — dat laatste oogde als een derde,
+  // gelijkwaardige keuze naast de knoppen in plaats van een algemeen geldende tip (concreet gemeld:
+  // "niet duidelijk dat ik overal Cmd-V kon drukken").
+  function buildPasteHint() {
+    var hint = document.createElement('div'); hint.className = 'paste-hint';
+    hint.appendChild(clipboardSvg());
+    var textSpan = document.createElement('span');
+    textSpan.textContent = 'Tip: plak hier ook zo een gekopieerde afbeelding (Ctrl+V of Cmd+V)';
+    hint.appendChild(textSpan);
+    return hint;
+  }
   function cameraSvg() {
     var ns = 'http://www.w3.org/2000/svg';
     var svg = document.createElementNS(ns, 'svg');
@@ -1182,9 +1227,7 @@
       removeBtn.addEventListener('click', function () { removeCover(entry.id); });
       coverActions.appendChild(changeBtn); coverActions.appendChild(fileInput); coverActions.appendChild(removeBtn);
       coverArea.appendChild(coverActions);
-      var coverPasteHint = document.createElement('span'); coverPasteHint.className = 'paste-hint';
-      coverPasteHint.textContent = 'of plak een gekopieerde afbeelding (Ctrl+V / Cmd+V)';
-      coverArea.appendChild(coverPasteHint);
+      coverArea.appendChild(buildPasteHint());
       detailCardEl.appendChild(coverArea);
     }
 
@@ -1294,6 +1337,39 @@
       return thead;
     }
 
+    // Een `position:sticky;top` op de echte `<thead>` zelf werkt hier NIET: `.items-scroll` heeft
+    // `overflow-x:auto`, en de CSS-spec dwingt `overflow-y` dan óók naar een niet-`visible` waarde
+    // (zelfs als je 'm expliciet op `visible` zet) — waardoor `.items-scroll` zélf een scroll-
+    // container wordt voor `position:sticky`-nakomelingen, ook al scrolt het in de praktijk nooit
+    // verticaal (geen vaste hoogte). Precies het patroon uit werkafspraak 12 (v1.28.0, toen met
+    // `overflow-x:hidden` op `body`), hier bevestigd door de sticky-positie vóór/na scrollen te
+    // meten i.p.v. er alleen naar te kijken (top bleef gewoon meebewegen i.p.v. te "vastplakken").
+    // Oplossing: de echte `<thead>` blijft in de tabel (puur voor tabelstructuur/toegankelijkheid
+    // — een `<table>` hoort er een te hebben) maar wordt visueel verborgen (`.sr-only`, dezelfde
+    // "clip"-techniek als screenreader-only tekst elders gebruikelijk is), en een APARTE
+    // "mirror"-koprij staat BUITEN `.items-scroll` (dus in de normale pagina-scroll-flow, waar
+    // sticky wél werkt) met zijn eigen horizontale scroll die in JS gesynchroniseerd wordt met de
+    // echte tabel — hetzelfde idee als `applyWideRowContentWidths()` hierboven (breedtes meten
+    // i.p.v. schatten), nu toegepast op scrollpositie i.p.v. breedte.
+    function buildTheadMirror() {
+      if (!vinkVelden.length) return null;
+      var mirror = document.createElement('div');
+      mirror.className = 'thead-mirror';
+      var row = document.createElement('div');
+      row.className = 'thead-mirror-row';
+      row.style.width = (180 + vinkVelden.length * 54) + 'px';
+      var spacer = document.createElement('div');
+      spacer.className = 'thead-mirror-spacer col-title';
+      row.appendChild(spacer);
+      vinkVelden.forEach(function (vk) {
+        var cell = document.createElement('div');
+        cell.className = 'col-check thead-mirror-th'; cell.textContent = vk.label;
+        row.appendChild(cell);
+      });
+      mirror.appendChild(row);
+      return mirror;
+    }
+
     function buildTableShell() {
       var scrollWrap = document.createElement('div');
       scrollWrap.className = 'items-scroll';
@@ -1306,9 +1382,16 @@
       // — pas op na scrollen zichtbaar (gemeld met een iPhone-screenshot).
       table.style.minWidth = (180 + vinkVelden.length * 54) + 'px';
       var thead = buildThead();
-      if (thead) table.appendChild(thead);
+      if (thead) { thead.className = 'sr-only'; table.appendChild(thead); }
       scrollWrap.appendChild(table);
-      return { scrollWrap: scrollWrap, table: table };
+      var mirror = buildTheadMirror();
+      if (mirror) {
+        scrollWrap.addEventListener('scroll', function () { mirror.scrollLeft = scrollWrap.scrollLeft; });
+      }
+      var wrap = document.createElement('div');
+      if (mirror) wrap.appendChild(mirror);
+      wrap.appendChild(scrollWrap);
+      return { scrollWrap: scrollWrap, table: table, wrap: wrap };
     }
 
     function buildItemsTable(rowItems, orderItems, emptyMsg) {
@@ -1325,7 +1408,7 @@
         rowItems.forEach(function (item) { tbody.appendChild(buildItemRow(item, orderItems)); });
       }
       shell.table.appendChild(tbody);
-      return shell.scrollWrap;
+      return shell.wrap;
     }
 
     function buildItemRow(item, orderItems) {
@@ -1361,9 +1444,6 @@
         });
         photoEditBtn.addEventListener('click', function () { photoEditInput.click(); });
         mediaActions.appendChild(photoEditBtn); mediaActions.appendChild(photoEditInput);
-        var pasteHint = document.createElement('span'); pasteHint.className = 'paste-hint';
-        pasteHint.textContent = 'of plak een gekopieerde afbeelding (Ctrl+V / Cmd+V)';
-        mediaActions.appendChild(pasteHint);
         if (entry.auto_import === 'openlibrary' && !item.omslag_url) {
           var coverSearchEditBtn = document.createElement('button');
           coverSearchEditBtn.type = 'button'; coverSearchEditBtn.className = 'btn-secondary';
@@ -1371,6 +1451,7 @@
           coverSearchEditBtn.addEventListener('click', function () { openCoverSearch(item, entry); });
           mediaActions.appendChild(coverSearchEditBtn);
         }
+        mediaActions.appendChild(buildPasteHint());
         form.appendChild(mediaActions);
         var titelInput = document.createElement('input');
         titelInput.value = item.titel || ''; titelInput.placeholder = 'Titel'; titelInput.dataset.key = '__titel';
@@ -1822,7 +1903,7 @@
       }
 
       shell.table.appendChild(tbody);
-      dbody.appendChild(shell.scrollWrap);
+      dbody.appendChild(shell.wrap);
     }
 
     if (entry.genest) {
@@ -1844,6 +1925,7 @@
 
     detailCardEl.appendChild(dbody);
     applyWideRowContentWidths();
+    applyStickyTheadOffset();
 
     if (restoreSearchFocus !== null) {
       var searchInputEl = detailCardEl.querySelector('.search-input');
@@ -1860,6 +1942,27 @@
     if (!scrollWrap || !scrollWrap.clientWidth) return;
     var w = scrollWrap.clientWidth + 'px';
     detailCardEl.querySelectorAll('.wide-row-content').forEach(function (el) { el.style.maxWidth = w; });
+  }
+  // De vinkjes-mirror-koprij (`.thead-mirror`) is sticky op `top: env(safe-area-inset-top)` (zelfde
+  // CSS-regel als de A-Z-sprongbalk hierboven) — bij een genest lijstje MET zichtbare sprongbalk
+  // staan ze anders over elkaar heen zodra beide "vastplakken". De sprongbalk is zelf ook sticky,
+  // dus zijn eigen (gerenderde) hoogte is precies de extra ruimte die de mirror erbij nodig heeft —
+  // gemeten in JS i.p.v. geschat, zelfde reden als bij applyWideRowContentWidths() hierboven. Ook de
+  // spacer-breedte (staat voor de sticky titelkolom, die een vloeiende breedte heeft tussen 160 en
+  // 268px) wordt hier op de daadwerkelijk gerenderde titelkolom-breedte gezet, en de mirror krijgt
+  // meteen de huidige scrollpositie van de tabel mee (anders staat hij bij openen op scrollLeft 0
+  // terwijl de tabel zelf toevallig al gescrold was).
+  function applyStickyTheadOffset() {
+    var azBar = detailCardEl.querySelector('.az-bar');
+    var mirror = detailCardEl.querySelector('.thead-mirror');
+    if (!mirror) return;
+    var extra = azBar ? azBar.getBoundingClientRect().height : 0;
+    mirror.style.top = extra ? 'calc(env(safe-area-inset-top) + ' + extra + 'px)' : '';
+    var scrollWrap = detailCardEl.querySelector('.items-scroll');
+    var titleCell = scrollWrap && scrollWrap.querySelector('td.col-title');
+    var spacer = mirror.querySelector('.thead-mirror-spacer');
+    if (spacer && titleCell) spacer.style.width = titleCell.getBoundingClientRect().width + 'px';
+    if (scrollWrap) mirror.scrollLeft = scrollWrap.scrollLeft;
   }
   // `position:sticky` op een element BINNEN een `<td>` (i.p.v. op de `<td>` zelf) staat bekend om
   // wisselend gedrag op WebKit/iOS — als die sticky-positionering daar niet aanslaat, blijft een

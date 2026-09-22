@@ -579,6 +579,36 @@ toegang (geen aparte accounts per persoon).
   patroon elders in dit bestand i.p.v. zelf te kunnen verifiëren. **Covers nóg een keer groter**
   (derde ophoging, weer expliciet gevraagd): `.item-thumb` van 58×82 naar 72×100px, `.col-title`'s
   `max-width` van 240 naar 258px.
+  **Vervolg (2026-09-22, v1.33.2): de vinkjes-koppen (E-book/Fysiek/Gelezen door.../etc. bovenaan de
+  tabel) verdwenen uit beeld zodra je vertical scrolde** — gemeld met een screenshot (Boeken: een
+  rij vinkjes zonder herkenbaar label, diep in de "James Norbury"-reeks). De voor de hand liggende
+  fix — `position: sticky; top: env(safe-area-inset-top)` op de `<thead>`-cellen, zelfde recept als
+  de A-Z-sprongbalk — bleek NIET te werken: `.items-scroll` heeft `overflow-x: auto` (nodig voor het
+  horizontaal scrollen van de tabel), en de CSS-spec dwingt de *gebruikte* waarde van `overflow-y`
+  dan naar `auto`, ZELFS als je 'm expliciet op `visible` zet (bevestigd met `getComputedStyle`: er
+  stond letterlijk `overflow-y: visible` in de CSS, en de browser rekende het toch als `auto`) —
+  waardoor `.items-scroll` zelf, ondanks nooit écht verticaal te scrollen (geen vaste hoogte), tóch
+  een sticky-blokkerende scroll-container wordt. Exact het patroon uit werkafspraak 12/v1.28.0
+  hierboven, maar deze keer met geen enkele CSS-only uitweg (in tegenstelling tot toen, waar
+  `overflow-x:hidden` simpelweg één laag omhoog kon verhuizen). Bevestigd door de sticky-positie
+  vóór/na scrollen te méten (`getBoundingClientRect().top`) i.p.v. er alleen naar te kijken — de
+  cel bewoog gewoon exact met de scroll mee, in plaats van te "vastplakken".
+  **Fix: een aparte, gesynchroniseerde "mirror"-koprij BUITEN `.items-scroll`.** De echte `<thead>`
+  blijft in de tabel voor structuur (een `<table>` hoort er een te hebben) maar is nu `.sr-only`
+  (visueel verborgen, wel aanwezig voor toegankelijkheid). Een nieuw element (`.thead-mirror`, vóór
+  `.items-scroll` in de DOM, dus in de normale pagina-scroll-flow waar sticky wél werkt) toont
+  dezelfde vinkjes-labels, blijft zelf sticky op `top: env(safe-area-inset-top)` (plus de gemeten
+  A-Z-balkhoogte erbovenop indien die zichtbaar is — zelfde meet-in-JS-aanpak als
+  `applyWideRowContentWidths()`), en houdt zijn eigen horizontale scrollpositie via een
+  scroll-eventlistener exact gelijk aan die van de echte tabel (`mirror.scrollLeft =
+  scrollWrap.scrollLeft`) — zo blijven de labels precies boven hun kolom staan, ook tijdens
+  horizontaal scrollen. De sticky titelkolom-breedte is vloeiend (160–268px, afhankelijk van de
+  langste titel) — de mirror's eigen "spacer"-cel ervoor krijgt daarom zijn breedte niet geschat
+  maar gemeten van de daadwerkelijk gerenderde `.col-title`-cel in de tabel (`applyStickyTheadOffset()`,
+  hernoemd in taak maar niet in naam — vult nu ook de spacer-breedte en de initiële scrollpositie in).
+  Getest op zowel een genest lijstje (Boeken, met reeksen) als een platte lijst (Bordspellen) en met
+  een zichtbare A-Z-balk erboven (Muziek, 95 reeksen) — in alle gevallen blijft de koprij nu
+  zichtbaar en correct uitgelijnd tijdens het scrollen.
   ~~**Vervolg (2026-09-14, v1.28.2): covers vierkant** — expliciet gevraagd ("er is genoeg ruimte
   voor de meeste albumtitels"), portrait 72×100 werd 84×84. Generieke wijziging (`.item-thumb` geldt
   voor alle lijsttypes, niet alleen Muziek) — bewust niet Muziek-specifiek gemaakt, zelfde filosofie
@@ -621,6 +651,14 @@ toegang (geen aparte accounts per persoon).
   (`uploadCover()`, `triggerBtn`-parameter hiervoor optioneel gemaakt, want er is bij plakken geen
   knop om een "Bezig…"-status op te zetten). Kleine "of plak een gekopieerde afbeelding
   (Ctrl+V / Cmd+V)"-hint toegevoegd naast de bestaande knoppen voor vindbaarheid.
+  **Herzien (2026-09-22, v1.33.2): de hint oogde als een derde, gelijkwaardige knop-keuze.** Gemeld:
+  "in eerste instantie was niet duidelijk dat ik overal Cmd-V kon drukken" — de tekst begon met "of
+  plak..." en stond als eigen volle-breedte regel TUSSEN twee knoppen in (bv. tussen "+ Foto
+  toevoegen" en "Cover ophalen (Open Library)"), wat oogde als een derde optie in een rijtje i.p.v.
+  een algemeen geldende tip voor de hele vorm. Nu: een duidelijke "Tip: ..."-zin, altijd ná alle
+  knoppen (niet ertussenin), met een klein klembord-icoontje en een eigen lichte achtergrond
+  (`buildPasteHint()`, hergebruikt op beide plekken — lijst- én itemfoto) zodat het zich visueel
+  onderscheidt van de knoppenrij i.p.v. er onderdeel van te lijken.
 - Zoeken (op titel + alle tekstvelden) en sorteren (Handmatig/Titel/per tekstveld) per lijstje,
   boven de items. Bij een actieve sortering verdwijnen de handmatige verplaats-pijltjes. Het
   zoekveld heeft een eigen "x"-knopje om de tekst te wissen (2026-09-13, v1.16.1) i.p.v. te
