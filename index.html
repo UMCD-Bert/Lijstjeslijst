@@ -243,6 +243,7 @@
   .import-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
   .import-select-row { display: flex; gap: 14px; margin: -6px 0 4px; }
   .import-msg { font-size: 0.84rem; color: var(--muted); font-style: italic; }
+  .paste-hint { display: block; flex: 1 1 100%; font-size: 0.8rem; color: var(--muted); font-style: italic; margin-top: 6px; }
   .import-msg a { color: var(--accent); }
   .cover-search-row { display: flex; flex-direction: column; gap: 10px; padding: 10px 0; }
   .cover-search-msg { font-size: 0.84rem; color: var(--muted); font-style: italic; }
@@ -430,7 +431,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.33.0';
+  var APP_VERSION = '1.33.1';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -1181,6 +1182,9 @@
       removeBtn.addEventListener('click', function () { removeCover(entry.id); });
       coverActions.appendChild(changeBtn); coverActions.appendChild(fileInput); coverActions.appendChild(removeBtn);
       coverArea.appendChild(coverActions);
+      var coverPasteHint = document.createElement('span'); coverPasteHint.className = 'paste-hint';
+      coverPasteHint.textContent = 'of plak een gekopieerde afbeelding (Ctrl+V / Cmd+V)';
+      coverArea.appendChild(coverPasteHint);
       detailCardEl.appendChild(coverArea);
     }
 
@@ -1357,6 +1361,9 @@
         });
         photoEditBtn.addEventListener('click', function () { photoEditInput.click(); });
         mediaActions.appendChild(photoEditBtn); mediaActions.appendChild(photoEditInput);
+        var pasteHint = document.createElement('span'); pasteHint.className = 'paste-hint';
+        pasteHint.textContent = 'of plak een gekopieerde afbeelding (Ctrl+V / Cmd+V)';
+        mediaActions.appendChild(pasteHint);
         if (entry.auto_import === 'openlibrary' && !item.omslag_url) {
           var coverSearchEditBtn = document.createElement('button');
           coverSearchEditBtn.type = 'button'; coverSearchEditBtn.className = 'btn-secondary';
@@ -2183,8 +2190,8 @@
   }
 
   async function uploadCover(listId, file, triggerBtn) {
-    var originalText = triggerBtn.textContent;
-    triggerBtn.textContent = 'Bezig…'; triggerBtn.disabled = true;
+    var originalText = triggerBtn && triggerBtn.textContent;
+    if (triggerBtn) { triggerBtn.textContent = 'Bezig…'; triggerBtn.disabled = true; }
     try {
       var ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
       var path = COVER_PREFIX + listId + '-' + Date.now() + '.' + ext;
@@ -2197,7 +2204,7 @@
       console.error('cover upload failed', e);
       window.alert('Uploaden van de foto is niet gelukt.');
     } finally {
-      triggerBtn.textContent = originalText; triggerBtn.disabled = false;
+      if (triggerBtn) { triggerBtn.textContent = originalText; triggerBtn.disabled = false; }
     }
   }
   function removeCover(listId) {
@@ -3228,6 +3235,29 @@
       });
     });
   }
+
+  // Geknipte/gekopieerde afbeelding (bv. een screenshot) rechtstreeks als omslagfoto kunnen
+  // plakken, als alternatief naast het bestaande "kies bestand"-knopje — bewust een ÉÉN keer
+  // geregistreerde document-brede listener i.p.v. iets dat bij elke render opnieuw zou moeten
+  // worden toegevoegd/verwijderd (de rest van de app bouwt bij elke wijziging de hele DOM opnieuw
+  // op). Grijpt alleen in als het klembord daadwerkelijk een afbeelding bevat — gewoon tekst
+  // plakken (in het zoekveld, een tekstveld, etc.) gaat altijd normaal door, want die paste-events
+  // hebben nooit een image-item in clipboardData.items.
+  document.addEventListener('paste', function (e) {
+    if (!e.clipboardData || !e.clipboardData.items) return;
+    var imageItem = Array.prototype.slice.call(e.clipboardData.items).find(function (it) {
+      return it.kind === 'file' && it.type.indexOf('image/') === 0;
+    });
+    if (!imageItem) return;
+    var file = imageItem.getAsFile();
+    if (!file) return;
+    if (state.editingItem) {
+      var item = state.items.find(function (i) { return i.id === state.editingItem; });
+      if (item) { e.preventDefault(); uploadItemCover(item, file); }
+    } else if (state.currentId) {
+      e.preventDefault(); uploadCover(state.currentId, file);
+    }
+  });
 
   document.getElementById('app-version').textContent = 'v' + APP_VERSION;
   maybeShowInstallHint();

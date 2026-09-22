@@ -607,6 +607,20 @@ toegang (geen aparte accounts per persoon).
   lijstjes" + lijstnaam) — was op iPhone te veel verloren ruimte vóór je daadwerkelijk items ziet.
   Lege omslagfoto-placeholder in detailweergave vervangen door een smal "+ Omslagfoto toevoegen"-
   linkje i.p.v. een grote lege blok van 140px+.
+- **Omslagfoto plakken vanaf het klembord (2026-09-22, v1.33.1)**: expliciet gevraagd — een
+  gekopieerd screenshot kon voorheen alleen als apart bestand gekoppeld worden via het "kies
+  bestand"-knopje, niet direct geplakt. Eén document-brede `paste`-listener (één keer geregistreerd
+  bij het opstarten, niet per render — de rest van de app bouwt bij elke wijziging de hele DOM
+  opnieuw op, dus een per-render-listener zou zich elke keer opnieuw toevoegen), die alleen ingrijpt
+  als `clipboardData.items` daadwerkelijk een `image/*`-bestand bevat — heel bewust géén check op
+  welk element focus heeft, want een tekst-paste (in het zoekveld, een tekstveld, überhaupt waar dan
+  ook) heeft sowieso nooit een image-item in `clipboardData`, dus gewone tekst plakken werkt overal
+  ongewijzigd door. Waar de geplakte foto naartoe gaat is afhankelijk van de actieve context:
+  `state.editingItem` gezet → itemfoto (`uploadItemCover()`, dezelfde functie als het bestaande
+  "+ Foto toevoegen"-knopje); anders, met een lijstje open (`state.currentId`) → lijst-omslagfoto
+  (`uploadCover()`, `triggerBtn`-parameter hiervoor optioneel gemaakt, want er is bij plakken geen
+  knop om een "Bezig…"-status op te zetten). Kleine "of plak een gekopieerde afbeelding
+  (Ctrl+V / Cmd+V)"-hint toegevoegd naast de bestaande knoppen voor vindbaarheid.
 - Zoeken (op titel + alle tekstvelden) en sorteren (Handmatig/Titel/per tekstveld) per lijstje,
   boven de items. Bij een actieve sortering verdwijnen de handmatige verplaats-pijltjes. Het
   zoekveld heeft een eigen "x"-knopje om de tekst te wissen (2026-09-13, v1.16.1) i.p.v. te
