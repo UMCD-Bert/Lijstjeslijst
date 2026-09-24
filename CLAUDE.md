@@ -908,6 +908,20 @@ PWA via `manifest.json` + `apple-touch-icon.png` + service worker — "Zet op be
 geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen native app.
 
 ## Bekende openstaande punten (geen GO — pas oppakken na expliciete instructie)
+- **Bordspellen: "Jip & Janneke"-spelregels + sortering opgeschoond (2026-09-24, v1.34.0, GO gegeven).**
+  Nieuwe kolom `lijst_items.uitleg` (text, migratie `lijst_items_add_uitleg`) — eigen kolom i.p.v. een
+  5e extra-veld omdat `FIELD_CAP.extra` (4) bij Bordspellen al vol zit; net als `tracklist` een los
+  tekstveld. Weergave: boek-icoontje (`icon-btn-accent`, `bookSvg()`) naast de titel als er uitleg
+  is, klapt een `.uitleg-box` open (`buildUitlegBox()`: `## Kopje`, `- opsomming`, rest alinea's,
+  alles via textContent). Bewerkbaar via een textarea in het item-bewerkformulier (alleen
+  `isBggList(entry)`). Zoeken doorzoekt de uitleg bewust NIET mee (te veel ruis). Sortering bij
+  BGG-lijsten (`isBggList`: `auto_import==='bgg'` + bgg_rank-veld): alleen "BGG-ranking" (default,
+  numeriek, "Not Ranked" onderaan) en "Titel (A-Z)"; handmatig is daar vervallen. Andere lijsttypes
+  ongewijzigd. Inhoud: door Claude geschreven, eenmalig buiten de app om via SQL, batchgewijs op
+  BGG-rank (eerste ronde top 25, daarna top 100, daarna de rest incl. unranked); lengte tot ongeveer
+  een A4 (400-500 woorden), Nederlands, vaste kopjes: Waar gaat het om / Wat zit erin / Voorbereiden /
+  Zo verloopt een beurt / Einde en winnaar / Tips voor de eerste keer. Regels eerst opzoeken bij
+  onbekende titels; niet kunnen vinden = leeg laten, niet gokken. Uitbreidingen: alleen wat verandert.
 - CBR/CBZ-strips in-app lezen: overwogen (2026-09-13) en bewust NIET gebouwd. Technisch mogelijk
   (RAR-extractie client-side kan via WASM-bibliotheken, CBZ/ZIP zou een stuk eenvoudiger zijn), maar
   een forse klus: opslagomvang (scans al snel 50-300MB per album, onduidelijk of het Supabase-

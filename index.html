@@ -385,6 +385,13 @@
   tr.item-flash td { animation: item-flash-bg 1.8s ease-out; }
   .items-empty { color: var(--muted); font-style: italic; padding: 14px 2px; font-size: 0.9rem; text-align: left; }
   .tracklist-row td { padding: 4px 2px 14px; border-bottom: 1px solid var(--border); }
+  /* Uitleg per spel (bordspellen): korte spelregels in gewone taal, tot ongeveer een A4. */
+  .uitleg-box { background: var(--surface-2); border-radius: 8px; padding: 12px 14px; font-size: 0.92rem; line-height: 1.5; color: var(--ink); max-width: 46rem; }
+  .uitleg-box h4 { margin: 14px 0 4px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); }
+  .uitleg-box h4:first-child { margin-top: 0; }
+  .uitleg-box p { margin: 0 0 6px; }
+  .uitleg-box ul { margin: 0 0 6px; padding-left: 20px; }
+  .uitleg-box li { margin-bottom: 3px; }
   .tracklist-text { white-space: pre-wrap; font-size: 0.86rem; color: var(--muted); background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
   .extra-links { display: flex; flex-direction: column; gap: 8px; font-size: 0.86rem; background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
   .extra-link {
@@ -452,7 +459,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.33.2';
+  var APP_VERSION = '1.34.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -486,7 +493,7 @@
   var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var state = {
     lijsten: [], items: [], reeksen: [], currentId: null, editingItem: null,
-    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}, expandedExtra: {}, trackSearch: null, viewMode: {}, addConfirm: {}, bggRefreshing: {}, bggEnriching: {}, compareFlow: null
+    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}, expandedExtra: {}, expandedUitleg: {}, trackSearch: null, viewMode: {}, addConfirm: {}, bggRefreshing: {}, bggEnriching: {}, compareFlow: null
   };
 
   var gridEl = document.getElementById('grid');
@@ -605,6 +612,41 @@
     return svg;
   }
 
+  function bookSvg() {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('width', '14'); svg.setAttribute('height', '14');
+    var left = document.createElementNS(ns, 'path');
+    left.setAttribute('d', 'M8 3.5C6.8 2.7 4.8 2.5 2.5 2.7V12C4.8 11.8 6.8 12 8 12.8Z');
+    var right = document.createElementNS(ns, 'path');
+    right.setAttribute('d', 'M8 3.5C9.2 2.7 11.2 2.5 13.5 2.7V12C11.2 11.8 9.2 12 8 12.8Z');
+    [left, right].forEach(function (pth) {
+      pth.setAttribute('fill', 'none'); pth.setAttribute('stroke', 'currentColor'); pth.setAttribute('stroke-width', '1.3'); pth.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(pth);
+    });
+    return svg;
+  }
+  // Uitleg-tekst (kopjes met "## ", opsommingen met "- ", rest gewone alinea's) naar DOM — alles via
+  // textContent, dus geen HTML-injectie mogelijk.
+  function buildUitlegBox(text) {
+    var box = document.createElement('div'); box.className = 'uitleg-box';
+    var list = null;
+    text.split('\n').forEach(function (raw) {
+      var line = raw.trim();
+      if (!line) { list = null; return; }
+      if (line.indexOf('## ') === 0) {
+        list = null;
+        var h = document.createElement('h4'); h.textContent = line.slice(3); box.appendChild(h);
+      } else if (line.indexOf('- ') === 0) {
+        if (!list) { list = document.createElement('ul'); box.appendChild(list); }
+        var li = document.createElement('li'); li.textContent = line.slice(2); list.appendChild(li);
+      } else {
+        list = null;
+        var p = document.createElement('p'); p.textContent = line; box.appendChild(p);
+      }
+    });
+    return box;
+  }
   function videoSvg() {
     var ns = 'http://www.w3.org/2000/svg';
     var svg = document.createElementNS(ns, 'svg');
@@ -713,7 +755,10 @@
   }
   // Standaard alfabetisch op reeks (artiest/auteur/serie) bij genest lijstjes i.p.v. handmatig —
   // een net toegevoegde reeks bleef anders altijd onderaan staan i.p.v. op zijn alfabetische plek.
-  function defaultSortKey(entry) { return entry.genest ? 'reeks' : 'volgorde'; }
+  // Bordspellen (BGG-gekoppeld): alleen BGG-ranking en titel, geen handmatige volgorde — de lijst
+  // wordt via BGG gevuld, handmatig verslepen heeft daar geen zin.
+  function isBggList(entry) { return entry.auto_import === 'bgg' && (entry.extra_velden || []).some(function (f) { return f.key === 'bgg_rank'; }); }
+  function defaultSortKey(entry) { return isBggList(entry) ? 'bgg_rank' : (entry.genest ? 'reeks' : 'volgorde'); }
   function currentSortKey(entry) { return state.sortBy[entry.id] || defaultSortKey(entry); }
   function hasVolgnummerField(entry) { return (entry.extra_velden || []).some(function (f) { return f.key === 'volgnummer'; }); }
   function sortByVolgnummer(items) {
@@ -1487,6 +1532,13 @@
           tracklistInput.className = 'field-row-textarea';
           form.appendChild(tracklistInput);
         }
+        var uitlegInput = null;
+        if (isBggList(entry)) {
+          uitlegInput = document.createElement('textarea');
+          uitlegInput.value = item.uitleg || ''; uitlegInput.placeholder = 'Spelregels in gewone taal (kopjes met "## ", opsommingen met "- ")';
+          uitlegInput.className = 'field-row-textarea';
+          form.appendChild(uitlegInput);
+        }
         var editVinkjesFieldset = buildVinkjesFieldset(entry.vink_velden, item.vinkjes);
         if ((entry.vink_velden || []).length) form.appendChild(editVinkjesFieldset.wrap);
         var actions = document.createElement('div');
@@ -1512,6 +1564,7 @@
           var patch = { titel: titel, extra: extra, vinkjes: editVinkjesFieldset.values() };
           if (reeksSelect) patch.reeks_id = parseInt(reeksSelect.value, 10);
           if (tracklistInput) patch.tracklist = tracklistInput.value.trim() || null;
+          if (uitlegInput) patch.uitleg = uitlegInput.value.trim() || null;
           supabase.from('lijst_items').update(patch).eq('id', item.id).then(refetchSoft);
           state.editingItem = null;
         });
@@ -1679,6 +1732,15 @@
         tracklistBtn.addEventListener('click', function () { state.expandedTracklist[item.id] = !state.expandedTracklist[item.id]; renderDetail(); });
         titleCellInner.appendChild(tracklistBtn);
       }
+      if (item.uitleg) {
+        var ulExpanded = !!state.expandedUitleg[item.id];
+        var uitlegBtn = document.createElement('button');
+        uitlegBtn.type = 'button'; uitlegBtn.className = 'icon-btn icon-btn-accent'; uitlegBtn.appendChild(bookSvg());
+        uitlegBtn.title = ulExpanded ? 'Spelregels verbergen' : 'Spelregels in gewone taal tonen';
+        uitlegBtn.setAttribute('aria-label', uitlegBtn.title);
+        uitlegBtn.addEventListener('click', function () { state.expandedUitleg[item.id] = !state.expandedUitleg[item.id]; renderDetail(); });
+        titleCellInner.appendChild(uitlegBtn);
+      }
       var extraFieldsWithLinks = multilineFieldsWithContent(entry, item);
       extraFieldsWithLinks.forEach(function (f) {
         var extraExpandKey = item.id + ':' + f.key;
@@ -1712,9 +1774,18 @@
       });
 
       var expandedExtraFields = extraFieldsWithLinks.filter(function (f) { return state.expandedExtra[item.id + ':' + f.key]; });
-      if ((!item.tracklist || !state.expandedTracklist[item.id]) && !expandedExtraFields.length) return tr;
+      var uitlegOpen = !!(item.uitleg && state.expandedUitleg[item.id]);
+      if ((!item.tracklist || !state.expandedTracklist[item.id]) && !expandedExtraFields.length && !uitlegOpen) return tr;
       var frag = document.createDocumentFragment();
       frag.appendChild(tr);
+      if (uitlegOpen) {
+        var ulRow = document.createElement('tr'); ulRow.className = 'tracklist-row';
+        var ulTd = document.createElement('td'); ulTd.colSpan = colCount;
+        var ulWrap = buildUitlegBox(item.uitleg); ulWrap.classList.add('wide-row-content');
+        ulTd.appendChild(ulWrap);
+        ulRow.appendChild(ulTd);
+        frag.appendChild(ulRow);
+      }
       if (item.tracklist && state.expandedTracklist[item.id]) {
         var tlRow = document.createElement('tr'); tlRow.className = 'tracklist-row';
         var tlTd = document.createElement('td'); tlTd.colSpan = colCount;
@@ -2035,9 +2106,11 @@
     var sortLabel = document.createElement('span'); sortLabel.className = 'fg-label'; sortLabel.textContent = 'Sorteer:';
     var select = document.createElement('select');
     select.className = 'sort-select';
-    var options = [{ key: 'volgorde', label: 'Handmatig' }, { key: 'titel', label: 'Titel' }]
-      .concat(entry.genest ? [{ key: 'reeks', label: 'Artiest/auteur/reeks' }] : [])
-      .concat((entry.extra_velden || []).map(function (f) { return { key: f.key, label: f.label }; }));
+    var options = isBggList(entry)
+      ? [{ key: 'bgg_rank', label: 'BGG-ranking' }, { key: 'titel', label: 'Titel (A-Z)' }]
+      : [{ key: 'volgorde', label: 'Handmatig' }, { key: 'titel', label: 'Titel' }]
+        .concat(entry.genest ? [{ key: 'reeks', label: 'Artiest/auteur/reeks' }] : [])
+        .concat((entry.extra_velden || []).map(function (f) { return { key: f.key, label: f.label }; }));
     var current = currentSortKey(entry);
     options.forEach(function (o) {
       var opt = document.createElement('option'); opt.value = o.key; opt.textContent = o.label;
