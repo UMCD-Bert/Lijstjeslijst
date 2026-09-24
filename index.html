@@ -392,6 +392,19 @@
   .uitleg-box p { margin: 0 0 6px; }
   .uitleg-box ul { margin: 0 0 6px; padding-left: 20px; }
   .uitleg-box li { margin-bottom: 3px; }
+  .uitleg-print-btn { margin-top: 10px; }
+  #print-sheet { display: none; }
+  @media print {
+    body > *:not(#print-sheet) { display: none !important; }
+    body { background: #fff !important; }
+    #print-sheet { display: block; color: #000; font-family: Georgia, 'Times New Roman', serif; }
+    #print-sheet h1 { font-size: 22pt; margin: 0 0 8pt; }
+    #print-sheet .print-cover { float: right; max-width: 4.5cm; max-height: 5.5cm; margin: 0 0 8pt 14pt; border: 1px solid #999; }
+    @page { size: A4; margin: 1.4cm; }
+    #print-sheet .uitleg-box { background: none; padding: 0; max-width: none; font-size: 9.5pt; line-height: 1.35; color: #000; column-count: 2; column-gap: 0.8cm; }
+    #print-sheet .uitleg-box h4 { color: #000; font-size: 10pt; margin: 9pt 0 2pt; border-bottom: 1px solid #999; break-after: avoid; }
+    #print-sheet .uitleg-box li, #print-sheet .uitleg-box p { break-inside: avoid; }
+  }
   .tracklist-text { white-space: pre-wrap; font-size: 0.86rem; color: var(--muted); background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
   .extra-links { display: flex; flex-direction: column; gap: 8px; font-size: 0.86rem; background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
   .extra-link {
@@ -459,7 +472,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.34.0';
+  var APP_VERSION = '1.35.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -628,6 +641,14 @@
   }
   // Uitleg-tekst (kopjes met "## ", opsommingen met "- ", rest gewone alinea's) naar DOM — alles via
   // textContent, dus geen HTML-injectie mogelijk.
+  function appendInline(el, text) {
+    // **vet** binnen een regel; verder gewone tekst.
+    text.split(/\*\*(.+?)\*\*/).forEach(function (part, i) {
+      if (!part) return;
+      if (i % 2 === 1) { var b = document.createElement('strong'); b.textContent = part; el.appendChild(b); }
+      else el.appendChild(document.createTextNode(part));
+    });
+  }
   function buildUitlegBox(text) {
     var box = document.createElement('div'); box.className = 'uitleg-box';
     var list = null;
@@ -639,13 +660,52 @@
         var h = document.createElement('h4'); h.textContent = line.slice(3); box.appendChild(h);
       } else if (line.indexOf('- ') === 0) {
         if (!list) { list = document.createElement('ul'); box.appendChild(list); }
-        var li = document.createElement('li'); li.textContent = line.slice(2); list.appendChild(li);
+        var li = document.createElement('li'); appendInline(li, line.slice(2)); list.appendChild(li);
       } else {
         list = null;
-        var p = document.createElement('p'); p.textContent = line; box.appendChild(p);
+        var p = document.createElement('p'); appendInline(p, line); box.appendChild(p);
       }
     });
     return box;
+  }
+  function printSvg() {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('width', '14'); svg.setAttribute('height', '14');
+    svg.style.verticalAlign = '-2px';
+    var paper = document.createElementNS(ns, 'path');
+    paper.setAttribute('d', 'M4.5 6V2.5h7V6M4.5 11.5H2.5V6h11v5.5h-2M4.5 9.5h7v4h-7Z');
+    paper.setAttribute('fill', 'none'); paper.setAttribute('stroke', 'currentColor'); paper.setAttribute('stroke-width', '1.3'); paper.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(paper);
+    return svg;
+  }
+  // Afdrukken: een aparte, alleen-bij-printen-zichtbare "sheet" (titel, cover, uitleg) in de pagina
+  // zelf i.p.v. een popup-venster — popups worden op iPhone/PWA vaak geblokkeerd. De rest van de
+  // pagina wordt via @media print verborgen. Eerst wachten tot de cover geladen is, anders staat
+  // die er niet op.
+  function printUitleg(item) {
+    var old = document.getElementById('print-sheet'); if (old) old.remove();
+    var sheet = document.createElement('div'); sheet.id = 'print-sheet';
+    var h = document.createElement('h1'); h.textContent = item.titel; sheet.appendChild(h);
+    var img = null;
+    if (item.omslag_url) {
+      img = document.createElement('img'); img.className = 'print-cover'; img.alt = '';
+      sheet.insertBefore(img, h.nextSibling);
+    }
+    var body = buildUitlegBox(item.uitleg); body.classList.add('print-body');
+    sheet.appendChild(body);
+    document.body.appendChild(sheet);
+    var done = false;
+    function go() {
+      if (done) return; done = true;
+      window.addEventListener('afterprint', function cleanup() { window.removeEventListener('afterprint', cleanup); sheet.remove(); });
+      window.print();
+    }
+    if (img) {
+      img.addEventListener('load', go); img.addEventListener('error', function () { img.remove(); go(); });
+      setTimeout(go, 4000);
+      img.src = item.omslag_url;
+    } else { go(); }
   }
   function videoSvg() {
     var ns = 'http://www.w3.org/2000/svg';
@@ -1738,7 +1798,13 @@
         uitlegBtn.type = 'button'; uitlegBtn.className = 'icon-btn icon-btn-accent'; uitlegBtn.appendChild(bookSvg());
         uitlegBtn.title = ulExpanded ? 'Spelregels verbergen' : 'Spelregels in gewone taal tonen';
         uitlegBtn.setAttribute('aria-label', uitlegBtn.title);
-        uitlegBtn.addEventListener('click', function () { state.expandedUitleg[item.id] = !state.expandedUitleg[item.id]; renderDetail(); });
+        uitlegBtn.addEventListener('click', function () {
+          // Maximaal 1 uitleg tegelijk open: een nieuwe openen sluit de vorige.
+          var wasOpen = !!state.expandedUitleg[item.id];
+          state.expandedUitleg = {};
+          if (!wasOpen) state.expandedUitleg[item.id] = true;
+          renderDetail();
+        });
         titleCellInner.appendChild(uitlegBtn);
       }
       var extraFieldsWithLinks = multilineFieldsWithContent(entry, item);
@@ -1781,7 +1847,14 @@
       if (uitlegOpen) {
         var ulRow = document.createElement('tr'); ulRow.className = 'tracklist-row';
         var ulTd = document.createElement('td'); ulTd.colSpan = colCount;
-        var ulWrap = buildUitlegBox(item.uitleg); ulWrap.classList.add('wide-row-content');
+        var ulWrap = document.createElement('div'); ulWrap.className = 'wide-row-content';
+        ulWrap.appendChild(buildUitlegBox(item.uitleg));
+        var printBtn = document.createElement('button');
+        printBtn.type = 'button'; printBtn.className = 'btn-secondary uitleg-print-btn';
+        printBtn.appendChild(printSvg());
+        printBtn.appendChild(document.createTextNode(' Afdrukken'));
+        printBtn.addEventListener('click', function () { printUitleg(item); });
+        ulWrap.appendChild(printBtn);
         ulTd.appendChild(ulWrap);
         ulRow.appendChild(ulTd);
         frag.appendChild(ulRow);

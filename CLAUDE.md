@@ -922,6 +922,16 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   een A4 (400-500 woorden), Nederlands, vaste kopjes: Waar gaat het om / Wat zit erin / Voorbereiden /
   Zo verloopt een beurt / Einde en winnaar / Tips voor de eerste keer. Regels eerst opzoeken bij
   onbekende titels; niet kunnen vinden = leeg laten, niet gokken. Uitbreidingen: alleen wat verandert.
+  **Vervolg (2026-09-24, v1.35.0), na feedback op de eerste 5 teksten:** (a) teksten iets uitgebreider en
+  met een extra kopje "Je eerste twee beurten" (concreet doorlopen), maximaal ~600 woorden zodat het
+  op 1 A4 past; (b) maximaal 1 uitleg tegelijk open (`state.expandedUitleg` wordt bij openen leeggemaakt);
+  (c) knop "Afdrukken" onder de geopende uitleg: `printUitleg(item)` bouwt een `#print-sheet` in de
+  pagina (titel + cover + tekst; geen popup, want die wordt op iPhone/PWA vaak geblokkeerd), wacht tot
+  de cover geladen is en roept `window.print()` aan; `@media print` verbergt al het andere, zet de
+  tekst in 2 kolommen (9.5pt, A4, marge 1.4cm) zodat het op 1 blad blijft — nagemeten: Brass (~600
+  woorden) 979px van 1017px beschikbaar. Cover is bij BGG-imports het `__small`-formaat (200x150,
+  alleen de thumbnail zit in de collection-call) dus wat korrelig op papier; bewust zo gelaten.
+  Uitleg-tekst ondersteunt naast `##`/`- ` ook `**vet**` (via `appendInline`, DOM-only).
 - CBR/CBZ-strips in-app lezen: overwogen (2026-09-13) en bewust NIET gebouwd. Technisch mogelijk
   (RAR-extractie client-side kan via WASM-bibliotheken, CBZ/ZIP zou een stuk eenvoudiger zijn), maar
   een forse klus: opslagomvang (scans al snel 50-300MB per album, onduidelijk of het Supabase-
