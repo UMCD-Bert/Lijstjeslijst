@@ -932,6 +932,15 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   woorden) 979px van 1017px beschikbaar. Cover is bij BGG-imports het `__small`-formaat (200x150,
   alleen de thumbnail zit in de collection-call) dus wat korrelig op papier; bewust zo gelaten.
   Uitleg-tekst ondersteunt naast `##`/`- ` ook `**vet**` (via `appendInline`, DOM-only).
+  **Vulling (2026-09-24/25, v1.35.1 = printfont 9pt zodat ~600 woorden op 1 A4 blijft):** 131 spellen hebben nu
+  uitleg (alle bordspellen op BGG-rank t/m 200, behalve 10 waar geen goede bron voor was: Ticket to Ride
+  Legacy, Pandemic Legacy Seizoen 0 en 2, Search for Planet X, Trickerion, LotR Trick-Taking, Nemesis
+  Lockdown, Pandemic Iberia, GWT Argentina, Magic). Elke tekst eindigt op een "## Let op"-voetnoot
+  (samenvatting, regelboek wint). Bronnen: boardgamesbot.com/<slug>/how-to-play (voorkeur, let op wel:
+  soms verkeerde variant/solo-pagina, dan niet gebruiken), ultraboardgames.com/<slug>/game-rules.php
+  (uitgebreid), en PDF-regelboeken (PyMuPDF; beeld-PDF's zijn onbruikbaar). Rest (~660 spellen, ook alle
+  unranked en uitbreidingen) bewust niet in één keer gedaan: **"uitleg op verzoek"** per spel, met een
+  echte regelbron.
 - CBR/CBZ-strips in-app lezen: overwogen (2026-09-13) en bewust NIET gebouwd. Technisch mogelijk
   (RAR-extractie client-side kan via WASM-bibliotheken, CBZ/ZIP zou een stuk eenvoudiger zijn), maar
   een forse klus: opslagomvang (scans al snel 50-300MB per album, onduidelijk of het Supabase-
