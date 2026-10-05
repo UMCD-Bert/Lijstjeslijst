@@ -963,6 +963,13 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   wel, opgeslagen als `state.filters[id].__solo`). Bewerkformulier: vinkje "Dit spel heeft een solomodus"
   + textarea solo-uitleg. Afdrukken geeft bij solo de titel "(solo)". Zelfde opmaak als gewone uitleg
   (`##`, `- `, `**vet**`). Vulling solo-uitleg: eerst de top 300 (gelijk aan de gewone uitleg), verder op verzoek.
+  **Stand 2026-10-05:** `solo` staat op 327 spellen (300 uit BGG + 27 handmatig bij fanvarianten/
+  uitbreidingen), 111 hebben `solo_uitleg`: alle 85 officiële solo's in de top 300 plus een reeks
+  fanvarianten (Brass: Birmingham, Twilight Struggle, Through the Ages, Puerto Rico, Dominion, Azul,
+  Carcassonne e.d.). Teksten die op een fanvariant of een aparte uitbreiding (bv. Concordia: Solitaria,
+  Root: Clockwork, Hegemony: Crisis & Control, Terra Mystica: Automa Solo Box) leunen, zeggen dat
+  expliciet. Bron: WebSearch-samenvattingen (dus dunner dan de gewone uitleg); details staan bij elk
+  spel in "Let op". Spellen zonder (bekende) solo, bv. Eclipse en Clank! Legacy, hebben geen `solo`.
 - CBR/CBZ-strips in-app lezen: overwogen (2026-09-13) en bewust NIET gebouwd. Technisch mogelijk
   (RAR-extractie client-side kan via WASM-bibliotheken, CBZ/ZIP zou een stuk eenvoudiger zijn), maar
   een forse klus: opslagomvang (scans al snel 50-300MB per album, onduidelijk of het Supabase-
