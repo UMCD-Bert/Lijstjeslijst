@@ -941,6 +941,17 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   (uitgebreid), en PDF-regelboeken (PyMuPDF; beeld-PDF's zijn onbruikbaar). Rest (~660 spellen, ook alle
   unranked en uitbreidingen) bewust niet in één keer gedaan: **"uitleg op verzoek"** per spel, met een
   echte regelbron.
+  **Vervolg (2026-10-05, databackfill, geen codewijziging):** (a) "videocheck" voor 3 nieuw toegevoegde
+  spellen: Magical Athlete (Nox) en 6 nimmt! 25 Jahre (Nox-video van "Take 5 (NL)", zelfde spel, label
+  `Nox (Take 5)`) kregen een video; Wingspan Pocket in geen bron. Werkwijze per spel i.p.v. volledige
+  indexen: Nox "Video Index A-Z" (`/video-index-a-z/`) greppen, DSV via `/search?q=…&type=product`,
+  Rahdo via YouTube-zoekpagina (`ytInitialData`). (b) **Uitleg voor BGG-rank 201-300** (gevraagd als
+  "volgende batch"): alle 43 klaar, totaal nu 187 spellen met uitleg (rank <= 300 compleet, behalve de
+  uitbreidingen/spellen zonder rank). Bronkwaliteit varieert: Ticket to Ride (USA) en 6 nimmt!/Clever
+  zijn uit eigen kennis (bron ontbrak), Marco Polo II/Under Falling Skies kwamen van solo/Automa-pagina's,
+  TtR Nordic, Star Realms Colony Wars en Unmatched Battle of Legends zijn varianten op eerder geschreven
+  teksten. Zwakst: Samurai, Sagrada, Anno 1800, Isle of Skye, Distilled, Nations, Glen More II, Meadow,
+  Red Cathedral. Bron-slugs: boardgamesbot soms 404/"in voorbereiding" -> `ultraboardgames.com/<slug>/game-rules.php`.
 - CBR/CBZ-strips in-app lezen: overwogen (2026-09-13) en bewust NIET gebouwd. Technisch mogelijk
   (RAR-extractie client-side kan via WASM-bibliotheken, CBZ/ZIP zou een stuk eenvoudiger zijn), maar
   een forse klus: opslagomvang (scans al snel 50-300MB per album, onduidelijk of het Supabase-
