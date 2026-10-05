@@ -984,6 +984,26 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   Clever, Turing Machine, Unmatched Adventures. Zwakke uitleg: T.I.M.E Stories, Imperial/Imperial 2030,
   Dobbel zo Clever, Neuroshima Hex, Small World, Agricola ACBS, Brugge (deels uit eigen kennis/zoeksamenvatting).
   Unmatched 1574/1576 zijn een generieke Unmatched-tekst (zonder heldspecifieke info).
+  **"De volledige rest" (2026-10-05/06, databackfill, geen codewijziging):** na de rank-301-500-batch
+  vroeg de eigenaar om de rest. Gedaan: alle basisspellen (rank 501+) waarvoor een regelbron of
+  betrouwbare eigen kennis was, plus korte "wat voegt het toe"-teksten voor uitbreidingen waarvan ik de
+  inhoud kende. Stand: 590 van 793 items met uitleg, 136 met solo_uitleg. Bron-tip: rulespal.com/<slug>/
+  rulebook (slug = titel, kleine letters, streepjes) leverde voor ~150 basisspellen de volledige
+  regeltekst. **Kwaliteit is lager dan de top-500-teksten**: bij veel spellen alleen het begin van het
+  regelboek gelezen; de kern (doel, beurt, einde) klopt maar details/bijzonderheden kunnen ontbreken.
+  Zwak/mogelijk onnauwkeurig: Macao, Torres, Brugge, Pandemic: The Cure, Madeira, Shogun no Katana,
+  Stronghold 2e ed., Now or Never, Claim 2, Mhing, Koehandel, Beverbende, Metro, Dice Realms, Attila,
+  Shark, Serenissima, Medina, Railway Rivals, Monopoly en de Catan/Dalmuti/Guillotine-teksten uit eigen
+  kennis. Eén tekst (Monsters of Loch Lomond) en twee (Parijs: De Lichtstad, Claim 1) zijn bewust
+  teruggedraaid omdat ik ze niet kon onderbouwen. De ~80 uitbreidingen met `## Wat is het`-opbouw
+  hebben een voetnoot "korte aanduiding"; zo'n tekst zegt alleen wat het pakket toevoegt, geen regels.
+  Een eerdere reeks van ~78 inhoudsloze uitbreidingsteksten ("een uitbreiding met nieuwe onderdelen") is
+  weer verwijderd. **Nog zonder uitleg (203):** ~120 uitbreidingen waarvan ik de inhoud niet kende, en 83
+  basisspellen (o.a. Trickerion, Magic, GWT: Argentina, De Betoverde Torens, Gloomhaven: Buttons & Bugs,
+  Kelp, Wolven, Hawaï, Majesty, Copenhagen, de Catan-varianten Inca's/Kosmonauten/Europa ontwaakt/val
+  van Rome, Cluedo-varianten, Carcassonne Junior/Overzee/De Stad/De Mist/Stille Zuidzee) — wederom
+  "uitleg op verzoek" met een echte bron. Solo_uitleg is voor deze ronde alleen bij echte soloregels
+  geschreven; de meeste `solo=true` bij uitbreidingen hebben bewust geen aparte tekst.
 - CBR/CBZ-strips in-app lezen: overwogen (2026-09-13) en bewust NIET gebouwd. Technisch mogelijk
   (RAR-extractie client-side kan via WASM-bibliotheken, CBZ/ZIP zou een stuk eenvoudiger zijn), maar
   een forse klus: opslagomvang (scans al snel 50-300MB per album, onduidelijk of het Supabase-
