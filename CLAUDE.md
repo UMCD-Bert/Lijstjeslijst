@@ -970,6 +970,20 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   Root: Clockwork, Hegemony: Crisis & Control, Terra Mystica: Automa Solo Box) leunen, zeggen dat
   expliciet. Bron: WebSearch-samenvattingen (dus dunner dan de gewone uitleg); details staan bij elk
   spel in "Let op". Spellen zonder (bekende) solo, bv. Eclipse en Clank! Legacy, hebben geen `solo`.
+  **Batch rank 301-500 (2026-10-05, databackfill, geen codewijziging):** alle 51 spellen in die range
+  zonder uitleg gedaan (totaal nu 240 spellen met uitleg; rank <= 500 compleet behalve Magic, GWT
+  Argentina en Trickerion) plus 19 `solo_uitleg` (totaal 130). Bronnen: boardgamesbot how-to (deels
+  onbetrouwbaar, bv. Tikal-pagina klopte niet en is vervangen door ultraboardgames), ultraboardgames,
+  rulespal.com/<slug>/rulebook (volledige regelboektekst incl. solo-hoofdstuk; werkte goed voor
+  Wayfarers, Raiders of Scythia, Glass Road, Let's Go! To Japan, Knarr, IKI, Men-Nefer, Pandemic Fall of
+  Rome), Bitoku-regelboek-PDF (cdn.1j1ju.com) en eigen kennis bij klassiekers (Lost Cities, Love Letter,
+  Imperial, Small World, Brugge, Dobbel zo Clever, T.I.M.E Stories). Geen solo_uitleg voor drie spellen
+  met `solo=true`: De Vorsten van Florence en Goa (alleen een fan-SoloPlay-bestand op BGG, regels niet
+  gevonden) en Endless Winter (alleen "er is een officiele solo", geen details). Dunne solo-teksten (alleen
+  WebSearch-samenvatting): Imperial Settlers, Flamecraft, Men-Nefer, Finspan, Descent LotD, Dobbel zo
+  Clever, Turing Machine, Unmatched Adventures. Zwakke uitleg: T.I.M.E Stories, Imperial/Imperial 2030,
+  Dobbel zo Clever, Neuroshima Hex, Small World, Agricola ACBS, Brugge (deels uit eigen kennis/zoeksamenvatting).
+  Unmatched 1574/1576 zijn een generieke Unmatched-tekst (zonder heldspecifieke info).
 - CBR/CBZ-strips in-app lezen: overwogen (2026-09-13) en bewust NIET gebouwd. Technisch mogelijk
   (RAR-extractie client-side kan via WASM-bibliotheken, CBZ/ZIP zou een stuk eenvoudiger zijn), maar
   een forse klus: opslagomvang (scans al snel 50-300MB per album, onduidelijk of het Supabase-
