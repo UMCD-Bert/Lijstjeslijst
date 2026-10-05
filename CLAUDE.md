@@ -952,13 +952,17 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   TtR Nordic, Star Realms Colony Wars en Unmatched Battle of Legends zijn varianten op eerder geschreven
   teksten. Zwakst: Samurai, Sagrada, Anno 1800, Isle of Skye, Distilled, Nations, Glen More II, Meadow,
   Red Cathedral. Bron-slugs: boardgamesbot soms 404/"in voorbereiding" -> `ultraboardgames.com/<slug>/game-rules.php`.
-- **Bordspellen: solo-aanduiding + solo-uitleg (2026-10-05, gevraagd, nog geen GO).** Idee van de
-  eigenaar: laten zien welke spellen een solomodus hebben (bv. met een poppetje-icoon) en daar een
-  solo-uitleg bij zetten. Onderzocht: BGG's collection-endpoint (`stats=1`) geeft `minplayers` per spel
-  mee; 301 van 793 eigen spellen hebben `minplayers=1` (= officiële solomodus, geen fan-variant).
-  Voorstel (wacht op GO): kolommen `lijst_items.solo` (boolean) en `lijst_items.solo_uitleg` (text);
-  poppetje-icoon naast de titel als `solo`; solo-uitleg als eigen uitklapsectie; optioneel "Solo"-chip
-  in de filters. Vulling `solo` via één BGG-aanroep (id-match op `extern_id`), solo-uitleg batchgewijs op rank.
+- **Bordspellen: solo-aanduiding + solo-uitleg (2026-10-05, v1.36.0, GO gegeven).** Nieuwe kolommen
+  `lijst_items.solo` (boolean, default false) en `solo_uitleg` (text), migratie `lijst_items_add_solo`.
+  `solo` is eenmalig gevuld uit BGG's collection-endpoint (`stats=1` -> `minplayers=1`, gekoppeld op
+  `extern_id`): 300 spellen (84 in de top 300). Eigenaar: fanvarianten mogen ook, als er geen officiële
+  solo is (dan `solo` handmatig/zelf aanzetten en in de tekst vermelden dat het een fanvariant is).
+  UI: poppetje-icoon (`soloSvg()`) naast de titel als `item.solo`; met `solo_uitleg` een knop die in
+  hetzelfde accordeon opent (`state.expandedUitleg[id]` is nu `'uitleg'` of `'solo'`), zonder uitleg
+  alleen een aanduiding (`.icon-static`). "Solo"-chip in de filterrij (alleen BGG-lijsten, alleen alle <->
+  wel, opgeslagen als `state.filters[id].__solo`). Bewerkformulier: vinkje "Dit spel heeft een solomodus"
+  + textarea solo-uitleg. Afdrukken geeft bij solo de titel "(solo)". Zelfde opmaak als gewone uitleg
+  (`##`, `- `, `**vet**`). Vulling solo-uitleg: eerst de top 300 (gelijk aan de gewone uitleg), verder op verzoek.
 - CBR/CBZ-strips in-app lezen: overwogen (2026-09-13) en bewust NIET gebouwd. Technisch mogelijk
   (RAR-extractie client-side kan via WASM-bibliotheken, CBZ/ZIP zou een stuk eenvoudiger zijn), maar
   een forse klus: opslagomvang (scans al snel 50-300MB per album, onduidelijk of het Supabase-

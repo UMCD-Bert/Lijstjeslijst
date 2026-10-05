@@ -118,6 +118,8 @@
   }
   .icon-btn:hover { color: var(--ink); background: var(--surface); }
   .icon-btn-accent { color: var(--accent); }
+  /* Solo-poppetje zonder (nog) solo-uitleg: puur een aanduiding, geen knop. */
+  .icon-static { display: inline-flex; align-items: center; justify-content: center; padding: 8px; color: var(--muted); }
   .icon-btn-accent:hover { color: var(--accent); background: var(--accent-soft); }
   .icon-btn.danger:hover { color: var(--danger); background: var(--danger-soft); }
 
@@ -472,7 +474,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.35.1';
+  var APP_VERSION = '1.36.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -625,6 +627,17 @@
     return svg;
   }
 
+  function soloSvg() {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('width', '14'); svg.setAttribute('height', '14');
+    var head = document.createElementNS(ns, 'circle');
+    head.setAttribute('cx', '8'); head.setAttribute('cy', '5'); head.setAttribute('r', '2.6');
+    var body = document.createElementNS(ns, 'path');
+    body.setAttribute('d', 'M2.8 14c.4-3 2.4-4.6 5.2-4.6s4.8 1.6 5.2 4.6');
+    [head, body].forEach(function (el) { el.setAttribute('fill', 'none'); el.setAttribute('stroke', 'currentColor'); el.setAttribute('stroke-width', '1.3'); el.setAttribute('stroke-linecap', 'round'); svg.appendChild(el); });
+    return svg;
+  }
   function bookSvg() {
     var ns = 'http://www.w3.org/2000/svg';
     var svg = document.createElementNS(ns, 'svg');
@@ -683,16 +696,17 @@
   // zelf i.p.v. een popup-venster — popups worden op iPhone/PWA vaak geblokkeerd. De rest van de
   // pagina wordt via @media print verborgen. Eerst wachten tot de cover geladen is, anders staat
   // die er niet op.
-  function printUitleg(item) {
+  function printUitleg(item, mode) {
+    var solo = mode === 'solo';
     var old = document.getElementById('print-sheet'); if (old) old.remove();
     var sheet = document.createElement('div'); sheet.id = 'print-sheet';
-    var h = document.createElement('h1'); h.textContent = item.titel; sheet.appendChild(h);
+    var h = document.createElement('h1'); h.textContent = item.titel + (solo ? ' (solo)' : ''); sheet.appendChild(h);
     var img = null;
     if (item.omslag_url) {
       img = document.createElement('img'); img.className = 'print-cover'; img.alt = '';
       sheet.insertBefore(img, h.nextSibling);
     }
-    var body = buildUitlegBox(item.uitleg); body.classList.add('print-body');
+    var body = buildUitlegBox(solo ? item.solo_uitleg : item.uitleg); body.classList.add('print-body');
     sheet.appendChild(body);
     document.body.appendChild(sheet);
     var done = false;
@@ -773,6 +787,7 @@
     var f = state.filters[entry.id] || {};
     var q = (state.search[entry.id] || '').trim().toLowerCase();
     items = items.filter(function (item) {
+      if (f.__solo === 'wel' && !item.solo) return false;
       if (!(entry.vink_velden || []).every(function (vk) {
         var want = f[vk.key] || 'alle';
         if (want === 'alle') return true;
@@ -811,7 +826,7 @@
   function sortedLists() { return state.lijsten.slice().sort(function (a, b) { return a.volgorde - b.volgorde; }); }
   function hasActiveFilter(entry) {
     var f = state.filters[entry.id] || {};
-    return (entry.vink_velden || []).some(function (vk) { return f[vk.key] && f[vk.key] !== 'alle'; });
+    return f.__solo === 'wel' || (entry.vink_velden || []).some(function (vk) { return f[vk.key] && f[vk.key] !== 'alle'; });
   }
   // Standaard alfabetisch op reeks (artiest/auteur/serie) bij genest lijstjes i.p.v. handmatig —
   // een net toegevoegde reeks bleef anders altijd onderaan staan i.p.v. op zijn alfabetische plek.
@@ -1592,12 +1607,21 @@
           tracklistInput.className = 'field-row-textarea';
           form.appendChild(tracklistInput);
         }
-        var uitlegInput = null;
+        var uitlegInput = null, soloInput = null, soloCheck = null;
         if (isBggList(entry)) {
           uitlegInput = document.createElement('textarea');
           uitlegInput.value = item.uitleg || ''; uitlegInput.placeholder = 'Spelregels in gewone taal (kopjes met "## ", opsommingen met "- ")';
           uitlegInput.className = 'field-row-textarea';
           form.appendChild(uitlegInput);
+          var soloLabel = document.createElement('label');
+          soloLabel.className = 'fg-label'; soloLabel.style.display = 'flex'; soloLabel.style.gap = '8px'; soloLabel.style.alignItems = 'center';
+          soloCheck = document.createElement('input'); soloCheck.type = 'checkbox'; soloCheck.style.fontSize = '16px'; soloCheck.checked = !!item.solo;
+          soloLabel.appendChild(soloCheck); soloLabel.appendChild(document.createTextNode('Dit spel heeft een solomodus'));
+          form.appendChild(soloLabel);
+          soloInput = document.createElement('textarea');
+          soloInput.value = item.solo_uitleg || ''; soloInput.placeholder = 'Solo-uitleg (kopjes met "## ", opsommingen met "- ")';
+          soloInput.className = 'field-row-textarea';
+          form.appendChild(soloInput);
         }
         var editVinkjesFieldset = buildVinkjesFieldset(entry.vink_velden, item.vinkjes);
         if ((entry.vink_velden || []).length) form.appendChild(editVinkjesFieldset.wrap);
@@ -1625,6 +1649,7 @@
           if (reeksSelect) patch.reeks_id = parseInt(reeksSelect.value, 10);
           if (tracklistInput) patch.tracklist = tracklistInput.value.trim() || null;
           if (uitlegInput) patch.uitleg = uitlegInput.value.trim() || null;
+          if (soloInput) { patch.solo_uitleg = soloInput.value.trim() || null; patch.solo = !!soloCheck.checked || !!patch.solo_uitleg; }
           supabase.from('lijst_items').update(patch).eq('id', item.id).then(refetchSoft);
           state.editingItem = null;
         });
@@ -1800,12 +1825,35 @@
         uitlegBtn.setAttribute('aria-label', uitlegBtn.title);
         uitlegBtn.addEventListener('click', function () {
           // Maximaal 1 uitleg tegelijk open: een nieuwe openen sluit de vorige.
-          var wasOpen = !!state.expandedUitleg[item.id];
+          var wasOpen = state.expandedUitleg[item.id] === 'uitleg';
           state.expandedUitleg = {};
-          if (!wasOpen) state.expandedUitleg[item.id] = true;
+          if (!wasOpen) state.expandedUitleg[item.id] = 'uitleg';
           renderDetail();
         });
         titleCellInner.appendChild(uitlegBtn);
+      }
+      if (item.solo) {
+        // Poppetje = dit spel heeft een solomodus. Met solo-uitleg is het een knop die die uitleg
+        // opent (zelfde accordeon als de gewone uitleg), zonder is het alleen een aanduiding.
+        if (item.solo_uitleg) {
+          var soloOpen = state.expandedUitleg[item.id] === 'solo';
+          var soloBtn = document.createElement('button');
+          soloBtn.type = 'button'; soloBtn.className = 'icon-btn icon-btn-accent'; soloBtn.appendChild(soloSvg());
+          soloBtn.title = soloOpen ? 'Solo-uitleg verbergen' : 'Solo spelen: uitleg tonen';
+          soloBtn.setAttribute('aria-label', soloBtn.title);
+          soloBtn.addEventListener('click', function () {
+            var wasOpen = state.expandedUitleg[item.id] === 'solo';
+            state.expandedUitleg = {};
+            if (!wasOpen) state.expandedUitleg[item.id] = 'solo';
+            renderDetail();
+          });
+          titleCellInner.appendChild(soloBtn);
+        } else {
+          var soloMark = document.createElement('span');
+          soloMark.className = 'icon-static'; soloMark.appendChild(soloSvg());
+          soloMark.title = 'Dit spel heeft een solomodus'; soloMark.setAttribute('aria-label', soloMark.title);
+          titleCellInner.appendChild(soloMark);
+        }
       }
       var extraFieldsWithLinks = multilineFieldsWithContent(entry, item);
       extraFieldsWithLinks.forEach(function (f) {
@@ -1840,7 +1888,9 @@
       });
 
       var expandedExtraFields = extraFieldsWithLinks.filter(function (f) { return state.expandedExtra[item.id + ':' + f.key]; });
-      var uitlegOpen = !!(item.uitleg && state.expandedUitleg[item.id]);
+      var uitlegMode = state.expandedUitleg[item.id];
+      var uitlegText = uitlegMode === 'solo' ? item.solo_uitleg : (uitlegMode ? item.uitleg : null);
+      var uitlegOpen = !!uitlegText;
       if ((!item.tracklist || !state.expandedTracklist[item.id]) && !expandedExtraFields.length && !uitlegOpen) return tr;
       var frag = document.createDocumentFragment();
       frag.appendChild(tr);
@@ -1848,12 +1898,12 @@
         var ulRow = document.createElement('tr'); ulRow.className = 'tracklist-row';
         var ulTd = document.createElement('td'); ulTd.colSpan = colCount;
         var ulWrap = document.createElement('div'); ulWrap.className = 'wide-row-content';
-        ulWrap.appendChild(buildUitlegBox(item.uitleg));
+        ulWrap.appendChild(buildUitlegBox(uitlegText));
         var printBtn = document.createElement('button');
         printBtn.type = 'button'; printBtn.className = 'btn-secondary uitleg-print-btn';
         printBtn.appendChild(printSvg());
         printBtn.appendChild(document.createTextNode(' Afdrukken'));
-        printBtn.addEventListener('click', function () { printUitleg(item); });
+        printBtn.addEventListener('click', function () { printUitleg(item, uitlegMode); });
         ulWrap.appendChild(printBtn);
         ulTd.appendChild(ulWrap);
         ulRow.appendChild(ulTd);
@@ -2228,6 +2278,21 @@
       });
       row.appendChild(chip);
     });
+    if (isBggList(entry)) {
+      // "Solo": alleen spellen met een solomodus (item.solo). Alleen alle ↔ wel: "niet solo" is
+      // geen nuttige vraag.
+      var soloOn = !!(state.filters[entry.id] && state.filters[entry.id].__solo === 'wel');
+      var soloChip = document.createElement('button');
+      soloChip.type = 'button'; soloChip.className = 'filter-chip filter-chip-' + (soloOn ? 'wel' : 'alle');
+      soloChip.textContent = (soloOn ? '✓ ' : '') + 'Solo';
+      soloChip.setAttribute('aria-label', 'Solo: ' + (soloOn ? 'alleen spellen met solomodus' : 'alles'));
+      soloChip.addEventListener('click', function () {
+        if (!state.filters[entry.id]) state.filters[entry.id] = {};
+        state.filters[entry.id].__solo = soloOn ? 'alle' : 'wel';
+        renderDetail();
+      });
+      row.appendChild(soloChip);
+    }
     return row;
   }
 
