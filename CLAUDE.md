@@ -952,6 +952,13 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   TtR Nordic, Star Realms Colony Wars en Unmatched Battle of Legends zijn varianten op eerder geschreven
   teksten. Zwakst: Samurai, Sagrada, Anno 1800, Isle of Skye, Distilled, Nations, Glen More II, Meadow,
   Red Cathedral. Bron-slugs: boardgamesbot soms 404/"in voorbereiding" -> `ultraboardgames.com/<slug>/game-rules.php`.
+- **Bordspellen: solo-aanduiding + solo-uitleg (2026-10-05, gevraagd, nog geen GO).** Idee van de
+  eigenaar: laten zien welke spellen een solomodus hebben (bv. met een poppetje-icoon) en daar een
+  solo-uitleg bij zetten. Onderzocht: BGG's collection-endpoint (`stats=1`) geeft `minplayers` per spel
+  mee; 301 van 793 eigen spellen hebben `minplayers=1` (= officiële solomodus, geen fan-variant).
+  Voorstel (wacht op GO): kolommen `lijst_items.solo` (boolean) en `lijst_items.solo_uitleg` (text);
+  poppetje-icoon naast de titel als `solo`; solo-uitleg als eigen uitklapsectie; optioneel "Solo"-chip
+  in de filters. Vulling `solo` via één BGG-aanroep (id-match op `extern_id`), solo-uitleg batchgewijs op rank.
 - CBR/CBZ-strips in-app lezen: overwogen (2026-09-13) en bewust NIET gebouwd. Technisch mogelijk
   (RAR-extractie client-side kan via WASM-bibliotheken, CBZ/ZIP zou een stuk eenvoudiger zijn), maar
   een forse klus: opslagomvang (scans al snel 50-300MB per album, onduidelijk of het Supabase-
