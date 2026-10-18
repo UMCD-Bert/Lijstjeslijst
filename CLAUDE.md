@@ -1004,16 +1004,11 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   van Rome, Cluedo-varianten, Carcassonne Junior/Overzee/De Stad/De Mist/Stille Zuidzee) — wederom
   "uitleg op verzoek" met een echte bron. Solo_uitleg is voor deze ronde alleen bij echte soloregels
   geschreven; de meeste `solo=true` bij uitbreidingen hebben bewust geen aparte tekst.
-- **Wens: echte iOS- en Mac-app (2026-10-18, nog geen GO).** Net als Pokémon, Oranjetipje, Cutter en Turf
-  (`~/Documenten/Xcode/Berts Code Base/<app>`, SwiftUI, eigen `CLAUDE.md`, `<App>Kern`-Swift-pakket met alle
-  logica + tests, `Hulpmiddelen/{test,bouw,run-mac,publiceer}.sh`). Afgesproken uitgangspunten: nieuw project
-  `Lijster` op dezelfde plek, **zelfde Supabase-database** (tabellen `lijsten`, `lijst_items`, `reeksen`; schema hier
-  dus niet wijzigen zolang de PWA draait), één multiplatform-target (iPhone/iPad/Mac), iOS 26/macOS 26, bundel-ID
-  `nl.umcd.lijster`, Team `5A52N9UGFX` (zie `../Cutter/CLAUDE.md`). Verspreiding: TestFlight (intern) voor iPhone/iPad
-  met Ellen, Mac-app lokaal in /Applications (`run-mac.sh`). Eerste versie: alles behalve de import-flows (Open
-  Library, Discogs, BGG-sync): lijstjes, items, vinkjes, zoeken/filteren/sorteren, reeksen, foto's,
-  Bordspellen-uitleg + solo. Logica die in `index.html` verandert moet ook in `LijsterKern` (en omgekeerd). Nog
-  te beslissen bij de start: exacte mijlpalen, appicoon (het vogeltje).
+- **Native app (2026-10-18, GO gegeven, mijlpaal 1 klaar):** `~/Documenten/Xcode/Berts Code Base/Lijster` (SwiftUI, iPhone/iPad/Mac,
+  zelfde Supabase-database, eigen repo en `CLAUDE.md`). Alles behalve de import-flows (Open Library, Discogs, BGG) is gebouwd; die
+  volgen in een tweede ronde. Het Supabase-schema hier niet wijzigen of verwijderen zolang de PWA draait. Logica die in `index.html`
+  verandert (filteren, sorteren, reeksnamen, uitleg-opmaak) moet ook in `LijsterKern` aangepast worden (en omgekeerd). TestFlight:
+  eenmalig door Bert de app aanmaken in App Store Connect (`nl.umcd.lijster`); zie het eigen `CLAUDE.md`.
 - CBR/CBZ-strips in-app lezen: overwogen (2026-09-13) en bewust NIET gebouwd. Technisch mogelijk
   (RAR-extractie client-side kan via WASM-bibliotheken, CBZ/ZIP zou een stuk eenvoudiger zijn), maar
   een forse klus: opslagomvang (scans al snel 50-300MB per album, onduidelijk of het Supabase-
