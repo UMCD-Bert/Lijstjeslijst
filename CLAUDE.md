@@ -1004,9 +1004,8 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   van Rome, Cluedo-varianten, Carcassonne Junior/Overzee/De Stad/De Mist/Stille Zuidzee) — wederom
   "uitleg op verzoek" met een echte bron. Solo_uitleg is voor deze ronde alleen bij echte soloregels
   geschreven; de meeste `solo=true` bij uitbreidingen hebben bewust geen aparte tekst.
-- **Native app (2026-10-18, GO gegeven, mijlpaal 1 klaar):** `~/Documenten/Xcode/Berts Code Base/Lijster` (SwiftUI, iPhone/iPad/Mac,
-  zelfde Supabase-database, eigen repo en `CLAUDE.md`). Alles behalve de import-flows (Open Library, Discogs, BGG) is gebouwd; die
-  volgen in een tweede ronde. Het Supabase-schema hier niet wijzigen of verwijderen zolang de PWA draait. Logica die in `index.html`
+- **Native app (2026-10-18, GO gegeven, imports klaar):** `~/Documenten/Xcode/Berts Code Base/Lijster` (SwiftUI, iPhone/iPad/Mac,
+  zelfde Supabase-database, eigen repo en `CLAUDE.md`). Alles is gebouwd, inclusief de import-flows (BGG, Discogs, Open Library; 2026-10-18). Het Supabase-schema hier niet wijzigen of verwijderen zolang de PWA draait. Logica die in `index.html`
   verandert (filteren, sorteren, reeksnamen, uitleg-opmaak) moet ook in `LijsterKern` aangepast worden (en omgekeerd). TestFlight:
   eenmalig door Bert de app aanmaken in App Store Connect (`nl.umcd.lijster`); zie het eigen `CLAUDE.md`.
 - CBR/CBZ-strips in-app lezen: overwogen (2026-09-13) en bewust NIET gebouwd. Technisch mogelijk
