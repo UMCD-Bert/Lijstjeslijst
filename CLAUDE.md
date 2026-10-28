@@ -1004,6 +1004,7 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   van Rome, Cluedo-varianten, Carcassonne Junior/Overzee/De Stad/De Mist/Stille Zuidzee) — wederom
   "uitleg op verzoek" met een echte bron. Solo_uitleg is voor deze ronde alleen bij echte soloregels
   geschreven; de meeste `solo=true` bij uitbreidingen hebben bewust geen aparte tekst.
+- **Nieuwe spellen bijgewerkt (2026-10-28, databackfill, geen codewijziging):** Vantage (1629) en Rebirth (1631) waren sinds de BGG-import zonder uitleg/video/solo. Vantage: uitleg, solo_uitleg (zelfde regels, geen automa, 10 dobbelstenen) en Rahdo-video; Rebirth: uitleg (2-4 spelers, dus geen solo), geen video gevonden in Nox/DSV/Rahdo-runthrough. Beide teksten zijn uit online regelsamenvattingen (boardgamesbot, rulespal), met "Let op"-voetnoot. Stand: 592 uitleg, 137 solo_uitleg, 407 video van 795 spellen.
 - **Native app (2026-10-18, GO gegeven, imports klaar):** `~/Documenten/Xcode/Berts Code Base/Lijster` (SwiftUI, iPhone/iPad/Mac,
   zelfde Supabase-database, eigen repo en `CLAUDE.md`). Alles is gebouwd, inclusief de import-flows (BGG, Discogs, Open Library; 2026-10-18). Het Supabase-schema hier niet wijzigen of verwijderen zolang de PWA draait. Logica die in `index.html`
   verandert (filteren, sorteren, reeksnamen, uitleg-opmaak) moet ook in `LijsterKern` aangepast worden (en omgekeerd). TestFlight:
