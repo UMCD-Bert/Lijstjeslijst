@@ -1021,7 +1021,7 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   verlanglijst stonden maar nu in de externe collectie zitten automatisch naar de collectie
   (`promoteWishlistItems`). "Vergelijk met BGG/Discogs" slaat verlanglijstitems over. Getest: hartje,
   filter, overzicht, Gekocht, 375px, en beide wishlist-fetches (BGG: 0 spellen; Discogs: 2 items; er
-  is bewust niets geïmporteerd). Native app: nog te doen. Prijzen/pricewatch: bewust NIET gebouwd.
+  is bewust niets geïmporteerd). Native app: gebouwd (2026-11-07, TestFlight build 6). Prijzen/pricewatch: bewust NIET gebouwd.
 - **Nieuwe spellen bijgewerkt (2026-10-28, databackfill, geen codewijziging):** Vantage (1629) en Rebirth (1631) waren sinds de BGG-import zonder uitleg/video/solo. Vantage: uitleg, solo_uitleg (zelfde regels, geen automa, 10 dobbelstenen) en Rahdo-video; Rebirth: uitleg (2-4 spelers, dus geen solo), geen video gevonden in Nox/DSV/Rahdo-runthrough. Beide teksten zijn uit online regelsamenvattingen (boardgamesbot, rulespal), met "Let op"-voetnoot. Stand: 592 uitleg, 137 solo_uitleg, 407 video van 795 spellen.
 - **Native app (2026-10-18, GO gegeven, imports klaar):** `~/Documenten/Xcode/Berts Code Base/Lijster` (SwiftUI, iPhone/iPad/Mac,
   zelfde Supabase-database, eigen repo en `CLAUDE.md`). Alles is gebouwd, inclusief de import-flows (BGG, Discogs, Open Library; 2026-10-18). Het Supabase-schema hier niet wijzigen of verwijderen zolang de PWA draait. Logica die in `index.html`
