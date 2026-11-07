@@ -1004,6 +1004,24 @@ geeft een fullscreen appicoon zonder Safari-balk. Geen Claude-login nodig, geen 
   van Rome, Cluedo-varianten, Carcassonne Junior/Overzee/De Stad/De Mist/Stille Zuidzee) — wederom
   "uitleg op verzoek" met een echte bron. Solo_uitleg is voor deze ronde alleen bij echte soloregels
   geschreven; de meeste `solo=true` bij uitbreidingen hebben bewust geen aparte tekst.
+- **Verlanglijst, generiek voor alle lijstjes (2026-11-07, v1.37.0, GO gegeven).** Nieuwe kolom
+  `lijst_items.verlanglijst` (boolean, default false; migratie `lijst_items_add_verlanglijst`) — een
+  item op de verlanglijst staat gewoon IN het lijstje, met een hartje, i.p.v. in een aparte tabel.
+  Statistieken (stat-kaarten, vinkjes-tellingen, "x/y in bezit") tellen alleen collectie-items
+  (`collectionItemsFor`); verlanglijstitems staan apart als kaartje "N verlanglijst". UI: hartje per
+  rij (zichtbaar zonder hover), chip "Verlanglijst" in de filters (alle/wel/niet, `state.filters[id].__verlang`),
+  vinkje "Op verlanglijst" in toevoeg- en bewerkformulier, knop "Gekocht: naar mijn collectie" in het
+  bewerkformulier (zet verlanglijst uit en "In bezit" aan waar dat vinkje bestaat; LP/CD kies je
+  daarna zelf, en Opslaan). Tabblad "Verlanglijst (N)" op het overzicht: alle wensen gegroepeerd per
+  lijstje, tik opent dat lijstje met het filter "wel". Koppelingen: **BGG** `collection?wishlist=1`
+  ("BGG-verlanglijst importeren") en **Discogs wantlist** `users/{naam}/wants` met het bestaande
+  persoonlijke token als header ("Discogs-wantlist importeren"; de wantlist heeft een eigen
+  privacy-instelling). Beide via dezelfde importflow met `flow.wishlist`; geïmporteerde items krijgen
+  `verlanglijst=true` (Discogs: `in_bezit` uit). Een gewone collectie-import verplaatst items die op de
+  verlanglijst stonden maar nu in de externe collectie zitten automatisch naar de collectie
+  (`promoteWishlistItems`). "Vergelijk met BGG/Discogs" slaat verlanglijstitems over. Getest: hartje,
+  filter, overzicht, Gekocht, 375px, en beide wishlist-fetches (BGG: 0 spellen; Discogs: 2 items; er
+  is bewust niets geïmporteerd). Native app: nog te doen. Prijzen/pricewatch: bewust NIET gebouwd.
 - **Nieuwe spellen bijgewerkt (2026-10-28, databackfill, geen codewijziging):** Vantage (1629) en Rebirth (1631) waren sinds de BGG-import zonder uitleg/video/solo. Vantage: uitleg, solo_uitleg (zelfde regels, geen automa, 10 dobbelstenen) en Rahdo-video; Rebirth: uitleg (2-4 spelers, dus geen solo), geen video gevonden in Nox/DSV/Rahdo-runthrough. Beide teksten zijn uit online regelsamenvattingen (boardgamesbot, rulespal), met "Let op"-voetnoot. Stand: 592 uitleg, 137 solo_uitleg, 407 video van 795 spellen.
 - **Native app (2026-10-18, GO gegeven, imports klaar):** `~/Documenten/Xcode/Berts Code Base/Lijster` (SwiftUI, iPhone/iPad/Mac,
   zelfde Supabase-database, eigen repo en `CLAUDE.md`). Alles is gebouwd, inclusief de import-flows (BGG, Discogs, Open Library; 2026-10-18). Het Supabase-schema hier niet wijzigen of verwijderen zolang de PWA draait. Logica die in `index.html`

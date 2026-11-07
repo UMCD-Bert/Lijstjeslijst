@@ -118,6 +118,15 @@
   }
   .icon-btn:hover { color: var(--ink); background: var(--surface); }
   .icon-btn-accent { color: var(--accent); }
+  .icon-btn-wish { color: var(--muted); }
+  .icon-btn-wish.on { color: var(--accent); }
+  .icon-btn-wish svg path { fill: none; }
+  .icon-btn-wish.on svg path { fill: currentColor; }
+  .wish-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 4px; border-bottom: 1px solid var(--border); }
+  .wish-row .wish-main { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 4px; cursor: pointer; font: inherit; color: inherit; }
+  .wish-row .wish-main span { display: block; }
+  .wish-list-head { margin: 14px 0 2px; font-weight: 600; font-size: 0.9rem; color: var(--muted); display: flex; justify-content: space-between; align-items: baseline; }
+  .wish-note { margin: 6px 0 0; color: var(--muted); font-size: 0.85rem; }
   /* Solo-poppetje zonder (nog) solo-uitleg: puur een aanduiding, geen knop. */
   .icon-static { display: inline-flex; align-items: center; justify-content: center; padding: 8px; color: var(--muted); }
   .icon-btn-accent:hover { color: var(--accent); background: var(--accent-soft); }
@@ -474,7 +483,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.36.0';
+  var APP_VERSION = '1.37.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -508,7 +517,7 @@
   var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var state = {
     lijsten: [], items: [], reeksen: [], currentId: null, editingItem: null,
-    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}, expandedExtra: {}, expandedUitleg: {}, trackSearch: null, viewMode: {}, addConfirm: {}, bggRefreshing: {}, bggEnriching: {}, compareFlow: null
+    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}, expandedExtra: {}, expandedUitleg: {}, trackSearch: null, viewMode: {}, addConfirm: {}, bggRefreshing: {}, bggEnriching: {}, compareFlow: null, overviewTab: 'lijsten'
   };
 
   var gridEl = document.getElementById('grid');
@@ -562,11 +571,36 @@
     });
     return {
       wrap: wrap,
+      set: function (key, on) {
+        var b = boxes[key]; if (!b) return;
+        b.classList.toggle('checked', !!on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      },
+      has: function (key) { return !!boxes[key]; },
       values: function () {
         var out = {};
         Object.keys(boxes).forEach(function (k) { out[k] = boxes[k].classList.contains('checked'); });
         return out;
       }
+    };
+  }
+
+  // Losse "Op verlanglijst"-schakelaar voor toevoeg-/bewerkformulieren (zelfde .checkbox-stijl).
+  function buildVerlangCheck(initial) {
+    var item = document.createElement('label'); item.className = 'form-vinkje';
+    var box = document.createElement('button');
+    box.type = 'button'; box.className = 'checkbox' + (initial ? ' checked' : '');
+    box.setAttribute('aria-pressed', initial ? 'true' : 'false');
+    box.appendChild(checkSvg());
+    box.addEventListener('click', function () {
+      var next = !box.classList.contains('checked');
+      box.classList.toggle('checked', next); box.setAttribute('aria-pressed', next ? 'true' : 'false');
+    });
+    var span = document.createElement('span'); span.textContent = 'Op verlanglijst';
+    item.appendChild(box); item.appendChild(span);
+    return {
+      el: item,
+      set: function (on) { box.classList.toggle('checked', !!on); box.setAttribute('aria-pressed', on ? 'true' : 'false'); },
+      value: function () { return box.classList.contains('checked'); }
     };
   }
 
@@ -650,6 +684,16 @@
       pth.setAttribute('fill', 'none'); pth.setAttribute('stroke', 'currentColor'); pth.setAttribute('stroke-width', '1.3'); pth.setAttribute('stroke-linejoin', 'round');
       svg.appendChild(pth);
     });
+    return svg;
+  }
+  function heartSvg() {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('width', '15'); svg.setAttribute('height', '15');
+    var path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', 'M8 13.6C3.2 10.2 1.9 7.9 1.9 5.9 1.9 4.2 3.2 3 4.8 3 6.1 3 7.3 3.7 8 4.9 8.7 3.7 9.9 3 11.2 3c1.6 0 2.9 1.2 2.9 2.9 0 2-1.3 4.3-6.1 7.7Z');
+    path.setAttribute('stroke', 'currentColor'); path.setAttribute('stroke-width', '1.3'); path.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(path);
     return svg;
   }
   // Uitleg-tekst (kopjes met "## ", opsommingen met "- ", rest gewone alinea's) naar DOM — alles via
@@ -778,6 +822,9 @@
     return state.items.filter(function (i) { return i.lijst_id === listId; })
       .sort(function (a, b) { return a.volgorde - b.volgorde; });
   }
+  // Verlanglijst-items horen niet bij "wat ik heb": tellingen en statistieken gaan alleen over de collectie.
+  function collectionItemsFor(listId) { return itemsFor(listId).filter(function (i) { return !i.verlanglijst; }); }
+  function wishlistItemsFor(listId) { return itemsFor(listId).filter(function (i) { return !!i.verlanglijst; }); }
   function reeksenFor(listId) {
     return state.reeksen.filter(function (r) { return r.lijst_id === listId; })
       .sort(function (a, b) { return a.volgorde - b.volgorde; });
@@ -788,6 +835,8 @@
     var q = (state.search[entry.id] || '').trim().toLowerCase();
     items = items.filter(function (item) {
       if (f.__solo === 'wel' && !item.solo) return false;
+      if (f.__verlang === 'wel' && !item.verlanglijst) return false;
+      if (f.__verlang === 'niet' && item.verlanglijst) return false;
       if (!(entry.vink_velden || []).every(function (vk) {
         var want = f[vk.key] || 'alle';
         if (want === 'alle') return true;
@@ -819,14 +868,14 @@
     return items;
   }
   function vinkCounts(listId, vinkKey) {
-    var items = itemsFor(listId);
+    var items = collectionItemsFor(listId);
     var yes = items.filter(function (i) { return i.vinkjes && i.vinkjes[vinkKey]; }).length;
     return { total: items.length, yes: yes };
   }
   function sortedLists() { return state.lijsten.slice().sort(function (a, b) { return a.volgorde - b.volgorde; }); }
   function hasActiveFilter(entry) {
     var f = state.filters[entry.id] || {};
-    return f.__solo === 'wel' || (entry.vink_velden || []).some(function (vk) { return f[vk.key] && f[vk.key] !== 'alle'; });
+    return f.__solo === 'wel' || (f.__verlang && f.__verlang !== 'alle') || (entry.vink_velden || []).some(function (vk) { return f[vk.key] && f[vk.key] !== 'alle'; });
   }
   // Standaard alfabetisch op reeks (artiest/auteur/serie) bij genest lijstjes i.p.v. handmatig —
   // een net toegevoegde reeks bleef anders altijd onderaan staan i.p.v. op zijn alfabetische plek.
@@ -983,6 +1032,8 @@
     extraInputs.forEach(function (inp) { fieldsWrap.appendChild(inp); });
     var vinkjesFieldset = buildVinkjesFieldset(entry.vink_velden, null);
     if ((entry.vink_velden || []).length) fieldsWrap.appendChild(vinkjesFieldset.wrap);
+    var wishAdd = buildVerlangCheck(false);
+    fieldsWrap.appendChild(wishAdd.el);
     var submitBtn = document.createElement('button');
     submitBtn.type = 'submit'; submitBtn.className = 'submit-btn'; submitBtn.innerHTML = '&#43;';
     submitBtn.setAttribute('aria-label', 'Item toevoegen');
@@ -994,7 +1045,7 @@
       var extra = {};
       extraInputs.forEach(function (inp) { extra[inp.dataset.key] = inp.value.trim() || null; });
       var vinkjes = vinkjesFieldset.values();
-      var payload = { lijst_id: entry.id, titel: titel, extra: extra, vinkjes: vinkjes, volgorde: Date.now() };
+      var payload = { lijst_id: entry.id, titel: titel, extra: extra, vinkjes: vinkjes, volgorde: Date.now(), verlanglijst: wishAdd.value() };
       var result = await supabase.from('lijst_items').insert(payload).select().single();
       if (result.error || !result.data) { console.error(result.error); window.alert('Er ging iets mis bij het opslaan.'); return; }
       var newItemId = result.data.id;
@@ -1039,6 +1090,8 @@
 
     var vinkjesFieldset = buildVinkjesFieldset(entry.vink_velden, null);
     if ((entry.vink_velden || []).length) form.appendChild(vinkjesFieldset.wrap);
+    var wishAddG = buildVerlangCheck(false);
+    form.appendChild(wishAddG.el);
 
     var actions = document.createElement('div'); actions.className = 'edit-form-actions';
     var submitBtn = document.createElement('button');
@@ -1061,7 +1114,7 @@
       (entry.extra_velden || []).forEach(function (f, i) { extra[f.key] = extraInputs[i].value.trim() || null; });
       var vinkjes = vinkjesFieldset.values();
       var result = await supabase.from('lijst_items').insert({
-        lijst_id: entry.id, titel: titel, extra: extra, vinkjes: vinkjes, reeks_id: reeksRes.data.id, volgorde: Date.now()
+        lijst_id: entry.id, titel: titel, extra: extra, vinkjes: vinkjes, reeks_id: reeksRes.data.id, volgorde: Date.now(), verlanglijst: wishAddG.value()
       }).select().single();
       if (result.error || !result.data) { console.error(result.error); window.alert('Er ging iets mis bij het opslaan.'); return; }
       delete state.collapsedReeks[reeksRes.data.id];
@@ -1235,13 +1288,76 @@
   }
 
   // ---------- Overview ----------
+  // Verlanglijst over alle lijstjes heen: wat je nog wilt hebben, gegroepeerd per lijstje.
+  function renderOverviewTabs() {
+    var wishTotal = state.items.filter(function (i) { return i.verlanglijst; }).length;
+    var wrap = document.createElement('div'); wrap.className = 'mode-tabs';
+    [['lijsten', 'Lijstjes'], ['verlanglijst', 'Verlanglijst' + (wishTotal ? ' (' + wishTotal + ')' : '')]].forEach(function (pair) {
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'mode-tab-btn' + (state.overviewTab === pair[0] ? ' active' : '');
+      btn.textContent = pair[1];
+      btn.addEventListener('click', function () { state.overviewTab = pair[0]; renderOverview(); });
+      wrap.appendChild(btn);
+    });
+    return wrap;
+  }
+  function renderWishOverview() {
+    var any = false;
+    sortedLists().forEach(function (entry) {
+      var wishes = wishlistItemsFor(entry.id);
+      if (!wishes.length) return;
+      any = true;
+      var head = document.createElement('div'); head.className = 'wish-list-head';
+      var hName = document.createElement('span'); hName.textContent = entry.naam || 'Naamloos lijstje';
+      var hCount = document.createElement('span'); hCount.className = 'count-tag'; hCount.textContent = wishes.length;
+      head.appendChild(hName); head.appendChild(hCount);
+      gridEl.appendChild(head);
+      wishes.sort(function (a, b) { return (a.titel || '').localeCompare(b.titel || '', 'nl', { sensitivity: 'base', numeric: true }); });
+      wishes.forEach(function (item) {
+        var row = document.createElement('div'); row.className = 'wish-row';
+        if (item.omslag_url) {
+          var th = document.createElement('img'); th.className = 'item-thumb' + (entry.auto_import === 'discogs' ? ' item-thumb-square' : '');
+          th.src = item.omslag_url; th.alt = ''; th.loading = 'lazy';
+          row.appendChild(th);
+        }
+        var main = document.createElement('button'); main.type = 'button'; main.className = 'wish-main';
+        var t = document.createElement('span'); t.className = 'item-primary'; t.textContent = item.titel || '(geen titel)';
+        main.appendChild(t);
+        var rk = entry.genest ? state.reeksen.find(function (r) { return r.id === item.reeks_id; }) : null;
+        var sub = [rk && rk.naam, extraSummary(entry, item)].filter(Boolean).join(' · ');
+        if (sub) { var sEl = document.createElement('span'); sEl.className = 'item-secondary'; sEl.textContent = sub; main.appendChild(sEl); }
+        main.addEventListener('click', function () {
+          state.filters[entry.id] = Object.assign({}, state.filters[entry.id] || {}, { __verlang: 'wel' });
+          openDetail(entry.id);
+        });
+        row.appendChild(main);
+        var off = document.createElement('button');
+        off.type = 'button'; off.className = 'icon-btn icon-btn-wish on'; off.appendChild(heartSvg());
+        off.title = 'Van de verlanglijst halen'; off.setAttribute('aria-label', off.title);
+        off.addEventListener('click', function () {
+          supabase.from('lijst_items').update({ verlanglijst: false }).eq('id', item.id).then(refetchSoft);
+        });
+        row.appendChild(off);
+        gridEl.appendChild(row);
+      });
+    });
+    if (!any) {
+      var none = document.createElement('p'); none.className = 'wish-note';
+      none.textContent = 'Nog niets op je verlanglijst. Tik in een lijstje op het hartje bij een item, of vink "Op verlanglijst" aan bij het toevoegen.';
+      gridEl.appendChild(none);
+    }
+  }
+
   function renderOverview() {
     gridEl.innerHTML = '';
     var lists = sortedLists();
     emptyStateEl.hidden = lists.length > 0;
+    if (lists.length) gridEl.appendChild(renderOverviewTabs());
+    if (state.overviewTab === 'verlanglijst') { renderWishOverview(); return; }
 
     lists.forEach(function (entry, idx) {
-      var items = itemsFor(entry.id);
+      var items = collectionItemsFor(entry.id);
+      var wishN = wishlistItemsFor(entry.id).length;
       var card = document.createElement('button');
       card.type = 'button';
       card.className = 'card';
@@ -1270,7 +1386,7 @@
       pill.className = 'pill'; pill.textContent = entry.type_label || 'Lijst';
       var countTag = document.createElement('span');
       countTag.className = 'count-tag';
-      countTag.textContent = items.length ? (items.length + (items.length === 1 ? ' item' : ' items')) : 'leeg';
+      countTag.textContent = (items.length ? (items.length + (items.length === 1 ? ' item' : ' items')) : (wishN ? '' : 'leeg')) + (wishN ? (items.length ? ' · ' : '') + wishN + ' op verlanglijst' : '');
       meta.appendChild(pill); meta.appendChild(countTag);
       body.appendChild(meta);
 
@@ -1400,7 +1516,8 @@
 
     // Kaartjes i.p.v. een platte teksregel met tellertjes — geeft meteen een "overzicht van je
     // collectie"-gevoel bij het openen, zonder nieuwe data (dezelfde aantallen als voorheen).
-    var allEntryItems = itemsFor(entry.id);
+    var allEntryItems = collectionItemsFor(entry.id);
+    var wishCount = wishlistItemsFor(entry.id).length;
     var statCards = document.createElement('div'); statCards.className = 'stat-cards';
     function addStatCard(value, label) {
       var card = document.createElement('div'); card.className = 'stat-card';
@@ -1418,6 +1535,7 @@
       var vc = vinkCounts(entry.id, vk.key);
       addStatCard(vc.total ? (vc.yes + '/' + vc.total) : '0', vk.label.toLowerCase());
     });
+    if (wishCount) addStatCard(String(wishCount), 'verlanglijst');
     dbody.appendChild(statCards);
 
     if (state.showFieldsEditor) dbody.appendChild(renderFieldsEditor(entry));
@@ -1428,7 +1546,7 @@
     var viewMode = state.viewMode[entry.id] || 'bekijken';
     if (viewMode === 'bekijken') {
       dbody.appendChild(renderSearchSortRow(entry));
-      if ((entry.vink_velden || []).length && (!!state.showFilters[entry.id] || hasActiveFilter(entry))) {
+      if (!!state.showFilters[entry.id] || hasActiveFilter(entry)) {
         dbody.appendChild(renderFilterRow(entry));
       }
     } else if (viewMode === 'toevoegen') {
@@ -1625,6 +1743,20 @@
         }
         var editVinkjesFieldset = buildVinkjesFieldset(entry.vink_velden, item.vinkjes);
         if ((entry.vink_velden || []).length) form.appendChild(editVinkjesFieldset.wrap);
+        var editWish = buildVerlangCheck(!!item.verlanglijst);
+        form.appendChild(editWish.el);
+        if (item.verlanglijst) {
+          // "Gekocht": van de verlanglijst af en (waar het lijstje dat kent) "In bezit" aan; LP/CD,
+          // fysiek/e-book e.d. kies je er zelf bij vóór je op Opslaan drukt.
+          var boughtBtn = document.createElement('button');
+          boughtBtn.type = 'button'; boughtBtn.className = 'btn-secondary'; boughtBtn.textContent = 'Gekocht: naar mijn collectie';
+          boughtBtn.addEventListener('click', function () {
+            editWish.set(false);
+            if (editVinkjesFieldset.has('in_bezit')) editVinkjesFieldset.set('in_bezit', true);
+            boughtBtn.disabled = true; boughtBtn.textContent = 'Gekocht — kies eventueel LP/CD en sla op';
+          });
+          form.appendChild(boughtBtn);
+        }
         var actions = document.createElement('div');
         actions.className = 'edit-form-actions';
         var saveBtn = document.createElement('button');
@@ -1645,7 +1777,7 @@
           if (!titel) return;
           var extra = {};
           extraInputs.forEach(function (inp) { extra[inp.dataset.key] = inp.value.trim() || null; });
-          var patch = { titel: titel, extra: extra, vinkjes: editVinkjesFieldset.values() };
+          var patch = { titel: titel, extra: extra, vinkjes: editVinkjesFieldset.values(), verlanglijst: editWish.value() };
           if (reeksSelect) patch.reeks_id = parseInt(reeksSelect.value, 10);
           if (tracklistInput) patch.tracklist = tracklistInput.value.trim() || null;
           if (uitlegInput) patch.uitleg = uitlegInput.value.trim() || null;
@@ -1866,6 +1998,14 @@
         extraBtn.addEventListener('click', function () { state.expandedExtra[extraExpandKey] = !state.expandedExtra[extraExpandKey]; renderDetail(); });
         titleCellInner.appendChild(extraBtn);
       });
+      var wishBtn = document.createElement('button');
+      wishBtn.type = 'button'; wishBtn.className = 'icon-btn icon-btn-wish' + (item.verlanglijst ? ' on' : ''); wishBtn.appendChild(heartSvg());
+      wishBtn.title = item.verlanglijst ? 'Van de verlanglijst halen' : 'Op de verlanglijst zetten';
+      wishBtn.setAttribute('aria-label', wishBtn.title); wishBtn.setAttribute('aria-pressed', item.verlanglijst ? 'true' : 'false');
+      wishBtn.addEventListener('click', function () {
+        supabase.from('lijst_items').update({ verlanglijst: !item.verlanglijst }).eq('id', item.id).then(refetchSoft);
+      });
+      titleCellInner.appendChild(wishBtn);
       titleTd.appendChild(titleCellInner);
       tr.appendChild(titleTd);
 
@@ -2244,7 +2384,7 @@
     sortWrap.appendChild(sortLabel); sortWrap.appendChild(select);
     row.appendChild(sortWrap);
 
-    if ((entry.vink_velden || []).length) {
+    {
       var showFilters = !!state.showFilters[entry.id] || hasActiveFilter(entry);
       var filterToggleBtn = document.createElement('button');
       filterToggleBtn.type = 'button'; filterToggleBtn.className = 'btn-text';
@@ -2263,7 +2403,20 @@
   function renderFilterRow(entry) {
     var row = document.createElement('div');
     row.className = 'filter-row';
-    entry.vink_velden.forEach(function (vk) {
+    // "Verlanglijst": alle (collectie en wensen samen) → wel (alleen wensen) → niet (alleen collectie).
+    var wishCur = (state.filters[entry.id] && state.filters[entry.id].__verlang) || 'alle';
+    var wishChip = document.createElement('button');
+    wishChip.type = 'button'; wishChip.className = 'filter-chip filter-chip-' + wishCur;
+    wishChip.textContent = (wishCur === 'wel' ? '✓ ' : wishCur === 'niet' ? '✕ ' : '') + 'Verlanglijst';
+    wishChip.setAttribute('aria-label', 'Verlanglijst: ' + (wishCur === 'wel' ? 'alleen verlanglijst' : wishCur === 'niet' ? 'zonder verlanglijst' : 'alles'));
+    wishChip.addEventListener('click', function () {
+      var next = FILTER_CYCLE[(FILTER_CYCLE.indexOf(wishCur) + 1) % FILTER_CYCLE.length];
+      if (!state.filters[entry.id]) state.filters[entry.id] = {};
+      state.filters[entry.id].__verlang = next;
+      renderDetail();
+    });
+    row.appendChild(wishChip);
+    (entry.vink_velden || []).forEach(function (vk) {
       var current = (state.filters[entry.id] && state.filters[entry.id][vk.key]) || 'alle';
       var chip = document.createElement('button');
       chip.type = 'button'; chip.className = 'filter-chip filter-chip-' + current;
@@ -2592,12 +2745,12 @@
   newListBtn.addEventListener('click', showNewListForm);
 
   // ---------- Auto-import (Open Library / Discogs) ----------
-  function openImportFlow(entry, reeks, sourceOverride) {
+  function openImportFlow(entry, reeks, sourceOverride, wishlist) {
     var source = sourceOverride || entry.auto_import;
     state.importFlow = {
       listId: entry.id, reeksId: reeks ? reeks.id : null, source: source, step: 'search', query: reeks ? reeks.naam : '',
       candidates: [], candidateName: '', candidateId: '', works: [], selected: new Set(),
-      loading: false, error: '', note: ''
+      loading: false, error: '', note: '', wishlist: !!wishlist
     };
     if (source === 'discogs' || source === 'bgg') {
       state.importFlow.step = 'works';
@@ -2616,15 +2769,21 @@
   }
   function closeImportFlow() { state.importFlow = null; renderDetail(); }
 
-  async function fetchDiscogsCollection(username) {
+  // `wishlist`: de wantlist (/users/{naam}/wants) i.p.v. de collectie. Die heeft een eigen
+  // privacy-instelling bij Discogs, dus hier gaat het persoonlijke token mee (alleen-lezen) zodat het
+  // ook werkt als de wantlist niet publiek staat. Zelfde vorm als de collectie: `basic_information`.
+  async function fetchDiscogsCollection(username, wishlist) {
     var page = 1, perPage = 100, all = [];
+    var base = 'https://api.discogs.com/users/' + encodeURIComponent(username) + (wishlist ? '/wants' : '/collection/folders/0/releases');
+    var opts = wishlist ? { headers: { 'Authorization': 'Discogs token=' + DISCOGS_TOKEN } } : undefined;
     while (true) {
-      var res = await fetch('https://api.discogs.com/users/' + encodeURIComponent(username) + '/collection/folders/0/releases?per_page=' + perPage + '&page=' + page);
+      var res = await fetch(base + '?per_page=' + perPage + '&page=' + page, opts);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       var data = await res.json();
-      all = all.concat(data.releases || []);
+      var batch = (wishlist ? data.wants : data.releases) || [];
+      all = all.concat(batch);
       var pages = (data.pagination && data.pagination.pages) || 1;
-      if (page >= pages || !data.releases || !data.releases.length) break;
+      if (page >= pages || !batch.length) break;
       page++;
     }
     return all;
@@ -2641,10 +2800,26 @@
     return await res.json();
   }
 
+  // Bij een gewone collectie-import: items die nu op de verlanglijst staan maar inmiddels in je externe
+  // collectie zitten (BGG/Discogs) gaan vanzelf naar je collectie ("In bezit" aan waar dat bestaat).
+  async function promoteWishlistItems(entry, externalIds, flow) {
+    var have = {}; externalIds.forEach(function (id) { have[id] = true; });
+    var promote = itemsFor(entry.id).filter(function (i) { return i.verlanglijst && i.extern_id && have[i.extern_id]; });
+    if (!promote.length) return;
+    await Promise.all(promote.map(function (i) {
+      var v = Object.assign({}, i.vinkjes || {});
+      if ((entry.vink_velden || []).some(function (vk) { return vk.key === 'in_bezit'; })) v.in_bezit = true;
+      return supabase.from('lijst_items').update({ verlanglijst: false, vinkjes: v }).eq('id', i.id);
+    }));
+    flow.note = promote.length + (promote.length === 1 ? ' item van je verlanglijst staat nu in je collectie en is verplaatst.' : ' items van je verlanglijst staan nu in je collectie en zijn verplaatst.');
+    await refetchAll();
+  }
+
   async function runDiscogsFetch(entry) {
     var flow = state.importFlow;
     try {
-      var all = await fetchDiscogsCollection(entry.discogs_username);
+      var all = await fetchDiscogsCollection(entry.discogs_username, flow.wishlist);
+      if (!flow.wishlist) await promoteWishlistItems(entry, all.map(function (r) { return String(r.id); }), flow);
       var seen = {};
       flow.works = all.filter(function (r) {
         if (seen[r.id]) return false;
@@ -2660,10 +2835,10 @@
       });
       flow.works.sort(function (a, b) { return a.title.localeCompare(b.title); });
       flow.selected = new Set();
-      if (!flow.works.length) flow.error = 'Geen items gevonden in je Discogs-collectie.';
+      if (!flow.works.length) flow.error = flow.wishlist ? 'Geen items gevonden in je Discogs-wantlist.' : 'Geen items gevonden in je Discogs-collectie.';
     } catch (e) {
       console.error('discogs import failed', e);
-      flow.error = 'Ophalen van je Discogs-collectie is niet gelukt. Klopt de gebruikersnaam en staat de collectie op publiek?';
+      flow.error = flow.wishlist ? 'Ophalen van je Discogs-wantlist is niet gelukt. Klopt de gebruikersnaam?' : 'Ophalen van je Discogs-collectie is niet gelukt. Klopt de gebruikersnaam en staat de collectie op publiek?';
     } finally {
       flow.loading = false; renderDetail();
     }
@@ -2674,14 +2849,14 @@
   // (na een korte pauze) komt de echte data. Bevestigd met een directe test: eerste aanroep 202,
   // 4 seconden later 200 met de volledige collectie. Vereist een Application Token (zie
   // BGG_APP_TOKEN hierboven, sinds 2026 verplicht voor de hele XML-API).
-  async function fetchBggCollectionXml(username) {
+  async function fetchBggCollectionXml(username, wishlist) {
     // `&version=1` levert, wanneer de gebruiker een specifieke editie aan een spel gekoppeld heeft
     // in zijn eigen BGG-collectie, een <version>-blok met de uitgever van PRECIES die editie — in
     // tegenstelling tot BGG's `thing`-endpoint, die (zonder editie-context) de uitgevers van ALLE
     // wereldwijde edities van een spel teruggeeft (bij een populair spel als Catan al gauw 50+), wat
     // voor "uitgever" onbruikbaar is. Niet elk item heeft een gekoppelde editie (bij deze gebruiker
     // ~74% van de collectie) — voor de rest blijft `uitgever` bewust leeg i.p.v. te gokken.
-    var url = 'https://boardgamegeek.com/xmlapi2/collection?username=' + encodeURIComponent(username) + '&stats=1&own=1&version=1';
+    var url = 'https://boardgamegeek.com/xmlapi2/collection?username=' + encodeURIComponent(username) + '&stats=1&' + (wishlist ? 'wishlist=1' : 'own=1') + '&version=1';
     for (var attempt = 0; attempt < 10; attempt++) {
       var res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + BGG_APP_TOKEN } });
       if (res.status === 202) { await sleep(2000); continue; }
@@ -2731,9 +2906,11 @@
     var flow = state.importFlow;
     try {
       var username = entry.bgg_username;
-      var xml = await fetchBggCollectionXml(username);
+      var xml = await fetchBggCollectionXml(username, flow.wishlist);
+      var parsedBgg = parseBggCollection(xml);
+      if (!flow.wishlist) await promoteWishlistItems(entry, parsedBgg.map(function (w) { return w.id; }), flow);
       var seen = {};
-      flow.works = parseBggCollection(xml).filter(function (w) {
+      flow.works = parsedBgg.filter(function (w) {
         if (seen[w.id]) return false;
         seen[w.id] = true; return true;
       }).map(function (w) {
@@ -2741,10 +2918,10 @@
       });
       flow.works.sort(function (a, b) { return a.title.localeCompare(b.title); });
       flow.selected = new Set();
-      if (!flow.works.length) flow.error = 'Geen items gevonden in je BGG-collectie.';
+      if (!flow.works.length) flow.error = flow.wishlist ? 'Geen spellen gevonden op je BGG-verlanglijst.' : 'Geen items gevonden in je BGG-collectie.';
     } catch (e) {
       console.error('bgg import failed', e);
-      flow.error = 'Ophalen van je BGG-collectie is niet gelukt. Klopt de gebruikersnaam?';
+      flow.error = flow.wishlist ? 'Ophalen van je BGG-verlanglijst is niet gelukt. Klopt de gebruikersnaam?' : 'Ophalen van je BGG-collectie is niet gelukt. Klopt de gebruikersnaam?';
     } finally {
       flow.loading = false; renderDetail();
     }
@@ -2889,7 +3066,7 @@
         var releases = await fetchDiscogsCollection(entry.discogs_username);
         releases.forEach(function (r) { externalIds[String(r.id)] = true; });
       }
-      var items = itemsFor(entry.id);
+      var items = collectionItemsFor(entry.id);
       cmp.removedFromSource = items.filter(function (i) { return i.bron === cmp.source && i.extern_id && !externalIds[i.extern_id]; });
       cmp.notConfirmed = items.filter(function (i) { return i.bron !== cmp.source; });
     } catch (e) {
@@ -3150,14 +3327,14 @@
       (entry.vink_velden || []).forEach(function (vk) { vinkjes[vk.key] = false; });
       var tracklist = null;
       if (flow.source === 'discogs') {
-        if (vinkjes.hasOwnProperty('in_bezit')) vinkjes.in_bezit = true;
+        if (vinkjes.hasOwnProperty('in_bezit')) vinkjes.in_bezit = !flow.wishlist;
         var fmts = w.formats || [];
         if (vinkjes.hasOwnProperty('lp') && fmts.indexOf('Vinyl') !== -1) vinkjes.lp = true;
         if (vinkjes.hasOwnProperty('cd') && fmts.indexOf('CD') !== -1) vinkjes.cd = true;
         tracklist = await fetchDiscogsTracklist(w.id);
         if (wi < selectedWorks.length - 1) await sleep(300);
       }
-      var row = { lijst_id: entry.id, titel: w.title, extra: extra, vinkjes: vinkjes, bron: flow.source, extern_id: w.id, omslag_url: w.coverUrl || null, tracklist: tracklist, volgorde: base + wi };
+      var row = { lijst_id: entry.id, titel: w.title, extra: extra, vinkjes: vinkjes, bron: flow.source, extern_id: w.id, omslag_url: w.coverUrl || null, tracklist: tracklist, volgorde: base + wi, verlanglijst: !!flow.wishlist };
       if (flow.reeksId) row.reeks_id = flow.reeksId;
       else if (entry.genest && flow.source === 'discogs') {
         var n = (w.artist || '').trim();
@@ -3221,6 +3398,13 @@
         btn.type = 'button'; btn.className = 'btn-secondary'; btn.textContent = IMPORT_LABELS[entry.auto_import] || 'Toevoegen';
         btn.addEventListener('click', function () { openImportFlow(entry); });
         row.appendChild(btn);
+        if (entry.auto_import === 'bgg' || entry.auto_import === 'discogs') {
+          var wishImportBtn = document.createElement('button');
+          wishImportBtn.type = 'button'; wishImportBtn.className = 'btn-secondary';
+          wishImportBtn.textContent = entry.auto_import === 'bgg' ? 'BGG-verlanglijst importeren' : 'Discogs-wantlist importeren';
+          wishImportBtn.addEventListener('click', function () { openImportFlow(entry, null, null, true); });
+          row.appendChild(wishImportBtn);
+        }
         if (entry.auto_import === 'bgg' && itemsFor(entry.id).some(function (i) { return i.bron === 'bgg'; })) {
           var refreshBtn = document.createElement('button');
           refreshBtn.type = 'button'; refreshBtn.className = 'btn-text';
@@ -3359,7 +3543,7 @@
     var panel = document.createElement('div'); panel.className = 'import-panel wide-row-content';
     var header = document.createElement('div'); header.className = 'import-actions';
     var titleSpan = document.createElement('strong');
-    titleSpan.textContent = flow.reeksId ? ('Titels zoeken op ' + (REEKS_SEARCH_LABELS[flow.source] || flow.source)) : (IMPORT_LABELS[flow.source] || 'Toevoegen');
+    titleSpan.textContent = flow.reeksId ? ('Titels zoeken op ' + (REEKS_SEARCH_LABELS[flow.source] || flow.source)) : (flow.wishlist ? (flow.source === 'bgg' ? 'BGG-verlanglijst importeren' : 'Discogs-wantlist importeren') : (IMPORT_LABELS[flow.source] || 'Toevoegen'));
     var closeBtn = document.createElement('button');
     closeBtn.type = 'button'; closeBtn.className = 'btn-text'; closeBtn.textContent = 'Sluiten';
     closeBtn.addEventListener('click', closeImportFlow);
@@ -3399,13 +3583,13 @@
     } else if (flow.step === 'works') {
       if (flow.loading) {
         var loadingP = document.createElement('p'); loadingP.className = 'import-msg';
-        loadingP.textContent = (flow.source === 'discogs' || flow.source === 'bgg') ? 'Collectie ophalen…' : 'Bezig…';
+        loadingP.textContent = (flow.source === 'discogs' || flow.source === 'bgg') ? (flow.wishlist ? 'Verlanglijst ophalen…' : 'Collectie ophalen…') : 'Bezig…';
         panel.appendChild(loadingP);
       } else {
         var sub = document.createElement('p'); sub.className = 'import-msg';
         var msg;
-        if (flow.source === 'discogs') msg = flow.works.length + ' items gevonden in je Discogs-collectie.';
-        else if (flow.source === 'bgg') msg = flow.works.length + ' spellen gevonden in je BGG-collectie.';
+        if (flow.source === 'discogs') msg = flow.works.length + (flow.wishlist ? ' items gevonden in je Discogs-wantlist.' : ' items gevonden in je Discogs-collectie.');
+        else if (flow.source === 'bgg') msg = flow.works.length + (flow.wishlist ? ' spellen gevonden op je BGG-verlanglijst.' : ' spellen gevonden in je BGG-collectie.');
         else if (flow.source === 'openlibrary') msg = flow.works.length + (flow.note ? ' titels gevonden voor ' : ' Nederlandstalige titels gevonden voor ') + flow.candidateName + '.';
         else msg = flow.works.length + ' titels gevonden voor ' + flow.candidateName + '.';
         sub.textContent = msg + ' Vink aan wat je wilt toevoegen.';
