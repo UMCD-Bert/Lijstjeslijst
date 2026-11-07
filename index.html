@@ -483,7 +483,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.37.0';
+  var APP_VERSION = '1.37.1';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -2815,6 +2815,24 @@
     await refetchAll();
   }
 
+  // Wantlist/verlanglijst-import: markeert wat je al in je collectie hebt, ook als het een andere uitgave
+  // is (ander Discogs-release-id, zelfde album): op titel, en bij een artiest ook op reeksnaam.
+  function markAlInCollectie(entry, works) {
+    var eigen = collectionItemsFor(entry.id);
+    var perId = {}; eigen.forEach(function (i) { if (i.extern_id) perId[i.extern_id] = true; });
+    var perTitel = {};
+    eigen.forEach(function (i) {
+      var rk = entry.genest ? state.reeksen.find(function (r) { return r.id === i.reeks_id; }) : null;
+      var key = normalizeReeksNaam(i.titel) + '|' + normalizeReeksNaam(rk ? rk.naam : '');
+      perTitel[key] = true; perTitel[normalizeReeksNaam(i.titel) + '|'] = perTitel[normalizeReeksNaam(i.titel) + '|'] || !entry.genest;
+    });
+    works.forEach(function (w) {
+      var artiest = normalizeReeksNaam((w.artist || '').replace(/\s*\(\d+\)$/, ''));
+      var titel = normalizeReeksNaam(w.title);
+      w.alBezit = perId[w.id] ? 'zelfde' : ((perTitel[titel + '|' + artiest] || (!w.artist && perTitel[titel + '|'])) ? 'andere' : '');
+    });
+  }
+
   async function runDiscogsFetch(entry) {
     var flow = state.importFlow;
     try {
@@ -2834,6 +2852,7 @@
         };
       });
       flow.works.sort(function (a, b) { return a.title.localeCompare(b.title); });
+      if (flow.wishlist) markAlInCollectie(entry, flow.works);
       flow.selected = new Set();
       if (!flow.works.length) flow.error = flow.wishlist ? 'Geen items gevonden in je Discogs-wantlist.' : 'Geen items gevonden in je Discogs-collectie.';
     } catch (e) {
@@ -2917,6 +2936,7 @@
         return { id: w.id, title: w.title, coverUrl: w.coverUrl, year: w.year ? Number(w.year) : null, rank: w.rank, publisher: w.publisher };
       });
       flow.works.sort(function (a, b) { return a.title.localeCompare(b.title); });
+      if (flow.wishlist) markAlInCollectie(entry, flow.works);
       flow.selected = new Set();
       if (!flow.works.length) flow.error = flow.wishlist ? 'Geen spellen gevonden op je BGG-verlanglijst.' : 'Geen items gevonden in je BGG-collectie.';
     } catch (e) {
@@ -3635,7 +3655,9 @@
           }
           var span = document.createElement('span');
           span.textContent = w.title + (w.artist ? ' — ' + w.artist : '') + (w.year ? ' (' + w.year + ')' : '')
-            + (w.rank ? ' · rank ' + w.rank : '');
+            + (w.rank ? ' · rank ' + w.rank : '')
+            + (w.alBezit === 'andere' ? ' · heb je al (andere uitgave)' : (w.alBezit === 'zelfde' ? ' · staat al in je collectie' : ''));
+          if (w.alBezit) span.style.color = 'var(--muted)';
           row.appendChild(span);
           worksList.appendChild(row);
         });
