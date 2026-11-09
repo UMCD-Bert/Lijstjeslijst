@@ -357,6 +357,15 @@
   .edit-row-cell { text-align: left; }
   .col-check { text-align: center; width: 54px; min-width: 54px; }
   .title-cell-inner { display: flex; align-items: center; gap: 8px; }
+  .item-icons { display: flex; align-items: center; gap: 8px; flex: none; }
+  .item-icons:empty { display: none; }
+  /* Smal scherm: de icoontjes (grafiek/uitleg/solo/video/hart) op een eigen regel onder de titel; naast de titel kneep
+     de titel samen tot een kolom van enkele pixels breed (gemeten op 375px: 7px). */
+  @media (max-width: 520px) {
+    .title-cell-inner { flex-wrap: wrap; }
+    .item-main { min-width: 110px; }
+    .item-icons { flex: 0 0 100%; flex-wrap: wrap; }
+  }
   .move-col { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
   .item-thumb { width: 72px; height: 100px; object-fit: cover; border-radius: 7px; flex-shrink: 0; background: var(--surface-2); cursor: zoom-in; }
   /* Vierkant alleen bij Muziek (`auto_import: 'discogs'`) — past bij hoe album-/platenhoezen eruit
@@ -397,6 +406,13 @@
   .items-empty { color: var(--muted); font-style: italic; padding: 14px 2px; font-size: 0.9rem; text-align: left; }
   .tracklist-row td { padding: 4px 2px 14px; border-bottom: 1px solid var(--border); }
   /* Uitleg per spel (bordspellen): korte spelregels in gewone taal, tot ongeveer een A4. */
+  .rank-chart { max-width: 30rem; padding: 10px 12px; background: var(--surface-2); border-radius: 8px; }
+  .rank-chart svg { width: 100%; height: auto; display: block; }
+  .rank-chart .rc-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+  .rank-chart .rc-axis { stroke: var(--line, #bbb); stroke-width: 1; }
+  .rank-chart text { font-size: 13px; fill: var(--ink-soft, #666); }
+  .rank-chart .rc-best { fill: var(--accent); }
+  .rank-chart-caption { font-size: 0.85rem; margin-top: 6px; color: var(--ink); }
   .uitleg-box { background: var(--surface-2); border-radius: 8px; padding: 12px 14px; font-size: 0.92rem; line-height: 1.5; color: var(--ink); max-width: 46rem; }
   .uitleg-box h4 { margin: 14px 0 4px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); }
   .uitleg-box h4:first-child { margin-top: 0; }
@@ -483,7 +499,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.37.2';
+  var APP_VERSION = '1.38.0';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -517,7 +533,7 @@
   var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var state = {
     lijsten: [], items: [], reeksen: [], currentId: null, editingItem: null,
-    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}, expandedExtra: {}, expandedUitleg: {}, trackSearch: null, viewMode: {}, addConfirm: {}, bggRefreshing: {}, bggEnriching: {}, compareFlow: null, overviewTab: 'lijsten'
+    filters: {}, search: {}, sortBy: {}, showFieldsEditor: false, showFilters: {}, collapsedReeks: {}, importFlow: null, coverSearch: null, isbnLookup: {}, expandedTracklist: {}, expandedExtra: {}, expandedUitleg: {}, expandedRank: {}, rankHist: {}, trackSearch: null, viewMode: {}, addConfirm: {}, bggRefreshing: {}, bggEnriching: {}, compareFlow: null, overviewTab: 'lijsten'
   };
 
   var gridEl = document.getElementById('grid');
@@ -958,6 +974,74 @@
     inp.setAttribute('aria-label', f.label);
     return inp;
   }
+  var MAANDEN = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
+  function maandJaar(iso) { var d = new Date(iso + 'T00:00:00'); return MAANDEN[d.getMonth()] + ' ' + d.getFullYear(); }
+  function vandaagIso() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function chartSvgIcon() {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('width', '14'); svg.setAttribute('height', '14');
+    var pth = document.createElementNS(ns, 'path');
+    pth.setAttribute('d', 'M2 13V3M2 13H14M4 10L7 7L9.5 9L13 4.5');
+    pth.setAttribute('fill', 'none'); pth.setAttribute('stroke', 'currentColor'); pth.setAttribute('stroke-width', '1.5');
+    pth.setAttribute('stroke-linecap', 'round'); pth.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(pth);
+    return svg;
+  }
+  // Verloop van de BGG-rank: hoogste (rank 1) bovenaan. Bij een groot bereik logaritmisch, anders zie je alleen de eerste jaren.
+  function buildRankChart(item, punten) {
+    var wrap = document.createElement('div'); wrap.className = 'rank-chart';
+    if (!punten || punten.length < 2) {
+      wrap.textContent = punten === null ? 'Verloop wordt opgehaald…' : 'Nog te weinig meetpunten voor een grafiek.';
+      return wrap;
+    }
+    var W = 420, H = 200, L = 40, R = 10, T = 12, B = 26;
+    var t0 = new Date(punten[0].datum + 'T00:00:00').getTime(), t1 = new Date(punten[punten.length - 1].datum + 'T00:00:00').getTime();
+    var min = Infinity, max = -Infinity;
+    punten.forEach(function (q) { min = Math.min(min, q.rank); max = Math.max(max, q.rank); });
+    var logSchaal = max / min > 8;
+    function f(r) { return logSchaal ? Math.log(r) : r; }
+    var fmin = f(min), fmax = f(max); if (fmax === fmin) fmax = fmin + 1;
+    function x(t) { return L + (t1 === t0 ? 0 : (t - t0) / (t1 - t0)) * (W - L - R); }
+    function y(r) { return T + ((f(r) - fmin) / (fmax - fmin)) * (H - T - B); }
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg'); svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Verloop van de BGG-rank van ' + item.titel);
+    function el(name, attrs, text) { var e = document.createElementNS(ns, name); Object.keys(attrs).forEach(function (k) { e.setAttribute(k, attrs[k]); }); if (text != null) e.textContent = text; return e; }
+    svg.appendChild(el('line', { x1: L, y1: T, x2: L, y2: H - B, 'class': 'rc-axis' }));
+    svg.appendChild(el('line', { x1: L, y1: H - B, x2: W - R, y2: H - B, 'class': 'rc-axis' }));
+    svg.appendChild(el('text', { x: L - 6, y: y(min) + 4, 'text-anchor': 'end' }, String(min)));
+    svg.appendChild(el('text', { x: L - 6, y: y(max) + 4, 'text-anchor': 'end' }, String(max)));
+    var y0 = new Date(t0).getFullYear(), y1 = new Date(t1).getFullYear();
+    var stap = (y1 - y0) > 6 ? 2 : 1;
+    for (var yr = y0 + 1; yr <= y1; yr += stap) {
+      var tx = x(new Date(yr, 0, 1).getTime());
+      svg.appendChild(el('text', { x: tx, y: H - 8, 'text-anchor': 'middle' }, String(yr)));
+    }
+    var d = punten.map(function (q, i) { return (i ? 'L' : 'M') + x(new Date(q.datum + 'T00:00:00').getTime()).toFixed(1) + ' ' + y(q.rank).toFixed(1); }).join(' ');
+    svg.appendChild(el('path', { d: d, 'class': 'rc-line' }));
+    var best = punten.reduce(function (a, q) { return q.rank < a.rank ? q : a; }, punten[0]);
+    svg.appendChild(el('circle', { cx: x(new Date(best.datum + 'T00:00:00').getTime()), cy: y(best.rank), r: 4, 'class': 'rc-best' }));
+    wrap.appendChild(svg);
+    var cap = document.createElement('div'); cap.className = 'rank-chart-caption';
+    var nu = punten[punten.length - 1];
+    cap.textContent = 'Beste: ' + best.rank + ' (' + maandJaar(best.datum) + ') · laatste meting: ' + nu.rank + ' (' + maandJaar(nu.datum) + ') · sinds ' + maandJaar(punten[0].datum) + (logSchaal ? ' · logaritmische schaal' : '');
+    wrap.appendChild(cap);
+    return wrap;
+  }
+  async function loadRankHist(item) {
+    if (state.rankHist[item.id] !== undefined) return;
+    state.rankHist[item.id] = null;
+    var all = [], from = 0;
+    for (;;) {
+      var r = await supabase.from('bgg_rank_historie').select('datum,rank').eq('item_id', item.id).order('datum').range(from, from + 999);
+      if (r.error) { console.error(r.error); state.rankHist[item.id] = []; break; }
+      all = all.concat(r.data || []);
+      if (!r.data || r.data.length < 1000) { state.rankHist[item.id] = all; break; }
+      from += 1000;
+    }
+    renderDetail();
+  }
   // Spiegelt LijstLogica.extraSamenvatting (native): uitgever tussen haakjes achter de auteur, BGG-rank met veldnaam.
   function extraSummary(entry, item) {
     var velden = (entry.extra_velden || []).filter(function (f) { return !f.multiline; });
@@ -975,7 +1059,10 @@
         return;
       }
       if (!w) return;
-      delen.push(f.key === 'bgg_rank' ? f.label + ' ' + w : w);
+      if (f.key === 'bgg_rank') {
+        var beste = item.bgg_rank_beste;
+        delen.push(f.label + ' ' + w + (beste && parseInt(w, 10) > beste ? ' (beste ' + beste + ')' : ''));
+      } else delen.push(w);
     });
     return delen.join(' · ');
   }
@@ -1951,6 +2038,7 @@
         main.appendChild(sEl);
       }
       titleCellInner.appendChild(main);
+      var iconsEl = document.createElement('div'); iconsEl.className = 'item-icons'; titleCellInner.appendChild(iconsEl);
 
       // Alleen de tracklist-toggle (bekijken, geen bewerking) blijft permanent zichtbaar per rij —
       // foto/cover-/tracklist-ophalen/verwijderen zitten nu in het bewerkformulier (tik op de titel).
@@ -1963,7 +2051,20 @@
         tracklistBtn.title = tlExpanded ? 'Tracklist verbergen' : 'Tracklist tonen';
         tracklistBtn.setAttribute('aria-label', tracklistBtn.title);
         tracklistBtn.addEventListener('click', function () { state.expandedTracklist[item.id] = !state.expandedTracklist[item.id]; renderDetail(); });
-        titleCellInner.appendChild(tracklistBtn);
+        iconsEl.appendChild(tracklistBtn);
+      }
+      if (item.bgg_rank_beste) {
+        var rkOpen = !!state.expandedRank[item.id];
+        var rkBtn = document.createElement('button');
+        rkBtn.type = 'button'; rkBtn.className = 'icon-btn'; rkBtn.appendChild(chartSvgIcon());
+        rkBtn.title = rkOpen ? 'Rank-verloop verbergen' : 'Rank-verloop tonen';
+        rkBtn.setAttribute('aria-label', rkBtn.title);
+        rkBtn.addEventListener('click', function () {
+          state.expandedRank[item.id] = !state.expandedRank[item.id];
+          if (state.expandedRank[item.id]) loadRankHist(item);
+          renderDetail();
+        });
+        iconsEl.appendChild(rkBtn);
       }
       if (item.uitleg) {
         var ulExpanded = !!state.expandedUitleg[item.id];
@@ -1978,7 +2079,7 @@
           if (!wasOpen) state.expandedUitleg[item.id] = 'uitleg';
           renderDetail();
         });
-        titleCellInner.appendChild(uitlegBtn);
+        iconsEl.appendChild(uitlegBtn);
       }
       if (item.solo) {
         // Poppetje = dit spel heeft een solomodus. Met solo-uitleg is het een knop die die uitleg
@@ -1995,12 +2096,12 @@
             if (!wasOpen) state.expandedUitleg[item.id] = 'solo';
             renderDetail();
           });
-          titleCellInner.appendChild(soloBtn);
+          iconsEl.appendChild(soloBtn);
         } else {
           var soloMark = document.createElement('span');
           soloMark.className = 'icon-static'; soloMark.appendChild(soloSvg());
           soloMark.title = 'Dit spel heeft een solomodus'; soloMark.setAttribute('aria-label', soloMark.title);
-          titleCellInner.appendChild(soloMark);
+          iconsEl.appendChild(soloMark);
         }
       }
       var extraFieldsWithLinks = multilineFieldsWithContent(entry, item);
@@ -2012,7 +2113,7 @@
         extraBtn.title = (extraExpanded ? (f.label + ' verbergen') : (f.label + ' tonen'));
         extraBtn.setAttribute('aria-label', extraBtn.title);
         extraBtn.addEventListener('click', function () { state.expandedExtra[extraExpandKey] = !state.expandedExtra[extraExpandKey]; renderDetail(); });
-        titleCellInner.appendChild(extraBtn);
+        iconsEl.appendChild(extraBtn);
       });
       var wishBtn = document.createElement('button');
       wishBtn.type = 'button'; wishBtn.className = 'icon-btn icon-btn-wish' + (item.verlanglijst ? ' on' : ''); wishBtn.appendChild(heartSvg());
@@ -2021,7 +2122,7 @@
       wishBtn.addEventListener('click', function () {
         supabase.from('lijst_items').update({ verlanglijst: !item.verlanglijst }).eq('id', item.id).then(refetchSoft);
       });
-      titleCellInner.appendChild(wishBtn);
+      iconsEl.appendChild(wishBtn);
       titleTd.appendChild(titleCellInner);
       tr.appendChild(titleTd);
 
@@ -2047,9 +2148,18 @@
       var uitlegMode = state.expandedUitleg[item.id];
       var uitlegText = uitlegMode === 'solo' ? item.solo_uitleg : (uitlegMode ? item.uitleg : null);
       var uitlegOpen = !!uitlegText;
-      if ((!item.tracklist || !state.expandedTracklist[item.id]) && !expandedExtraFields.length && !uitlegOpen) return tr;
+      var rankOpen = !!state.expandedRank[item.id] && !!item.bgg_rank_beste;
+      if ((!item.tracklist || !state.expandedTracklist[item.id]) && !expandedExtraFields.length && !uitlegOpen && !rankOpen) return tr;
       var frag = document.createDocumentFragment();
       frag.appendChild(tr);
+      if (rankOpen) {
+        var rkRow = document.createElement('tr'); rkRow.className = 'tracklist-row';
+        var rkTd = document.createElement('td'); rkTd.colSpan = colCount;
+        var rkWrap = document.createElement('div'); rkWrap.className = 'wide-row-content';
+        var hist = state.rankHist[item.id];
+        rkWrap.appendChild(buildRankChart(item, hist === undefined ? null : hist));
+        rkTd.appendChild(rkWrap); rkRow.appendChild(rkTd); frag.appendChild(rkRow);
+      }
       if (uitlegOpen) {
         var ulRow = document.createElement('tr'); ulRow.className = 'tracklist-row';
         var ulTd = document.createElement('td'); ulTd.colSpan = colCount;
@@ -2975,13 +3085,25 @@
       var xml = await fetchBggCollectionXml(entry.bgg_username);
       var rankById = {};
       parseBggCollection(xml).forEach(function (w) { rankById[w.id] = w.rank; });
+      var histRows = [];
       for (var i = 0; i < existing.length; i++) {
         var item = existing[i];
         if (!rankById.hasOwnProperty(item.extern_id)) continue;
         var extra = Object.assign({}, item.extra || {});
         var newRank = rankById[item.extern_id];
         extra[bggRankKey] = newRank ? String(newRank) : null;
-        await supabase.from('lijst_items').update({ extra: extra }).eq('id', item.id);
+        var upd = { extra: extra };
+        if (newRank) {
+          // Beste rank ooit + een meetpunt voor de grafiek (zelfde datum = overschrijven).
+          if (!item.bgg_rank_beste || newRank < item.bgg_rank_beste) { upd.bgg_rank_beste = newRank; upd.bgg_rank_beste_datum = vandaagIso(); }
+          histRows.push({ item_id: item.id, datum: vandaagIso(), rank: newRank });
+        }
+        await supabase.from('lijst_items').update(upd).eq('id', item.id);
+      }
+      if (histRows.length) {
+        var hr = await supabase.from('bgg_rank_historie').upsert(histRows, { onConflict: 'item_id,datum' });
+        if (hr.error) console.error('rank-historie', hr.error);
+        state.rankHist = {};
       }
       await refetchAll();
     } catch (e) {
@@ -3371,6 +3493,7 @@
         if (wi < selectedWorks.length - 1) await sleep(300);
       }
       var row = { lijst_id: entry.id, titel: w.title, extra: extra, vinkjes: vinkjes, bron: flow.source, extern_id: w.id, omslag_url: w.coverUrl || null, tracklist: tracklist, volgorde: base + wi, verlanglijst: !!flow.wishlist };
+      if (flow.source === 'bgg' && bggRankKey && w.rank) { row.bgg_rank_beste = w.rank; row.bgg_rank_beste_datum = vandaagIso(); }
       if (flow.reeksId) row.reeks_id = flow.reeksId;
       else if (entry.genest && flow.source === 'discogs') {
         var n = (w.artist || '').trim();
@@ -3383,6 +3506,13 @@
     }
     var result = await supabase.from('lijst_items').insert(rows).select();
     await refetchSoft(result);
+    if (flow.source === 'bgg' && result.data && result.data.length) {
+      var nieuweHist = result.data.filter(function (r) { return r.bgg_rank_beste; }).map(function (r) { return { item_id: r.id, datum: vandaagIso(), rank: r.bgg_rank_beste }; });
+      if (nieuweHist.length) {
+        var nh = await supabase.from('bgg_rank_historie').upsert(nieuweHist, { onConflict: 'item_id,datum' });
+        if (nh.error) console.error('rank-historie', nh.error);
+      }
+    }
     // Ontwerper zit niet in het collection-endpoint (zie hierboven) — voor een verse BGG-import
     // meteen aanvullen via de thing-batch, zodat een nieuw geïmporteerd spel niet als enige zonder
     // deze gegevens komt te staan tot iemand de "aanvullen"-knop gebruikt.
