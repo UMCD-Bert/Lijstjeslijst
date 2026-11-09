@@ -1025,7 +1025,7 @@
     wrap.appendChild(svg);
     var cap = document.createElement('div'); cap.className = 'rank-chart-caption';
     var nu = punten[punten.length - 1];
-    cap.textContent = 'Beste: ' + best.rank + ' (' + maandJaar(best.datum) + ') · laatste meting: ' + nu.rank + ' (' + maandJaar(nu.datum) + ') · sinds ' + maandJaar(punten[0].datum) + (logSchaal ? ' · logaritmische schaal' : '');
+    cap.textContent = 'Beste: ' + best.rank + ' (' + maandJaar(best.datum) + ') · laatste meting: ' + nu.rank + ' (' + maandJaar(nu.datum) + ') · sinds ' + maandJaar(punten[0].datum) + ' · hoger in de grafiek = betere rank';
     wrap.appendChild(cap);
     return wrap;
   }
