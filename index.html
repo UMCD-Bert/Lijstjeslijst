@@ -483,7 +483,7 @@
 
 <script>
 (function () {
-  var APP_VERSION = '1.37.1';
+  var APP_VERSION = '1.37.2';
   var SUPABASE_URL = 'https://dckojtvyxqsgvcfgufpf.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_KELGR-EkKYZBF_knnwdNvg_vA966Yqr';
   var COVER_BUCKET = 'afbeeldingen';
@@ -958,10 +958,26 @@
     inp.setAttribute('aria-label', f.label);
     return inp;
   }
+  // Spiegelt LijstLogica.extraSamenvatting (native): uitgever tussen haakjes achter de auteur, BGG-rank met veldnaam.
   function extraSummary(entry, item) {
-    return (entry.extra_velden || []).filter(function (f) { return !f.multiline; })
-      .map(function (f) { return item.extra && item.extra[f.key]; })
-      .filter(function (v) { return v; }).join(' · ');
+    var velden = (entry.extra_velden || []).filter(function (f) { return !f.multiline; });
+    var heeft = function (k) { return velden.some(function (f) { return f.key === k; }); };
+    var samen = heeft('auteur') && heeft('uitgever');
+    var ex = item.extra || {};
+    var uitgever = samen ? (ex.uitgever || '') : '';
+    var delen = [];
+    velden.forEach(function (f) {
+      var w = ex[f.key] || '';
+      if (samen && f.key === 'uitgever') return;
+      if (samen && f.key === 'auteur') {
+        if (w) delen.push(uitgever ? w + ' (' + uitgever + ')' : w);
+        else if (uitgever) delen.push('(' + uitgever + ')');
+        return;
+      }
+      if (!w) return;
+      delen.push(f.key === 'bgg_rank' ? f.label + ' ' + w : w);
+    });
+    return delen.join(' · ');
   }
   function multilineFieldsWithContent(entry, item) {
     return (entry.extra_velden || []).filter(function (f) { return f.multiline && item.extra && item.extra[f.key]; });
